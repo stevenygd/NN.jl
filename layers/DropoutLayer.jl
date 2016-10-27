@@ -15,7 +15,8 @@ end
 function forward(l::DropoutLayer, x::Array{Float64,2})
     l.last_input  = x
     N, D = size(x)
-    l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
+    # l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
+    l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
     l.last_output = l.last_input .* l.last_drop
     return l.last_output
 end

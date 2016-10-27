@@ -25,7 +25,7 @@ label = trainlabel(1)
 trainX, trainY = traindata()
 testX, testY = testdata()
 trX = trainX'
-ttl = 500
+ttl = 40000
 trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
 
 @assert size(trX)[1] == size(trY)[1]
@@ -35,6 +35,6 @@ println(size(trX), size(trY))
 trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
 
 # force to compile the function
-train(net, trX, trY, ttl_epo = 1; batch_size = 500)
+train(net, trX, trY, ttl_epo = 10; batch_size = 500, lrSchedule = (x->0.01))
 
 print("Finish")
