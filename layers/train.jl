@@ -14,24 +14,28 @@ function sgd(net::SequentialNet, batch_X, batch_Y, lr::Float64 = 0.0001)
         backward(net, Y) # Propagate the dldy
         for i = 1:length(net.layers)
             gradients[i] += gradient(net.layers[i]) 
+
         end
         ttl_loss += loss
     end
+    # println(gradients)
     for i = 1:length(net.layers)
         local layer = net.layers[i]
-        setParam(layer, getParam(layer) - lr * gradients[i] / batch_size )
+        local theta = getParam(layer) - lr * gradients[i] / batch_size
+        setParam!(layer, theta)
     end
 
     return ttl_loss
 end
 
-function train(net::SequentialNet, X, Y)
-    local batch_size = 64
+function train(net::SequentialNet, X, Y, ttl_epo::Int64 = 10)
+    local batch_size = 1
     local N = size(Y)[1]
     local batch=0
-    for epo = 1:2
+    for epo = 1:ttl_epo
         println("Epo $(epo):")
-        local num_batch = ceil(length(X)/batch_size)-1
+        local num_batch = ceil(N/batch_size)-1
+        println("NUMBER OF BATCH:$(num_batch)")
         for bid = 0:num_batch
             batch += 1
             local sidx::Int = convert(Int64, bid*batch_size+1)

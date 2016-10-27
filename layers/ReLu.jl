@@ -32,7 +32,7 @@ function getParam(l::ReLu)
     0
 end
 
-function setParam(l::ReLu, theta)
+function setParam!(l::ReLu, theta)
     nothing
 end
 

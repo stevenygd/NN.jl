@@ -16,9 +16,10 @@ function forward(l::CrossEntropyLoss, y::Array{Float64,1}, label::Array{Float64,
     local ysubt = y - maximum(y)
     local ynorm = (e .^ ysubt) / sum(e .^ ysubt)
     local loss  = (-log(ynorm))[class]
-    if loss > e^3
-#         print("Loss:$(loss); y=$(y); Y-subtract:$(ysubt); Y-normalized:$(ynorm)")
-        loss = e^3
+
+    println("Loss:$(loss); y=$(y); Y-subtract:$(ysubt); Y-normalized:$(ynorm)")
+    if loss > e^2
+        loss = e^2
     end
     println("Loss layer:$(loss)")
     return loss
@@ -36,6 +37,7 @@ function backward(l::CrossEntropyLoss, x::Array{Float64,1}, label::Array{Float64
     local max = maximum(x)
     local y = e.^(x-max) / sum(e.^(x-max))
     local dldy = y - t
+    println("dldy = $(dldy)")
     return dldy
 end
 l = CrossEntropyLoss()

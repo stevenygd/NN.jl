@@ -14,7 +14,7 @@ function forward(net::SequentialNet, x::Array{Float64}, label::Array)
         inp = forward(net.layers[i], inp)
     end
     local loss = forward(net.lossfn, inp, label)
-    println("Network bastract loss:$(loss)")
+    # println("Network bastract loss:$(loss)")
     return loss
 end
 
