@@ -1,29 +1,19 @@
 function sgd(net::SequentialNet, batch_X, batch_Y; lr::Float64 = 0.01, alpha::Float64 = 0.9)
     local batch_size = size(batch_X)[1]
-    local ttl_loss   = []
     local gradients  = []
     for i = 1:length(net.layers)
         local layer = net.layers[i]
         append!(gradients,zeros(size(getParam(layer))))
     end
-    for b = 1:batch_size
-        local X = batch_X[b,:] 
-        local Y = batch_Y[b,:]
-        local loss = forward(net, X, Y)
-        backward(net, Y)
-        for i = 1:length(net.layers)
-            gradients[i] += gradient(net.layers[i]) 
-
-        end
-        append!(ttl_loss, loss)
-    end
+    local loss = forward(net, X, Y)
+    backward(net, Y)
     for i = 1:length(net.layers)
         local layer = net.layers[i]
-        local theta = getParam(layer) - lr * gradients[i] / batch_size + alpha * getLDiff(layer)
+        local theta = getParam(layer) - lr * gradient(layer) / batch_size + alpha * getLDiff(layer)
         setParam!(layer, theta)
     end
 
-    return mean(ttl_loss)
+    return mean(loss)
 end
 
 function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01))

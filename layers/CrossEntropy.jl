@@ -11,16 +11,18 @@ type CrossEntropyLoss <: LossCriteria
     end
 end    
 
-function forward(l::CrossEntropyLoss, y::Array{Float64,1}, label::Array{Float64, 1})
+function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 1})
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
-    local class = convert(Int64,label[1]) + 1
-    l.last_input = y
-    y = y - maximum(y)
-    l.last_output = -y + log(sum(exp(y)))
-    local loss = l.last_output[class] 
+    N = size(Y)[1]
+    l.last_input = Y
+    Y = broadcast(+, Y, - maximum(Y, 2))
+    l.last_output = broadcast(+, -Y, log(sum(exp(Y), 2)))
+    @assert size(l.last_output) == size(Y)
+    label = map(x -> convert(Int64, x) + 1, label)
+    local loss = map(i -> l.last_output[i, label[i]], 1:N)
     if verbose
         println("Loss:$(loss); y=$(y)")
         println("output=$(l.last_output) class=$(class)")   
@@ -29,24 +31,30 @@ function forward(l::CrossEntropyLoss, y::Array{Float64,1}, label::Array{Float64,
     return loss
 end
 
-function backward(l::CrossEntropyLoss, x::Array{Float64,1}, label::Array{Float64, 1})
+function backward(l::CrossEntropyLoss, label::Array{Float64, 1})
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
-    local class = convert(Int64,label[1]) + 1
-    local t = zeros(length(x))
-    t[class] = 1.
-    @assert sum(t) == 1 && minimum(t) >= 0
+    local N = size(l.last_input)[1]
+    local T = zeros(size(l.last_input))
+    for i = 1:N
+        T[i, convert(Int64,label[1]) + 1] = 1.
+        @assert sum(T[i,:]) == 1 && minimum(T[i,:]) >= 0
+    end
 
-    local y = exp(l.last_input - maximum(l.last_input))
-    y = y / sum(y)
-    local dldy = y - t
+    local Y = exp(broadcast(+, l.last_input, - maximum(l.last_input, 2)))
+    @assert size(Y) == size(l.last_input)
+    Y = broadcast(/, Y, sum(Y, 2))
+    local DLDY = Y .- T
     if verbose
         println("dldy = $(dldy)")
     end
-    return dldy
+    return DLDY 
 end
 l = CrossEntropyLoss()
-println(forward(l, [1.,2.,0.], [2.]))
-println(backward(l, [1.,2.,0.], [2.]))
+lbl = map(x -> convert(Float64, x), rand(0:9,10))
+println(size(lbl))
+println(lbl)
+println(forward(l, rand(5,10), lbl))
+println(backward(l, lbl))
