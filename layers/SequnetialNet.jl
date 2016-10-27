@@ -1,3 +1,4 @@
+include("Criteria.jl")
 abstract NN
 type SequentialNet <: NN
     layers :: Array{Layer}

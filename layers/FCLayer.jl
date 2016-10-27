@@ -1,3 +1,5 @@
+include("Criteria.jl")
+
 # Define the Fully Connected layers
 type FCLayer <: Layer
     W           :: Array{Float64}
