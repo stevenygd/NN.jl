@@ -25,7 +25,7 @@ label = trainlabel(1)
 trainX, trainY = traindata()
 testX, testY = testdata()
 trX = trainX'
-ttl = 3200
+ttl = 50000
 trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
 
 @assert size(trX)[1] == size(trY)[1]
@@ -34,6 +34,6 @@ println(size(trX), size(trY))
 # Normalize the input
 trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
 
-train(net, trX, trY, ttl_epo = 50)
+train(net, trX, trY, ttl_epo = 50; batch_size = 500)
 
 print("Finish")

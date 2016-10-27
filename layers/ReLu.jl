@@ -7,24 +7,25 @@ type ReLu <: Nonlinearity
     last_output :: Array{Float64}
     last_loss   :: Array{Float64}
     last_diff   :: Array{Float64}
+    last_fil    :: Array{Float64}
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(alpha, Float64[], Float64[], Float64[], Float64[], Float64[])
     end
 end
 
 function forward(l::ReLu, x::Array{Float64})
     l.last_input  = x
-    l.last_output = map(y -> max(0., y*l.alpha), x)
+    l.last_fil    = map(y -> y > 0 ? 1. : 0., x)
+    l.last_output = l.last_fil .* l.last_input
     l.last_output
 end
 
 function backward(l::ReLu, loss::Array{Float64})
     @assert size(l.last_input) == size(loss)
     l.last_loss = loss
-    local input_fil = map(x -> x > 0 ? 1.0 : 0.0, l.last_input)
-    return input_fil .* loss
+    return l.last_fil .* loss
 end
 
 function gradient(l::ReLu)
