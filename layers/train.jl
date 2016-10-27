@@ -1,17 +1,4 @@
-function sgd(net::SequentialNet, batch_X, batch_Y; lr::Float64 = 0.01, alpha::Float64 = 0.9)
-    local batch_size = size(batch_X)[1]
-    local loss = forward(net, X, Y)
-    backward(net, Y)
-    for i = 1:length(net.layers)
-        local layer = net.layers[i]
-        local theta = getParam(layer) - lr * gradient(layer) / batch_size + alpha * getLDiff(layer)
-        setParam!(layer, theta)
-    end
-
-    return mean(loss)
-end
-
-function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01))
+function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9)
     local N = size(Y)[1]
     local batch=0
     local epo_losses = []
@@ -26,7 +13,13 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
             local batch_X = X[sidx:eidx,:]
             local batch_Y = Y[sidx:eidx,:]
-            local loss = sgd(net, batch_X, batch_Y; lr=lrSchedule(epo))
+            local loss = mean(forward(net, batch_X, batch_Y))
+            backward(net, batch_Y)
+            for i = 1:length(net.layers)
+                local layer = net.layers[i]
+                local theta = getParam(layer) - lrSchedule(epo) * gradient(layer) / batch_size + alpha * getLDiff(layer)
+                setParam!(layer, theta)
+            end
             append!(all_losses, loss)
             println("[$(bid)/$(num_batch)]Loss is: $(loss)")
         end

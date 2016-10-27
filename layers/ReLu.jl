@@ -43,5 +43,5 @@ function getLDiff(l::ReLu)
 end
 
 l = ReLu()
-println(forward(l, [1.,0.,-1.,2.]))
-println(backward(l, [3.0,2.0,1.,1.0]))
+# println(forward(l, [1.,0.,-1.,2.]))
+# println(backward(l, [3.0,2.0,1.,1.0]))

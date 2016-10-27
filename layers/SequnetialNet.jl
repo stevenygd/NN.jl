@@ -19,7 +19,7 @@ function forward(net::SequentialNet, x::Array{Float64}, label::Array)
 end
 
 function backward(net::SequentialNet, label)
-    local dldy = backward(net.lossfn, net.layers[end].last_output, label)
+    local dldy = backward(net.lossfn, label)
     for i = length(net.layers):-1:1
         dldy = backward(net.layers[i], dldy)
     end

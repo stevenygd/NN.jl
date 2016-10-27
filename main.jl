@@ -6,13 +6,13 @@ include("layers/SequnetialNet.jl")
 include("layers/train.jl")
 
 layers = [
-    DropoutLayer(0.2, 784),
+    DropoutLayer(0.2),
     FCLayer(784, 800),
     ReLu(),
-    DropoutLayer(0.5, 800),
+    DropoutLayer(0.5),
     FCLayer(800, 800),
     ReLu(),
-    DropoutLayer(0.5, 800),
+    DropoutLayer(0.5),
     FCLayer(800, 10)
 ]
 criteria = CrossEntropyLoss()

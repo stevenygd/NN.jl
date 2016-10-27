@@ -11,7 +11,7 @@ type CrossEntropyLoss <: LossCriteria
     end
 end    
 
-function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 1})
+function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2})
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -31,7 +31,7 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
     return loss
 end
 
-function backward(l::CrossEntropyLoss, label::Array{Float64, 1})
+function backward(l::CrossEntropyLoss, label::Array{Float64, 2})
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -54,7 +54,7 @@ function backward(l::CrossEntropyLoss, label::Array{Float64, 1})
 end
 l = CrossEntropyLoss()
 lbl = map(x -> convert(Float64, x), rand(0:9,10))
-println(size(lbl))
-println(lbl)
-println(forward(l, rand(5,10), lbl))
-println(backward(l, lbl))
+# println(size(lbl))
+# println(lbl)
+# println(forward(l, rand(5,10), lbl))
+# println(backward(l, lbl))

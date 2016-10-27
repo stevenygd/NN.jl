@@ -12,7 +12,7 @@ type FCLayer <: Layer
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
         local a = sqrt(2. / (i + o))
         local newW = rand(i,o)* 2 * a - a
-        return new(newW, zeros(i), zeros(o), zeros(o), zeros(o, i))
+        return new(newW, zeros(i), zeros(o), zeros(o), zeros(i, o))
     end
 end
 
@@ -52,6 +52,6 @@ function getLDiff(l::FCLayer)
 end
 
 l = FCLayer(12,20)
-println(forward(l, rand(10,12)))
-println(backward(l, rand(10,20)))
-println(gradient(l))
+# println(forward(l, rand(10,12)))
+# println(backward(l, rand(10,20)))
+#
