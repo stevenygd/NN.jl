@@ -6,9 +6,11 @@ type ReLu <: Nonlinearity
     last_input  :: Array{Float64}
     last_output :: Array{Float64}
     last_loss   :: Array{Float64}
+    last_diff   :: Array{Float64}
+
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(alpha, Float64[], Float64[], Float64[])
+        return new(alpha, Float64[], Float64[], Float64[], Float64[])
     end
 end
 
@@ -35,6 +37,10 @@ end
 
 function setParam!(l::ReLu, theta)
     nothing
+end
+
+function getLDiff(l::ReLu)
+    0
 end
 
 l = ReLu()

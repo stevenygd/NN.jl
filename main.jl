@@ -33,7 +33,6 @@ println(size(trX), size(trY))
 
 # Normalize the input
 trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
-# trX = trX ./ repeat(var(trX, 1), outer = [ttl, 1])
 
 train(net, trX, trY, ttl_epo = 50)
 

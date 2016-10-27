@@ -38,3 +38,7 @@ end
 function setParam!(l::DropoutLayer, theta)
     nothing
 end
+
+function getLDiff(l::DropoutLayer)
+    0
+end

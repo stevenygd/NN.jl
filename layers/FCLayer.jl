@@ -6,9 +6,13 @@ type FCLayer <: Layer
     last_input  :: Array{Float64}
     last_output :: Array{Float64}
     last_loss   :: Array{Float64}
+    last_diff   :: Array{Float64}
 
     function FCLayer(i, o)
-        return new(rand(o,i), zeros(i), zeros(o), zeros(o))
+        # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
+        local a = sqrt(2. / (i + o))
+        local newW = rand(o,i)* 2 * a - a
+        return new(newW, zeros(i), zeros(o), zeros(o), zeros(o, i))
     end
 end
 
@@ -27,7 +31,6 @@ end
 
 function gradient(l::FCLayer)
     @assert size(l.last_loss) == (size(l.W)[1],)
-    # println("FC Loss:$(l.last_loss),\nFC Last Input:$(l.last_input)")
     l.last_loss * l.last_input'
 end
 
@@ -37,11 +40,12 @@ end
 
 function setParam!(l::FCLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
-    local diff = abs(l.W - theta)
-    if sum(diff) > 0.
-        # println("Updating W :$(sum(l.W)), $(sum(theta))")
-    end
+    l.last_diff = theta - l.W
     l.W = theta
+end
+
+function getLDiff(l::FCLayer)
+    return l.last_diff
 end
 
 l = FCLayer(10,20)
