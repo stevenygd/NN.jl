@@ -27,7 +27,7 @@ end
 
 function gradient(l::FCLayer)
     @assert size(l.last_loss) == (size(l.W)[1],)
-    println("FC Loss:$(l.last_loss),\nFC Last Input:$(l.last_input)")
+    # println("FC Loss:$(l.last_loss),\nFC Last Input:$(l.last_input)")
     l.last_loss * l.last_input'
 end
 
@@ -39,7 +39,7 @@ function setParam!(l::FCLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
     local diff = abs(l.W - theta)
     if sum(diff) > 0.
-        println("Updating W :$(sum(l.W)), $(sum(theta))")
+        # println("Updating W :$(sum(l.W)), $(sum(theta))")
     end
     l.W = theta
 end

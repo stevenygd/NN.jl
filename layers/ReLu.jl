@@ -21,7 +21,8 @@ end
 function backward(l::ReLu, loss::Array{Float64})
     @assert size(l.last_input) == size(loss)
     l.last_loss = loss
-    map(idx -> l.last_input[idx]>=0 ? l.last_input[idx]*l.alpha*loss[idx] : 0., 1:length(l.last_input))
+    local input_fil = map(x -> x > 0 ? 1.0 : 0.0, l.last_input)
+    return input_fil .* loss
 end
 
 function gradient(l::ReLu)

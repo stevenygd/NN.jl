@@ -1,14 +1,19 @@
 include("layers/CrossEntropy.jl")
 include("layers/FCLayer.jl")
+include("layers/DropoutLayer.jl")
 include("layers/ReLu.jl")
 include("layers/SequnetialNet.jl")
 include("layers/train.jl")
 
 layers = [
-    # FCLayer(784, 196),
-    # ReLu(),
-    FCLayer(20, 10),
-    ReLu()
+    DropoutLayer(0.2, 784),
+    FCLayer(784, 800),
+    ReLu(),
+    DropoutLayer(0.5, 800),
+    FCLayer(800, 800),
+    ReLu(),
+    DropoutLayer(0.5, 800),
+    FCLayer(800, 10)
 ]
 criteria = CrossEntropyLoss()
 net = SequentialNet(layers, criteria)
@@ -19,28 +24,17 @@ label = trainlabel(1)
 
 trainX, trainY = traindata()
 testX, testY = testdata()
+trX = trainX'
+ttl = 3200
+trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
 
-trainX = trainX'
-using MultivariateStats
-
-# suppose Xtr and Xte are training and testing data matrix,
-# with each observation in a column
-
-# train a PCA model
-M = fit(PCA, trainX; maxoutdim=20)
-
-# apply PCA model to testing set
-trainX = transform(M, trainX)
-
-ttl = 200
-trainX, trainY = trainX[1:ttl,:], trainY[1:ttl,:]
-
-@assert size(trainX)[1] == size(trainY)[1]
-println(size(trainX), size(trainY))
+@assert size(trX)[1] == size(trY)[1]
+println(size(trX), size(trY))
 
 # Normalize the input
-trainX = trainX - repeat(mean(trainX, 1), outer = [ttl, 1])
+trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
+# trX = trX ./ repeat(var(trX, 1), outer = [ttl, 1])
 
-train(net, trainX, trainY)
+train(net, trX, trY, ttl_epo = 50)
 
 print("Finish")

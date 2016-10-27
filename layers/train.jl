@@ -1,4 +1,4 @@
-function sgd(net::SequentialNet, batch_X, batch_Y, lr::Float64 = 0.0001)
+function sgd(net::SequentialNet, batch_X, batch_Y; lr::Float64 = 0.0001)
     local batch_size = size(batch_X)[1]
     local ttl_loss   = 0.
     local gradients  = []
@@ -28,8 +28,8 @@ function sgd(net::SequentialNet, batch_X, batch_Y, lr::Float64 = 0.0001)
     return ttl_loss
 end
 
-function train(net::SequentialNet, X, Y, ttl_epo::Int64 = 10)
-    local batch_size = 1
+function train(net::SequentialNet, X, Y; ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01))
+    local batch_size = 128
     local N = size(Y)[1]
     local batch=0
     for epo = 1:ttl_epo
@@ -42,7 +42,7 @@ function train(net::SequentialNet, X, Y, ttl_epo::Int64 = 10)
             local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
             local batch_X = X[sidx:eidx,:]
             local batch_Y = Y[sidx:eidx,:]
-            local loss = sgd(net, batch_X, batch_Y)
+            local loss = sgd(net, batch_X, batch_Y; lr=lrSchedule(epo))
             println("[$(bid)/$(num_batch)]Loss is: $(loss)")
         end
     end
