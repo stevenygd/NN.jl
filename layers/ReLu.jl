@@ -22,7 +22,7 @@ end
 
 function backward(l::ReLu, DLDY::Array{Float64})
     @assert size(l.last_input) == size(DLDY)
-    l.last_loss = DLDY .* map(x -> x > 0 ? 0.0 : 1.0, l.last_output)
+    l.last_loss = DLDY .* map(x -> x > 0 ? 1.0 : 0.0, l.last_output)
     return l.last_loss
 end
 
