@@ -1,10 +1,5 @@
 function sgd(net::SequentialNet, batch_X, batch_Y; lr::Float64 = 0.01, alpha::Float64 = 0.9)
     local batch_size = size(batch_X)[1]
-    local gradients  = []
-    for i = 1:length(net.layers)
-        local layer = net.layers[i]
-        append!(gradients,zeros(size(getParam(layer))))
-    end
     local loss = forward(net, X, Y)
     backward(net, Y)
     for i = 1:length(net.layers)

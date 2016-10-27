@@ -20,7 +20,7 @@ function forward(l::ReLu, X::Array{Float64})
     l.last_output
 end
 
-function backward(l::ReLu, DLDY:{Float64})
+function backward(l::ReLu, DLDY::Array{Float64})
     @assert size(l.last_input) == size(DLDY)
     l.last_loss = DLDY .* min(1.0, max(1.0, l.last_output))
     return l.last_loss
@@ -43,5 +43,5 @@ function getLDiff(l::ReLu)
 end
 
 l = ReLu()
-#println(forward(l, [1.,0.,-1.,2.]))
-#println(backward(l, [3.0,2.0,1.,1.0]))
+println(forward(l, [1.,0.,-1.,2.]))
+println(backward(l, [3.0,2.0,1.,1.0]))
