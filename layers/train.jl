@@ -21,9 +21,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             backward(net, batch_Y)
             for i = 1:length(net.layers)
                 local layer = net.layers[i]
-                local delta = lrSchedule(epo) * gradient(layer) / batch_size
-                local momen = alpha * getLDiff(layer)
-                local theta = getParam(layer) - delta + momen
+                local gradi = lrSchedule(epo) * gradient(layer) / batch_size
+                local veloc = getLDiff(layer)
+                # local theta = getParam(layer) - gradi + momen * alpha
+                # p - mom*v + (mom*v-lr*g) + mom*(mom*v-lr*g)
+                local theta = getParam(layer) - veloc * alpha - gradi + alpha * (alpha * veloc - gradi)
                 setParam!(layer, theta)
                 # println("Gradient:$(sum(abs(delta)))")
             end
