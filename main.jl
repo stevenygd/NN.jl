@@ -6,13 +6,13 @@ include("layers/SequnetialNet.jl")
 include("layers/train.jl")
 
 layers = [
-    DropoutLayer(0.2),
+    # DropoutLayer(0.2),
     FCLayer(784, 800),
     ReLu(),
-    DropoutLayer(0.5),
+    # DropoutLayer(0.5),
     FCLayer(800, 800),
     ReLu(),
-    DropoutLayer(0.5),
+    # DropoutLayer(0.5),
     FCLayer(800, 10)
 ]
 criteria = CrossEntropyLoss()
@@ -32,9 +32,9 @@ trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
 println(size(trX), size(trY))
 
 # Normalize the input
-trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
+# trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
 
 # force to compile the function
-train(net, trX, trY, ttl_epo = 10; batch_size = 500, lrSchedule = (x->0.01))
+train(net, trX, trY; ttl_epo = 10, batch_size = 64, lrSchedule = (x->0.01))
 
 print("Finish")

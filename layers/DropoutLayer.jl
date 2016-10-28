@@ -17,14 +17,17 @@ function forward(l::DropoutLayer, x::Array{Float64,2})
     N, D = size(x)
     # l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
     l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
-    l.last_output = l.last_input .* l.last_drop
+    l.last_output = l.last_drop .* l.last_input
+    # l.last_drop = map(e -> e > l.p ? 1.0 : 0.0, rand(1, D))
+    # l.last_output = broadcast(.*, l.last_input, l.last_drop)
     return l.last_output
 end
 
 function backward(l::DropoutLayer, DLDY::Array{Float64})
-    @assert size(DLDY) == size(l.last_drop) 
+    @assert size(DLDY)[2] == size(l.last_drop)[2] &&
+            size(DLDY)[1] == size(l.last_input)[1]
     l.last_loss = DLDY
-    return l.last_loss .* l.last_drop
+    return broadcast(.*, l.last_loss, l.last_drop)
 end
 
 function gradient(l::DropoutLayer)

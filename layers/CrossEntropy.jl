@@ -1,6 +1,6 @@
 include("Criteria.jl")
 
-verbose = false
+verbose = false 
 
 type CrossEntropyLoss <: LossCriteria
     last_loss   :: Array{Float64}
@@ -9,7 +9,7 @@ type CrossEntropyLoss <: LossCriteria
     function CrossEntropyLoss()
         return new(Float64[], Float64[])
     end
-end    
+end
 
 function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2})
     """
@@ -23,12 +23,14 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
     @assert size(l.last_output) == size(Y)
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
+    local pred = findmax(l.last_output, 2)[2]
+    pred = ind2sub(size(l.last_output), vec(pred))[2] - 1
     if verbose
-        println("Loss:$(loss); y=$(y)")
-        println("output=$(l.last_output) class=$(class)")   
+        println("Loss:$(mean(loss)); y=$(mean(Y, 1))")
+        # println("output=$(mean(l.last_output, 1))") 
     end
     # println("Loss layer:$(loss)")
-    return loss
+    return loss, pred
 end
 
 function backward(l::CrossEntropyLoss, label::Array{Float64, 2})
@@ -48,9 +50,9 @@ function backward(l::CrossEntropyLoss, label::Array{Float64, 2})
     Y = broadcast(/, Y, sum(Y, 2))
     local DLDY = Y .- T
     if verbose
-        println("dldy = $(dldy)")
+        println("dldy = $(DLDY)")
     end
-    return DLDY 
+    return DLDY
 end
 l = CrossEntropyLoss()
 lbl = map(x -> convert(Float64, x), rand(0:9,10))

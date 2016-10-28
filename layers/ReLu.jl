@@ -16,13 +16,13 @@ end
 
 function forward(l::ReLu, X::Array{Float64})
     l.last_input  = X
-    l.last_output = max(X, 0.) 
+    l.last_output = max(X, 0.) * l.alpha
     l.last_output
 end
 
 function backward(l::ReLu, DLDY::Array{Float64})
     @assert size(l.last_input) == size(DLDY)
-    l.last_loss = DLDY .* map(x -> x > 0 ? 1.0 : 0.0, l.last_output)
+    l.last_loss = DLDY .* map(x -> x > 0 ? l.alpha : 0.0, l.last_output)
     return l.last_loss
 end
 
