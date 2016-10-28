@@ -5,36 +5,63 @@ include("layers/ReLu.jl")
 include("layers/SequnetialNet.jl")
 include("layers/train.jl")
 
+using PyPlot
+
 layers = [
-    # DropoutLayer(0.2),
-    FCLayer(784, 800),
+    FCLayer(2, 4),
     ReLu(),
-    # DropoutLayer(0.5),
-    FCLayer(800, 800),
-    ReLu(),
-    # DropoutLayer(0.5),
-    FCLayer(800, 10)
+    FCLayer(2, 4),
+    ReLu()
 ]
-criteria = CrossEntropyLoss()
-net = SequentialNet(layers, criteria)
 
-using MNIST
-features = trainfeatures(1)
-label = trainlabel(1)
 
-trainX, trainY = traindata()
-testX, testY = testdata()
-trX = trainX'
-ttl = 40000
-trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
 
-@assert size(trX)[1] == size(trY)[1]
-println(size(trX), size(trY))
+# Generate data set
+N1, N2 = 500, 500
+N = N1+ N2
 
-# Normalize the input
+points = Array{Float64}(N,2)
+
+## gaussian center
+center, sigma = [0,0], [1 0; 0 1]
+points[:,1] = randn(N, 1)
+points[:,2] = randn(N, 1)
+
+## generate the spherical
+r = 10. 
+for i in (N1+1) : N
+    theta = randn(1, 1)[1] * 2 * pi
+    for j in 1 : 2
+        if(j % 2 == 0)
+            points[i,j] = r * sin(theta) + randn(1, 1)[1] * 2
+        else
+            points[i,j] = r * cos(theta) + randn(1, 1)[1] * 2
+        end
+    end
+end
+
+# scatter(points[:,1], points[:,2])
+
+# using MNIST
+# features = trainfeatures(1)
+# label = trainlabel(1)
+
+# trainX, trainY = traindata()
+# testX, testY = testdata()
+# trX = trainX'
+# ttl = 40000
+# trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
+
+# @assert size(trX)[1] == size(trY)[1]
+# println(size(trX), size(trY))
+
+# # Normalize the input
 # trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
 
 # force to compile the function
-train(net, trX, trY; ttl_epo = 10, batch_size = 64, lrSchedule = (x->0.01))
+trX = points[:,1]
+trY = points[:,2]
 
-print("Finish")
+train(net, trX, trY, ttl_epo = 10; batch_size = 500, lrSchedule = (x->0.01))
+
+println("Finish")

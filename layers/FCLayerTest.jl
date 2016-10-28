@@ -34,6 +34,3 @@ w2 = [2. 3.; 3. 2.]
 setParam!(l, w2)
 @test l.W == w2
 @test backward(l,loss2) == [3. ; 2.]
-
-
-
