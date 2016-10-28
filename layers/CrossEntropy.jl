@@ -24,9 +24,9 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
     @assert size(l.last_output) == size(Y)
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
-	local pred = map(i -> findmax(loss[i,:])[2], 1:N)
+	local pred = map(i -> findmax(l.last_output[i,:])[2], 1:N)
     if verbose
-        println("Loss:$(mean(loss)); y=$(mean(Y, 1))")
+        println("Loss:$(loss); y=$(Y)")
         # println("output=$(mean(l.last_output, 1))")
     end
     # println("Loss layer:$(loss)")
@@ -68,8 +68,9 @@ lbl = map(x -> convert(Float64, x), rand(0:9,10))
 y = zeros(2,1)
 y[1] = 1
 y[2] = 2
-
-loss, pred = forward(l, [2. 3. 1.; -2. 3. 2.], y))
+x = [ 2. 1. 3;
+      -2. 3. 2.]
+loss, pred = forward(l, x, y)
 println((loss, pred))
 println(backward(l,y))
 

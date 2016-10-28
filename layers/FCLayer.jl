@@ -10,7 +10,7 @@ type FCLayer <: Layer
 
     function FCLayer(i, o)
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
-        local a = sqrt(2. / (i + o))
+        local a = sqrt(12. / (i + o))
         local newW = rand(i,o)* 2 * a - a
         return new(newW, zeros(i), zeros(o), zeros(o), zeros(i, o))
     end

@@ -1,5 +1,4 @@
-function train(net::SequentialNet, X, Y;
-    batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9)
+function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9)
     local N = size(Y)[1]
     local batch=0
     local epo_losses = []
@@ -37,7 +36,5 @@ function train(net::SequentialNet, X, Y;
         println("Epo $(epo) has loss     : $(epo_loss)")
         println("Epo $(epo) has accuracy : $(epo_accu)")
     end
-
-	# TODO
-	return forward(net, X, Y)
+    return forward(net, X, Y)
 end
