@@ -51,7 +51,11 @@ function getLDiff(l::FCLayer)
     return l.last_diff
 end
 
-l = FCLayer(12,20)
-# println(forward(l, rand(10,12)))
-# println(backward(l, rand(10,20)))
-#
+l = FCLayer(2,3)
+l.W = [ 2 3 4 ; 0 9 8 ]
+X = [ 1. 2; 3 4 ]
+Y = [ 5. 6 7 ; 7 8 9 ]
+println(forward(l, X))
+println(backward(l,Y))
+println(gradient(l))
+

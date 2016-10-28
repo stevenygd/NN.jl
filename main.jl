@@ -4,20 +4,34 @@ include("layers/DropoutLayer.jl")
 include("layers/ReLu.jl")
 include("layers/SequnetialNet.jl")
 include("layers/train.jl")
-
 using PyPlot
+
+# using MNIST
+# features = trainfeatures(1)
+# label = trainlabel(1)
+
+# trainX, trainY = traindata()
+# testX, testY = testdata()
+# trX = trainX'
+# ttl = 40000
+# trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
+
+# @assert size(trX)[1] == size(trY)[1]
+# println(size(trX), size(trY))
+
+# # Normalize the input
+# trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
+# force to compile the function
 
 layers = [
     FCLayer(2, 4),
     ReLu(),
-    FCLayer(2, 4),
-    ReLu()
+    FCLayer(4, 2)
 ]
+criteria = CrossEntropyLoss()
+net = SequentialNet(layers, criteria)
 
-
-
-# Generate data set
-N1, N2 = 500, 500
+N1, N2 = 1000, 1000
 N = N1+ N2
 
 points = Array{Float64}(N,2)
@@ -40,28 +54,18 @@ for i in (N1+1) : N
     end
 end
 
+
+Y = ones(N, 1)
+Y[1:N1, :] = zeros(N1,1)
+println(size(Y))
+
+trX = points
+trY = Y
+
 # scatter(points[:,1], points[:,2])
 
-# using MNIST
-# features = trainfeatures(1)
-# label = trainlabel(1)
-
-# trainX, trainY = traindata()
-# testX, testY = testdata()
-# trX = trainX'
-# ttl = 40000
-# trX, trY = trX[1:ttl,:], trainY[1:ttl,:]
-
-# @assert size(trX)[1] == size(trY)[1]
-# println(size(trX), size(trY))
-
-# # Normalize the input
-# trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
-
-# force to compile the function
-trX = points[:,1]
-trY = points[:,2]
-
-train(net, trX, trY, ttl_epo = 10; batch_size = 500, lrSchedule = (x->0.01))
+loss, pred = train(net, trX, trY, ttl_epo = 100; batch_size = 32, lrSchedule = (x->0.01))
+println(pred)
+scatter(points[:, 1], points[:, 2], c=pred)
 
 println("Finish")

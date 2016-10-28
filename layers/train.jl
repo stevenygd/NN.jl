@@ -29,7 +29,7 @@ function train(net::SequentialNet, X, Y;
                 # println("Gradient:$(sum(abs(delta)))")
             end
             append!(all_losses, loss)
-            println("[$(bid)/$(num_batch)]Loss is: $(loss)\tAccuracy:$(acc)")
+            # println("[$(bid)/$(num_batch)]Loss is: $(loss)\tAccuracy:$(acc)")
         end
         local epo_loss = mean(all_losses)
         local epo_accu = epo_cor / N
@@ -37,4 +37,7 @@ function train(net::SequentialNet, X, Y;
         println("Epo $(epo) has loss     : $(epo_loss)")
         println("Epo $(epo) has accuracy : $(epo_accu)")
     end
+
+	# TODO
+	return forward(net, X, Y)
 end
