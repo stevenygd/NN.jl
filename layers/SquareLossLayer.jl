@@ -25,7 +25,7 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64})
     
     local temp = Y - t
     local loss = temp' * temp / 2.
-    local pred = map(x -> (x > 0)?1:0, Y)    
+    local pred = map(x -> (x > 0)?1:-1, Y)    
     if verbose > 0
         println("Diff: $(temp)")
         if verbose > 1
