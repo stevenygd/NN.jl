@@ -1,3 +1,5 @@
+include("SequnetialNet.jl")
+
 function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9)
     local verbose = 0
     local N = size(Y)[1]
@@ -44,7 +46,6 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
         local epo_loss = mean(all_losses)
         local epo_accu = epo_cor / N
         append!(epo_losses, epo_loss)
-        # @printf "Epo %d has loss:\t%.3f\taccurarcy:%.3f" epo epo_loss epo_accu
         println("Epo $(epo) has loss :$(epo_loss)\t\taccuracy : $(epo_accu)")
     end
     return forward(net, X, Y)
