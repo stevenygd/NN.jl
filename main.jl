@@ -113,7 +113,7 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             backward(net, batch_Y)
             for i = 1:length(net.layers)
                 local layer = net.layers[i]
-                local gradi = lrSchedule(epo) * gradient(layer) 
+                local gradi = lrSchedule(epo) * gradient(layer) / batch_size
                 local theta = getParam(layer) - gradi
                 if verbose > 0
                     print("Layer $(i)")
