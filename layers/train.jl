@@ -17,6 +17,7 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             local batch_X = X[sidx:eidx,:]
             local batch_Y = Y[sidx:eidx,:]
             loss, pred = forward(net, batch_X, batch_Y)
+            println(loss)
             loss = mean(loss)
             epo_cor  += length(filter(e -> e == 0, pred - batch_Y))
             local acc = length(filter(e -> e == 0, pred - batch_Y)) / batch_size
@@ -26,8 +27,8 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
                 local gradi = lrSchedule(epo) * gradient(layer)
                 local veloc = getLDiff(layer)
                 # p - mom*v + (mom*v-lr*g) + mom*(mom*v-lr*g)
-                # local theta = getParam(layer) - veloc * alpha - gradi + alpha * (alpha * veloc - gradi)
-                local theta = getParam(layer) - gradi + alpha * veloc
+                local theta = getParam(layer) - veloc * alpha - gradi + alpha * (alpha * veloc - gradi)
+                # local theta = getParam(layer) - gradi + alpha * veloc
                 if verbose > 0
                     print("Layer $(i)")
                     print("\tGradient: $(sum(abs(theta - getLDiff(layer))))")

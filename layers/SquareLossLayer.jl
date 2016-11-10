@@ -10,7 +10,7 @@ end
 
 verbose = 1
 
-function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64})
+function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -36,7 +36,7 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64})
     
 end
 
-function backward(l::SquareLossLayer, t::Array{Float64})
+function backward(l::SquareLossLayer, t::Array{Float64}; kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer

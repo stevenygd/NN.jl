@@ -25,14 +25,13 @@ function mnistData()
     testX = testX[:, idx]'
     testY = testY[idx]
 
-    ttl = 50000
+    ttl = 5000
     trX, trY = trainX[1:ttl,:], trainY[1:ttl,:]
 
     @assert size(trX)[1] == size(trY)[1]
     println(size(trX), size(trY))
 
-    # Normalize the input
-    trX = trX .- repeat(mean(trX, 1), outer = [ttl, 1])
+    trX = trX / 256. 
     return trX, trY
 end
 
@@ -52,9 +51,23 @@ function build_mlp()
     return net
 end
 
-trX, trY = mnistData()
-net = build_mlp()
 
+function build_mlp_without_dropout()
+    layers = [
+        FCLayer(784, 800),
+        ReLu(),
+        FCLayer(800, 800),
+        ReLu(),
+        FCLayer(800, 10)
+    ]
+    criteria = CrossEntropyLoss()
+    net = SequentialNet(layers, criteria)
+    return net
+end
+
+
+trX, trY = mnistData()
+net = build_mlp_without_dropout()
 
 function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
     local N = size(Y)[1]
@@ -71,18 +84,14 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
             local batch_X = X[sidx:eidx,:]
             local batch_Y = Y[sidx:eidx,:]
-            loss, pred = forward(net, batch_X, batch_Y)
-            loss = mean(loss)
-            epo_cor  += length(filter(e -> e == 0, pred - batch_Y))
-            local acc = length(filter(e -> e == 0, pred - batch_Y)) / batch_size
+            loss, _ = forward(net, batch_X, batch_Y)
             backward(net, batch_Y)
+            append!(all_losses, mean(loss))
             for i = 1:length(net.layers)
                 local layer = net.layers[i]
                 local gradi = lrSchedule(epo) * gradient(layer) / batch_size
-                local veloc = getLDiff(layer)
-                # p - mom*v + (mom*v-lr*g) + mom*(mom*v-lr*g)
-                local theta = getParam(layer) - veloc * alpha - gradi + alpha * (alpha * veloc - gradi)
-                # local theta = getParam(layer) - gradi + alpha * veloc
+                local veloc = getLDiff(layer) * alpha - gradi
+                local theta = getParam(layer) + alpha * veloc - gradi
                 if verbose > 1
                     print("Layer $(i)")
                     print("\tGradient: $(sum(abs(theta - getLDiff(layer))))")
@@ -93,7 +102,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
                 end
                 setParam!(layer, theta)
             end
-            append!(all_losses, loss)
+
+            _, pred = forward(net, batch_X, batch_Y; deterministics = true)
+            epo_cor  += length(filter(e -> e == 0, pred - batch_Y))
+            local acc = length(filter(e -> e == 0, pred - batch_Y)) / batch_size
+
             if verbose > 0
                 println("[$(bid)/$(num_batch)]Loss is: $(loss)\tAccuracy:$(acc)")
             end
@@ -103,11 +116,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
         append!(epo_losses, epo_loss)
         println("Epo $(epo) has loss :$(epo_loss)\t\taccuracy : $(epo_accu)")
     end
-    return forward(net, X, Y)
+    return epo_losses
 end
 
-losses, all_losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
-               lrSchedule = x -> (x < 30) ? 0.03 : 0.01, verbose=0)
+losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
+               lrSchedule = x -> 0.01, verbose=0, alpha=0.9)
 plot(1:length(losses), losses)
 title("Epoch Losses")
 show()

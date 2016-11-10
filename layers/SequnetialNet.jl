@@ -8,12 +8,12 @@ type SequentialNet <: NN
     end
 end
 
-function forward(net::SequentialNet, x::Array{Float64}, label::Array)
+function forward(net::SequentialNet, x::Array{Float64}, label::Array; kwargs...)
     local inp = x
     for i = 1:length(net.layers)
-        inp = forward(net.layers[i], inp)
+        inp = forward(net.layers[i], inp; kwargs...)
     end
-    loss, pred = forward(net.lossfn, inp, label)
+    loss, pred = forward(net.lossfn, inp, label; kwargs...)
     # println("Network bastract loss:$(loss)")
     return loss, pred
 end

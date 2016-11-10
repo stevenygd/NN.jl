@@ -22,13 +22,13 @@ type FCLayer <: Layer
             newW = rand(i+1,o) - 0.5
         end
         # save the original input size
-        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i, o))
+        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i+1, o))
     end
 end
 
 verbose = 0
 
-function forward(l::FCLayer, X::Array{Float64,2})
+function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
@@ -40,7 +40,7 @@ function forward(l::FCLayer, X::Array{Float64,2})
     return l.last_output
 end
 
-function backward(l::FCLayer, DLDY::Array{Float64,2})
+function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
     @assert size(DLDY)[2] == size(l.W)[2]
     l.last_loss = DLDY
     return (DLDY * l.W')[:, 1:l.i] # get rid of the bias

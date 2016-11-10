@@ -12,18 +12,23 @@ type DropoutLayer <: Layer
     end
 end
 
-function forward(l::DropoutLayer, x::Array{Float64,2})
+function forward(l::DropoutLayer, x::Array{Float64,2}; deterministics=false)
     l.last_input  = x
     N, D = size(x)
-    # l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
-    l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
+    if deterministics
+        l.last_drop = ones(N,D)
+    else
+        l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
+        # l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
+
+        # l.last_drop = map(e -> e > l.p ? 1.0 : 0.0, rand(1, D))
+        # l.last_output = broadcast(.*, l.last_input, l.last_drop)
+    end
     l.last_output = l.last_drop .* l.last_input
-    # l.last_drop = map(e -> e > l.p ? 1.0 : 0.0, rand(1, D))
-    # l.last_output = broadcast(.*, l.last_input, l.last_drop)
     return l.last_output
 end
 
-function backward(l::DropoutLayer, DLDY::Array{Float64})
+function backward(l::DropoutLayer, DLDY::Array{Float64}; kwargs...)
     @assert size(DLDY)[2] == size(l.last_drop)[2] &&
             size(DLDY)[1] == size(l.last_input)[1]
     l.last_loss = DLDY
