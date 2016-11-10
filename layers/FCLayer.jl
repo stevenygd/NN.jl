@@ -21,6 +21,7 @@ type FCLayer <: Layer
         elseif init_type == "Random"
             newW = rand(i+1,o) - 0.5
         end
+        newW[i+1,:] = zeros(o)
         # save the original input size
         return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i+1, o))
     end
