@@ -52,19 +52,19 @@ function backward(l::SquareLossLayer, t::Array{Float64}; kwargs...)
     return DLDY
 end
 
-l = SquareLossLayer()
-Y = zeros(4,1)
-Y[1,:] = 0
-Y[2,:] = 1
-Y[3,:] = 3
-Y[4,:] = 5
-t = zeros(4,1)
-t[1,:] = 0
-t[2,:] = 1
-t[3,:] = 1
-t[4,:] = 0
+#l = SquareLossLayer()
+#Y = zeros(4,1)
+#Y[1,:] = 0
+#Y[2,:] = 1
+#Y[3,:] = 3
+#Y[4,:] = 5
+#t = zeros(4,1)
+#t[1,:] = 0
+#t[2,:] = 1
+#t[3,:] = 1
+#t[4,:] = 0
 
-loss, pred = forward(l, Y, t)
-println((loss, pred))
-println(backward(l, t))
+#loss, pred = forward(l, Y, t)
+#println((loss, pred))
+#println(backward(l, t))
 
