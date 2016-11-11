@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 type SquareLossLayer <: LossCriteria
     last_input :: Array{Float64}
@@ -15,17 +15,17 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwarg
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     @return:
-    loss: 
+    loss:
     //TODO:
     pred: naive prediction that if greater than 0 then 1 else 0
-    
+
     """
     N = convert(Float64, size(Y)[1])
     l.last_input = Y
-    
+
     local temp = Y - t
     local loss = temp' * temp / 2.
-    local pred = map(x -> (x > 0)?1:-1, Y)    
+    local pred = map(x -> (x > 0)?1:-1, Y)
     if verbose > 0
         println("Diff: $(temp)")
         if verbose > 1
@@ -33,7 +33,7 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwarg
         end
     end
     return loss, pred
-    
+
 end
 
 function backward(l::SquareLossLayer, t::Array{Float64}; kwargs...)
@@ -67,4 +67,3 @@ end
 #loss, pred = forward(l, Y, t)
 #println((loss, pred))
 #println(backward(l, t))
-

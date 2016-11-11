@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 type SequentialNet <: NN
     layers :: Array{Layer}

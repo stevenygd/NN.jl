@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 type Tanh <: Nonlinearity
     last_input  :: Array{Float64}
@@ -6,7 +6,7 @@ type Tanh <: Nonlinearity
     last_loss   :: Array{Float64}
 
     function Tanh()
-        return new(Float64[], Float64[], Float64[]) 
+        return new(Float64[], Float64[], Float64[])
     end
 end
 
@@ -38,8 +38,8 @@ function getLDiff(l::Tanh)
     0
 end
 
-l = Tanh()
-X = [ 1. 2; -1 3; 1 -2; -3 -3]
-Y = [ 2. 3; 2 5; 3 6; 2 2]
-println(forward(l, X))
-println(backward(l, Y))
+# l = Tanh()
+# X = [ 1. 2; -1 3; 1 -2; -3 -3]
+# Y = [ 2. 3; 2 5; 3 6; 2 2]
+# println(forward(l, X))
+# println(backward(l, Y))
