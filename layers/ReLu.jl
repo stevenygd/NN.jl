@@ -42,8 +42,8 @@ function getLDiff(l::ReLu)
     0
 end
 
-l = ReLu()
-X = [ 1. 2; -1 3; 1 -2; -3 -3]
-Y = [ 2. 3; 2 5; 3 6; 2 2]
-println(forward(l, X))
-println(backward(l, Y))
+#l = ReLu()
+#X = [ 1. 2; -1 3; 1 -2; -3 -3]
+#Y = [ 2. 3; 2 5; 3 6; 2 2]
+#println(forward(l, X))
+#println(backward(l, Y))

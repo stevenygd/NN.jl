@@ -18,8 +18,8 @@ function forward(l::DropoutLayer, x::Array{Float64,2}; deterministics=false)
     if deterministics
         l.last_drop = ones(N,D)
     else
-        l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
-        # l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
+        # l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
+        l.last_drop   = map(e -> (e > l.p) ? 1.0 : 0.0, rand(N,D))
 
         # l.last_drop = map(e -> e > l.p ? 1.0 : 0.0, rand(1, D))
         # l.last_output = broadcast(.*, l.last_input, l.last_drop)
@@ -51,9 +51,9 @@ function getLDiff(l::DropoutLayer)
     0
 end
 
-l = DropoutLayer(0.3)
-X = rand(10, 5)
-Y = rand(10, 5)
+#l = DropoutLayer(0.3)
+#X = rand(10, 5)
+#Y = rand(10, 5)
 # println(forward(l, X))
 # println(backward(l, Y))
 # println(gradient(l))
