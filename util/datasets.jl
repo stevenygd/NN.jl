@@ -1,4 +1,6 @@
-function mnistData(ttl=55000)
+using MNIST
+
+function mnistData(;ttl=55000)
     features = trainfeatures(1)
     label = trainlabel(1)
 
@@ -78,9 +80,9 @@ function XORData(size; dist=0.1, scale = 1.)
 end
 
 function datasplit(trX, trY; ratio = 0.8)
-    N = size(trY)[1]
-    size_training = convert(Int, N * ratio)
-    size_testing  = convert(Int, N * (1-ratio) * 0.5)
+    N = size(trX)[1]
+    size_training = convert(Int, ceil(N * ratio))
+    size_testing  = convert(Int, ceil(N * (1-ratio) * 0.5))
     train_set = (trX[1:size_training,:],trY[1:size_training,:])
     test_set  = (trX[size_training + 1:size_training + size_testing, :],
                  trY[size_training + 1 : size_training + size_testing, :])

@@ -5,36 +5,9 @@ include("layers/DropoutLayer.jl")
 include("layers/ReLu.jl")
 include("layers/Tanh.jl")
 include("layers/SequnetialNet.jl")
+include("util/datasets.jl")
 
 using PyPlot
-using MNIST
-
-function mnistData()
-    features = trainfeatures(1)
-    label = trainlabel(1)
-
-    trainX, trainY = traindata()
-    N = size(trainX)[2]
-    idx = randperm(N)
-    trainX = trainX[:, idx]'
-    trainY = trainY[idx]
-
-    testX, testY = testdata()
-    N = size(testX)[1]
-    idx = randperm(N)
-    testX = testX[:, idx]'
-    testY = testY[idx]
-
-    ttl = 50000
-    trX, trY = trainX[1:ttl,:], trainY[1:ttl,:]
-
-    @assert size(trX)[1] == size(trY)[1]
-    println(size(trX), size(trY))
-
-    trX = trX / 256.
-    return trX, trY
-end
-
 function build_mlp_nodrop()
     layers = [
         FCLayer(784, 800),
@@ -64,7 +37,9 @@ function build_mlp()
     return net
 end
 
-function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
+function train(net::SequentialNet, X, Y;
+    batch_size::Int64 = 64, ttl_epo::Int64 = 10,
+    lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
     local N = size(Y)[1]
     local batch=0
     local epo_losses = []
@@ -114,11 +89,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
     return epo_losses
 end
 
-trX, trY = mnistData()
+trX, trY = mnistData(ttl=1000)
 # net = build_mlp_nodrop()
 net = build_mlp()
 
-losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
+losses = train(net, trX, trY, ttl_epo = 100; batch_size = 50,
                lrSchedule = x -> 0.01, verbose=0, alpha=0.9)
 plot(1:length(losses), losses)
 title("Epoch Losses")
