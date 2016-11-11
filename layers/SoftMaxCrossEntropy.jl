@@ -1,15 +1,15 @@
 include("Criteria.jl")
 
-type CrossEntropyLoss <: LossCriteria
+type SoftMaxCrossEntropyLoss <: LossCriteria
     last_loss   :: Array{Float64}
     last_input  :: Array{Float64}
     last_output :: Array{Float64}
-    function CrossEntropyLoss()
+    function SoftMaxCrossEntropyLoss()
         return new(Float64[], Float64[])
     end
 end
 
-function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
+function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -23,10 +23,11 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
 	local pred = map(i -> findmax(l.last_output[i,:])[2], 1:N)
+   # println("Predict is $pred")
     return loss, pred
 end
 
-function backward(l::CrossEntropyLoss, label::Array{Float64, 2};kwargs...)
+function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
