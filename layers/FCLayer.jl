@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 # Define the Fully Connected layers
 type FCLayer <: Layer
@@ -79,4 +79,3 @@ end
 #println(forward(l, X))
 #println(backward(l,Y))
 #println(gradient(l))
-

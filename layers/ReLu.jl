@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 # Define the ReLu layers
 type ReLu <: Nonlinearity
@@ -10,7 +10,7 @@ type ReLu <: Nonlinearity
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(alpha, Float64[], Float64[], Float64[], Float64[]) 
+        return new(alpha, Float64[], Float64[], Float64[], Float64[])
     end
 end
 
