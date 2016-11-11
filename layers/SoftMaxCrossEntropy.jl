@@ -18,11 +18,17 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     l.last_input = Y
     Y = broadcast(+, Y, - maximum(Y, 2))
     l.last_output = broadcast(+, -Y, log(sum(exp(Y), 2)))
+    Y = exp(Y)
+    Y = broadcast(/, Y, sum(Y,2))
 
     @assert size(l.last_output) == size(Y)
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
-	local pred = map(i -> findmax(l.last_output[i,:])[2], 1:N)
+	local pred = map(i -> findmax(Y[i,:])[2] - 1, 1:N)
+    if maximum(pred) > 9
+        println(loss)
+    end
+    #println("The size of output is $(size(l.last_output))")
     return loss, pred
 end
 
@@ -42,6 +48,9 @@ function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...
 	Y = broadcast(+, Y, - maximum(Y,2))
 	Y = exp(Y)
 	Y = broadcast(/, Y, sum(Y,2))
+    for i = 1: N
+        @assert abs(sum(Y[i,:]) - 1.) <= 1e-6 && minimum(Y[i,:]) >= 0.
+    end
     local DLDY = Y .- TAR
     return DLDY
 end
