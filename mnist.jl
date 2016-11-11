@@ -56,8 +56,10 @@ function build_mlp_without_dropout()
     layers = [
         FCLayer(784, 800),
         ReLu(),
+        DropoutLayer(0.5),
         FCLayer(800, 800),
         ReLu(),
+        DropoutLayer(0.5),
         FCLayer(800, 10)
     ]
     criteria = CrossEntropyLoss()
@@ -65,9 +67,14 @@ function build_mlp_without_dropout()
     return net
 end
 
-
-trX, trY = mnistData()
-net = build_mlp_without_dropout()
+function softmax_regression()
+    layers = [
+        FCLayer(784, 10)
+    ]
+    criteria = CrossEntropyLoss()
+    net = SequentialNet(layers, criteria)
+    return net
+end
 
 function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
     local N = size(Y)[1]
@@ -104,11 +111,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
             end
 
             _, pred = forward(net, batch_X, batch_Y; deterministics = true)
-            epo_cor  += length(filter(e -> e == 0, pred - batch_Y))
-            local acc = length(filter(e -> e == 0, pred - batch_Y)) / batch_size
+            epo_cor  += length(filter(e -> abs(e) < 1e-5, pred - batch_Y))
+            local acc = length(filter(e -> abs(e) < 1e-5, pred - batch_Y)) / batch_size
 
             if verbose > 0
-                println("[$(bid)/$(num_batch)]Loss is: $(loss)\tAccuracy:$(acc)")
+                println("[$(bid)/$(num_batch)]Loss is: $(mean(loss))\tAccuracy:$(acc)")
             end
         end
         local epo_loss = mean(all_losses)
@@ -119,8 +126,12 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
     return epo_losses
 end
 
-losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
-               lrSchedule = x -> 0.01, verbose=0, alpha=0.9)
+trX, trY = mnistData()
+net = build_mlp_without_dropout()
+# net = softmax_regression()
+
+losses = train(net, trX, trY, ttl_epo = 100; batch_size = 50,
+               lrSchedule = x -> 0.05, verbose=0, alpha=0.9)
 plot(1:length(losses), losses)
 title("Epoch Losses")
 show()
