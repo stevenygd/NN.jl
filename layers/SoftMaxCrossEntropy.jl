@@ -23,7 +23,6 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
 	local pred = map(i -> findmax(l.last_output[i,:])[2], 1:N)
-   # println("Predict is $pred")
     return loss, pred
 end
 
@@ -46,7 +45,7 @@ function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...
     local DLDY = Y .- TAR
     return DLDY
 end
-l = CrossEntropyLoss()
+l = SoftMaxCrossEntropyLoss()
 lbl = map(x -> convert(Float64, x), rand(0:9,10))
 # println(size(lbl))
 # println(lbl)
