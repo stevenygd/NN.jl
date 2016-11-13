@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 # Define the ReLu layers
 type ReLu <: Nonlinearity
@@ -10,7 +10,7 @@ type ReLu <: Nonlinearity
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(alpha, Float64[], Float64[], Float64[], Float64[]) 
+        return new(alpha, Float64[], Float64[], Float64[], Float64[])
     end
 end
 
@@ -42,8 +42,8 @@ function getLDiff(l::ReLu)
     0
 end
 
-l = ReLu()
-X = [ 1. 2; -1 3; 1 -2; -3 -3]
-Y = [ 2. 3; 2 5; 3 6; 2 2]
-println(forward(l, X))
-println(backward(l, Y))
+#l = ReLu()
+#X = [ 1. 2; -1 3; 1 -2; -3 -3]
+#Y = [ 2. 3; 2 5; 3 6; 2 2]
+#println(forward(l, X))
+#println(backward(l, Y))

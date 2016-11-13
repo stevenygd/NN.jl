@@ -1,4 +1,4 @@
-include("layers/CrossEntropy.jl")
+include("layers/SoftMaxCrossEntropy.jl")
 include("layers/SquareLossLayer.jl")
 include("layers/FCLayer.jl")
 include("layers/DropoutLayer.jl")
@@ -25,14 +25,27 @@ function mnistData()
     testX = testX[:, idx]'
     testY = testY[idx]
 
-    ttl = 5000
+    ttl = 50000
     trX, trY = trainX[1:ttl,:], trainY[1:ttl,:]
 
     @assert size(trX)[1] == size(trY)[1]
     println(size(trX), size(trY))
 
-    trX = trX / 256. 
+    trX = trX / 256.
     return trX, trY
+end
+
+function build_mlp_nodrop()
+    layers = [
+        FCLayer(784, 800),
+        ReLu(),
+        FCLayer(800, 800),
+        ReLu(),
+        FCLayer(800, 10)
+    ]
+    criteria = SoftMaxCrossEntropyLoss()
+    net = SequentialNet(layers, criteria)
+    return net
 end
 
 function build_mlp()
@@ -46,32 +59,7 @@ function build_mlp()
         DropoutLayer(0.5),
         FCLayer(800, 10)
     ]
-    criteria = CrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
-
-
-function build_mlp_without_dropout()
-    layers = [
-        FCLayer(784, 800),
-        ReLu(),
-        DropoutLayer(0.5),
-        FCLayer(800, 800),
-        ReLu(),
-        DropoutLayer(0.5),
-        FCLayer(800, 10)
-    ]
-    criteria = CrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
-
-function softmax_regression()
-    layers = [
-        FCLayer(784, 10)
-    ]
-    criteria = CrossEntropyLoss()
+    criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
     return net
 end
@@ -127,11 +115,11 @@ function train(net::SequentialNet, X, Y; batch_size::Int64 = 64, ttl_epo::Int64 
 end
 
 trX, trY = mnistData()
-net = build_mlp_without_dropout()
-# net = softmax_regression()
+# net = build_mlp_nodrop()
+net = build_mlp()
 
-losses = train(net, trX, trY, ttl_epo = 100; batch_size = 50,
-               lrSchedule = x -> 0.05, verbose=0, alpha=0.9)
+losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
+               lrSchedule = x -> 0.01, verbose=0, alpha=0.9)
 plot(1:length(losses), losses)
 title("Epoch Losses")
 show()

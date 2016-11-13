@@ -1,4 +1,4 @@
-include("Criteria.jl")
+include("Base.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
     last_loss   :: Array{Float64}
@@ -22,7 +22,7 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     @assert size(l.last_output) == size(Y)
     label = map(x -> convert(Int64, x) + 1, label)
     local loss = map(i -> l.last_output[i, label[i]], 1:N)
-	local pred = map(i -> findmax(l.last_output[i,:])[2], 1:N)
+	local pred = map(i -> findmax(Y[i,:])[2] - 1, 1:N)
     return loss, pred
 end
 
@@ -38,25 +38,26 @@ function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...
         @assert sum(TAR[i,:]) == 1 && minimum(TAR[i,:]) >= 0
     end
 
-	local Y = l.last_input
-	Y = broadcast(+, Y, - maximum(Y,2))
-	Y = exp(Y)
-	Y = broadcast(/, Y, sum(Y,2))
-    local DLDY = Y .- TAR
-    return DLDY
+    local Y = l.last_input
+    Y = exp(broadcast(+, Y, - maximum(Y,2)))
+    Y = broadcast(/, Y, sum(Y,2))
+    for i = 1: N
+        @assert abs(sum(Y[i,:]) - 1.) <= 1e-6 && minimum(Y[i,:]) >= 0.
+    end
+    return Y .- TAR
 end
-l = SoftMaxCrossEntropyLoss()
-lbl = map(x -> convert(Float64, x), rand(0:9,10))
+
+# l = SoftMaxCrossEntropyLoss()
+# lbl = map(x -> convert(Float64, x), rand(0:9,10))
 # println(size(lbl))
 # println(lbl)
 # println(forward(l, rand(5,10), lbl))
 # println(backward(l, lbl))
-y = zeros(2,1)
-y[1] = 1
-y[2] = 2
-x = [ 2. 1. 3;
-      -2. 3. 2.]
-loss, pred = forward(l, x, y)
-println((loss, pred))
-println(backward(l,y))
-
+# y = zeros(2,1)
+# y[1] = 1
+# y[2] = 2
+# x = [ 2. 1. 3;
+#     -2. 3. 2.]
+#loss, pred = forward(l, x, y)
+#println((loss, pred))
+#println(backward(l,y))
