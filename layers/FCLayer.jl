@@ -14,10 +14,10 @@ type FCLayer <: Layer
         local newW = zeros(i+1,o)
         if init_type == "Uniform"
             local a    = sqrt(12. / (i + o))
-            newW = randn(i+1,o)* 2 * a - a
+            newW = rand(i+1,o)* 2 * a - a
         elseif init_type == "Normal"
             local sigma = sqrt(2. / (i + o))
-            newW  = randn(i+1,o)* 2 * sigma
+            newW  = randn(i+1,o) * sqrt(sigma)
         elseif init_type == "Random"
             newW = rand(i+1,o) - 0.5
         end
