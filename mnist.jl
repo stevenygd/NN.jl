@@ -89,11 +89,10 @@ function train(net::SequentialNet, X, Y;
     return epo_losses
 end
 
-trX, trY = mnistData(ttl=1000)
-# net = build_mlp_nodrop()
+trX, trY = mnistData(ttl=50000)
 net = build_mlp()
 
-losses = train(net, trX, trY, ttl_epo = 100; batch_size = 50,
+losses = train(net, trX, trY, ttl_epo = 100; batch_size = 500,
                lrSchedule = x -> 0.01, verbose=0, alpha=0.9)
 plot(1:length(losses), losses)
 title("Epoch Losses")
