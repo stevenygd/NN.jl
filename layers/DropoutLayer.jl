@@ -15,24 +15,35 @@ end
 
 function forward(l::DropoutLayer, x::Array{Float64,2}; deterministics=false)
     # Need to rescale the inputs so that the expected output mean will be the same
-    l.last_input  = x
-    N, D = size(x)
-    if deterministics
+    # print("DropoutLayer (forward):")
+    # @time begin
+      l.last_input  = x
+      N, D = size(x)
+
+      if size(l.last_drop)[1] != N
         l.last_drop = ones(N,D)
-    else
-        # l.last_drop   = repeat(map(e -> (e > l.p) ? 1.0 : 0.0, rand(D))', outer=(N,1))
-        local scale = 1.0 / (1. - l.p)
-        l.last_drop = map(e -> (e > l.p) ? scale : 0.0, rand(N,D))
-    end
-    l.last_output = l.last_drop .* l.last_input
+      end
+
+      rand!(l.last_drop)
+
+      if ! deterministics
+        l.last_drop = (l.last_drop .> l.p) ./ (1-l.p)
+      end
+
+      l.last_output = l.last_drop .* l.last_input
+    # end
     return l.last_output
 end
 
 function backward(l::DropoutLayer, DLDY::Array{Float64}; kwargs...)
+  # print("DropoutLayer (backward):")
+  # @time begin
     @assert size(DLDY)[2] == size(l.last_drop)[2] &&
             size(DLDY)[1] == size(l.last_input)[1]
     l.last_loss = DLDY
-    return broadcast(.*, l.last_loss, l.last_drop)
+    local ret = l.last_loss .* l.last_drop
+  # end
+  return ret
 end
 
 function gradient(l::DropoutLayer)
@@ -51,9 +62,18 @@ function getLDiff(l::DropoutLayer)
     0
 end
 
-#l = DropoutLayer(0.3)
-#X = rand(10, 5)
-#Y = rand(10, 5)
-# println(forward(l, X))
+# l = DropoutLayer(0.3)
+# X = rand(1000, 500)
+# Y = rand(1000, 500)
+# using IProfile
+# forward(l,X)
+# Profile.clear()
+# Profile.init()
+# @profile begin
+#   for i = 1:1000
+#     forward(l, X)
+#   end
+# end
+# Profile.print()
 # println(backward(l, Y))
 # println(gradient(l))
