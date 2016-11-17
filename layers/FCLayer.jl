@@ -30,6 +30,8 @@ end
 verbose = 0
 
 function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
+  # print("FCLayer (forward):")
+  # @time begin
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
@@ -38,17 +40,21 @@ function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
     l.last_input[:,1:l.i]  = X
 
     l.last_output = l.last_input * l.W
-    return l.last_output
+  # end
+  return l.last_output
 end
 
 function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
+  # print("FCLayer (backward):")
+  # @time begin
     @assert size(DLDY)[2] == size(l.W)[2]
     l.last_loss = DLDY
-    return (DLDY * l.W')[:, 1:l.i] # get rid of the bias
+    local ret = (DLDY * l.W')[:, 1:l.i] # get rid of the bias
+  # end
+  return ret
 end
 
 function gradient(l::FCLayer)
-    local ret = zeros()
     local g = l.last_input' * l.last_loss
     @assert size(g) == size(l.W)
     return g
@@ -61,9 +67,6 @@ end
 function setParam!(l::FCLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
     l.last_diff = theta - l.W
-    if verbose > 0
-        println("Difference:$(sum(abs(l.last_diff)))")
-    end
     l.W = theta
 end
 
