@@ -10,19 +10,6 @@ include("layers/Tanh.jl")
 include("layers/SequnetialNet.jl")
 include("util/datasets.jl")
 
-function build_mlp_nodrop()
-    layers = [
-        FCLayer(784, 800),
-        ReLu(),
-        FCLayer(800, 800),
-        ReLu(),
-        FCLayer(800, 10)
-    ]
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
-
 function build_mlp()
     layers = [
         DropoutLayer(0.2),
@@ -52,6 +39,7 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
 
     local val_losses = []
     local val_accu   = []
+
     for epo = 1:ttl_epo
         local num_batch = ceil(N/batch_size)
         if verbose > 0
@@ -59,7 +47,10 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
         end
         all_losses = []
         tftime, tbtime, tgtime = 0., 0., 0.
-        tt1, tt2, tt3, tt4 = 0., 0., 0., 0.
+        tt0, tt1, tt2, tt3, tt4 = Dict(), Dict(), Dict(), Dict(), Dict()
+        for i = 1:length(net.layers)
+          tt0[i], tt1[i], tt2[i], tt3[i], tt4[i] = 0., 0., 0., 0., 0.
+        end
         local etime = @elapsed begin
           for bid = 0:(num_batch-1)
             batch += 1
@@ -78,24 +69,34 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
             end
             tbtime += btime
             local gtime = @elapsed begin
+              local lr = lrSchedule(epo) / batch_size
               for i = 1:length(net.layers)
-                local t1 = @elapsed begin
+                local t0 = @elapsed begin
                   local layer = net.layers[i]
-                  local gradi = lrSchedule(epo) * gradient(layer) / batch_size
+                  local g = gradient(layer)
+                  local v = getLDiff(layer)
+                  local w = getParam(layer)
                 end
-                tt1 += t1
+                tt0[i] += t0
+                local t1 = @elapsed begin
+                  local gradi = lr * g
+                end
+                tt1[i] += t1
                 local t2 = @elapsed begin
-                  local veloc = getLDiff(layer) * alpha - gradi
+                  local veloc = v * alpha - gradi
                 end
-                tt2 += t2
+                tt2[i] += t2
                 local t3 = @elapsed begin
-                  local theta = getParam(layer) + alpha * veloc - gradi
+                  local theta = w + alpha * veloc - gradi
                 end
-                tt3 += t3
+                tt3[i] += t3
                 local t4 = @elapsed begin
                   setParam!(layer, theta)
                 end
-                tt4 += t4
+                tt4[i] += t4
+                if t0 > 0.1 || t1 > 0.1 || t2 > 0.1 || t3 > 0.1 || t4 > 0.1
+                  println("batch$(bid) : $(t0) $(t1) $(t2) $(t3) $(t4)")
+                end
               end
             end
             tgtime += gtime
@@ -104,7 +105,11 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
         end
         println("Epoch $(epo) training time: $(tftime + tbtime + tgtime) s.")
         println("Decomposition: $(tftime), $(tbtime), $(tgtime)")
-        println("Gradient: $(tt1) $(tt2) $(tt3) $(tt4)")
+        for i = 1:length(net.layers)
+          if tt0[i] + tt1[i] + tt2[i] + tt3[i] + tt4[i] > 1.
+            println("Gradient[$(i)]: $(tt0[i]) $(tt1[i]) $(tt2[i]) $(tt3[i]) $(tt4[i])")
+          end
+        end
 
         local ttime = @elapsed begin
           local epo_loss = mean(all_losses)
@@ -135,37 +140,6 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
     return epo_losses,epo_accus, val_losses, val_accu
 end
 
-function demoTrain(trX, trY, valX, valY, teX, teY;total_epo=100)
-    net = build_mlp()
-    epo_losses, epo_accu, val_losses, val_accu = train(net, (trX, trY), (valX, valY);
-                ttl_epo = total_epo, batch_size = 500, lrSchedule = x -> 0.01, verbose=1, alpha=0.9)
-
-    figure(figsize=(12,6))
-    subplot(221)
-    plot(1:length(epo_losses), epo_losses)
-    title("Training losses (epoch)")
-
-    subplot(223)
-    plot(1:length(epo_accu), epo_accu)
-    ylim([0, 1])
-    title("Training Accuracy (epoch)")
-
-    subplot(222)
-    plot(1:length(val_losses), val_losses)
-    title("Validaiton Losses (epoch)")
-
-    subplot(224)
-    plot(1:length(val_accu), val_accu)
-    ylim([0, 1])
-    title("Validaiton Accuracy (epoch)")
-
-    train_loss, pred = forward(net, trX, trY; deterministics = true)
-    N = size(trX)[1]
-    right_idx = filter(i-> abs(pred[i] - trY[i]) <  1e-5, 1:N)
-    wrong_idx = filter(i-> abs(pred[i] - trY[i]) >= 1e-5, 1:N)
-
-end
-
 
 X,Y = mnistData(ttl=55000)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
@@ -176,8 +150,9 @@ teX, teY = test_set[1], test_set[2]
 
 net = build_mlp()
 train(net, (trX, trY), (valX, valY); ttl_epo = 1, batch_size = 500)
-Profile.clear()
-Profile.init()
-@profile begin train(net, (trX, trY), (valX, valY); ttl_epo = 3, batch_size = 500) end
-Profile.print(open("profile_info","w"))
-Profile.print()
+train(net, (trX, trY), (valX, valY); ttl_epo = 5, batch_size = 500)
+# Profile.clear()
+# Profile.init()
+# @profile begin train(net, (trX, trY), (valX, valY); ttl_epo = 3, batch_size = 500) end
+# Profile.print(open("profile_info","w"))
+# Profile.print()
