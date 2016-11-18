@@ -9,9 +9,9 @@ type FCLayer <: Layer
     last_loss   :: Array{Float64}
     last_diff   :: Array{Float64}
 
-    function FCLayer(i, o; init_type = "Uniform")
+    function FCLayer(i::Int64, o::Int64; init_type = "Uniform")
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
-        local newW = zeros(i+1,o)
+        local newW = zeros(i+1,o) 
         if init_type == "Uniform"
             local a    = sqrt(12. / (i + o))
             newW = rand(i+1,o)* 2 * a - a
@@ -79,3 +79,44 @@ end
 #println(forward(l, X))
 #println(backward(l,Y))
 #println(gradient(l))
+
+l = FCLayer(784, 800)
+X = rand(500, 784) #input size 784, batch size 500
+Y = rand(500, 800) 
+
+@time forward(l,X)
+@time backward(l,Y)
+@time gradient(l)
+
+@time forward(l,X)
+@time backward(l,Y)
+@time gradient(l)
+
+#using IProfile
+#forward(l,X)
+#Profile.clear()
+#Profile.init()
+#@profile begin
+#  for i = 1:1000
+#    forward(l, X)
+#  end
+#end
+#Profile.print()
+#
+#Profile.clear()
+#Profile.init()
+#@profile begin
+#  for i = 1:1000
+#        backward(l, Y)
+#  end
+#end
+#Profile.print()
+#
+#Profile.clear()
+#Profile.init()
+#@profile begin
+#  for i = 1:1000
+#        gradient(l)
+#  end
+#end
+#Profile.print()
