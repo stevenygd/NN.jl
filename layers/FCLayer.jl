@@ -11,7 +11,8 @@ type FCLayer <: Layer
 
     function FCLayer(i::Int64, o::Int64; init_type = "Uniform")
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
-        local newW = zeros(i+1,o) 
+        #local newW = zeros(i+1,o)
+        local newW
         if init_type == "Uniform"
             local a    = sqrt(12. / (i + o))
             newW = rand(i+1,o)* 2 * a - a
@@ -30,27 +31,24 @@ end
 verbose = 0
 
 function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
-  # print("FCLayer (forward):")
-  # @time begin
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
     # Pad one at the end of the vector
-    l.last_input  = ones(size(X)[1], l.i + 1)
-    l.last_input[:,1:l.i]  = X
-
+    l.last_input = Array{Float64}(size(X,1), l.i + 1)
+    l.last_input[:,1:l.i] = X
+    l.last_input[:,l.i+1] = 1
+#    l.last_input  = ones(size(X)[1], l.i + 1)
+#    l.last_input[:,1:l.i]  = X
     l.last_output = l.last_input * l.W
-  # end
   return l.last_output
 end
 
 function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
-  # print("FCLayer (backward):")
-  # @time begin
-    @assert size(DLDY)[2] == size(l.W)[2]
+    #@assert size(DLDY)[2] == size(l.W)[2]
+    @assert size(DLDY,2) == size(l.W,2)
     l.last_loss = DLDY
     local ret = (DLDY * l.W')[:, 1:l.i] # get rid of the bias
-  # end
   return ret
 end
 
