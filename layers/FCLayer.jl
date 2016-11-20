@@ -6,8 +6,10 @@ type FCLayer <: Layer
     W           :: Array{Float64}
     last_input  :: Array{Float64}
     last_output :: Array{Float64}
+    last_dldy   :: Array{Float64}
     last_loss   :: Array{Float64}
     last_diff   :: Array{Float64}
+    gradi       :: Array{Float64}
 
     function FCLayer(i::Int64, o::Int64; init_type = "Uniform")
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
@@ -24,38 +26,46 @@ type FCLayer <: Layer
         end
         newW[i+1,:] = zeros(o)
         # save the original input size
-        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i+1, o))
+        return new(i, newW, zeros(i), zeros(o), Array{Float64}(o), zeros(o),
+                   Array{Float64}(i+1, o), Array{Float64}(i+1, o))
     end
 end
 
 verbose = 0
 
-function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
+function forward(l::FCLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
+
+    if size(l.last_input,1)  != size(X,1) ||
+       size(l.last_output,1) != size(X,1)
+      l.last_input = Array{Float64}(size(X,1), l.i + 1)
+      l.last_output = Array{Float64}(size(X,1), size(l.W,2))
+    end
     # Pad one at the end of the vector
-    l.last_input = Array{Float64}(size(X,1), l.i + 1)
     l.last_input[:,1:l.i] = X
     l.last_input[:,l.i+1] = 1
-#    l.last_input  = ones(size(X)[1], l.i + 1)
-#    l.last_input[:,1:l.i]  = X
-    l.last_output = l.last_input * l.W
-  return l.last_output
+
+    # Multiplication inplaces
+    A_mul_B!(l.last_output, l.last_input, l.W)
+    return l.last_output
 end
 
-function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
-    #@assert size(DLDY)[2] == size(l.W)[2]
+function backward(l::FCLayer, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     @assert size(DLDY,2) == size(l.W,2)
-    l.last_loss = DLDY
-    local ret = (DLDY * l.W')[:, 1:l.i] # get rid of the bias
-  return ret
+    if size(l.last_loss,1) != size(DLDY,1)
+      l.last_dldy = Array{Float64}(size(DLDY,1),size(DLDY,2))
+      l.last_loss = Array{Float64}(size(DLDY,1),l.i+1)
+    end
+    l.last_dldy = DLDY
+    A_mul_Bt!(l.last_loss, DLDY, l.W)
+    return view(l.last_loss, :, 1:l.i)
 end
 
 function gradient(l::FCLayer)
-    local g = l.last_input' * l.last_loss
-    @assert size(g) == size(l.W)
-    return g
+  At_mul_B!(l.gradi, l.last_input, l.last_dldy)
+  return l.gradi
 end
 
 function getParam(l::FCLayer)
@@ -72,52 +82,28 @@ function getLDiff(l::FCLayer)
     return l.last_diff
 end
 
-#l = FCLayer(2,3)
-#println(l)
-#l.W = [ 2 3 4 ; 0 9 8 ; 1 1 1]
-#X = [ 1. 2; 3 4 ]
-#Y = [ 5. 6 7 ; 7 8 9 ]
-#println(forward(l, X))
-#println(backward(l,Y))
-#println(gradient(l))
-
-l = FCLayer(784, 800)
-X = rand(500, 784) #input size 784, batch size 500
-Y = rand(500, 800) 
-
-@time forward(l,X)
-@time backward(l,Y)
-@time gradient(l)
-
-@time forward(l,X)
-@time backward(l,Y)
-@time gradient(l)
-
-#using IProfile
-#forward(l,X)
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#    forward(l, X)
-#  end
-#end
-#Profile.print()
+# l = FCLayer(784, 800)
+# X = rand(500, 784) #input size 784, batch size 500
+# Y = rand(500, 800)
 #
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#        backward(l, Y)
-#  end
-#end
-#Profile.print()
+# println("First time (compiling...)")
+# @time forward(l,X)
+# @time backward(l,Y)
+# @time gradient(l)
 #
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#        gradient(l)
-#  end
-#end
-#Profile.print()
+# println("Second time (profiling...)")
+# @time begin
+#   for i = 1:1000
+#     forward(l,X)
+#   end
+# end
+# @time begin
+#   for i = 1:1000
+#     backward(l,Y)
+#   end
+# end
+# @time begin
+#   for i = 1:1000
+#     gradient(l)
+#   end
+# end
