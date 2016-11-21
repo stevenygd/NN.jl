@@ -6,8 +6,10 @@ type FCLayer <: Layer
     W           :: Array{Float64}
     last_input  :: Array{Float64}
     last_output :: Array{Float64}
+    last_dldy   :: Array{Float64}
     last_loss   :: Array{Float64}
     last_diff   :: Array{Float64}
+    gradi       :: Array{Float64}
 
     function FCLayer(i::Int64, o::Int64; init_type = "Uniform")
         # Use Glorot initialization: http://lasagne.readthedocs.io/en/latest/modules/init.html#r5
@@ -24,7 +26,8 @@ type FCLayer <: Layer
         end
         newW[i+1,:] = zeros(o)
         # save the original input size
-        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i+1, o))
+        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i),
+                   zeros(i+1, o), zeros(i+1, o))
     end
 end
 
@@ -83,7 +86,7 @@ end
 
 l = FCLayer(784, 800)
 X = rand(500, 784) #input size 784, batch size 500
-Y = rand(500, 800) 
+Y = rand(500, 800)
 
 @time forward(l,X)
 @time backward(l,Y)
