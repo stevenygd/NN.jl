@@ -50,7 +50,7 @@ function setParam!(l::ReLu, theta)
     nothing
 end
 
-function getLDiff(l::ReLu)
+function getVelocity(l::ReLu)
     0
 end
 

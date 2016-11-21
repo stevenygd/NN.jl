@@ -18,7 +18,7 @@ end
 
 function backward(l::Tanh, DLDY::Array{Float64}; kwargs...)
     @assert size(l.last_input) == size(DLDY)
-    l.last_loss = (1 - l.last_output .* l.last_output) .* DLDY #d(tanh(x))/dx = 1 - tanh(x)^2 
+    l.last_loss = (1 - l.last_output .* l.last_output) .* DLDY #d(tanh(x))/dx = 1 - tanh(x)^2
     return l.last_loss
 end
 
@@ -34,7 +34,7 @@ function setParam!(l::Tanh, theta)
     nothing
 end
 
-function getLDiff(l::Tanh)
+function getVelocity(l::Tanh)
     0
 end
 

@@ -74,7 +74,7 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
                 local t0 = @elapsed begin
                   local layer = net.layers[i]
                   local g = gradient(layer)
-                  local v = getLDiff(layer)
+                  local v = getVelocity(layer)
                   local w = getParam(layer)
                 end
                 tt0[i] += t0

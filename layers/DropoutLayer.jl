@@ -61,7 +61,7 @@ function setParam!(l::DropoutLayer, theta)
     nothing
 end
 
-function getLDiff(l::DropoutLayer)
+function getVelocity(l::DropoutLayer)
     0
 end
 

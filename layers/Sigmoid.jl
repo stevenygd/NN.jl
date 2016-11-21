@@ -34,6 +34,6 @@ function setParam!(l::Sigmoid, theta)
     nothing
 end
 
-function getLDiff(l::Sigmoid)
+function getVelocity(l::Sigmoid)
     0
 end

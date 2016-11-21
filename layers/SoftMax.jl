@@ -6,7 +6,7 @@ type SoftMax <: Nonlinearity
     last_loss   :: Array{Float64}
 
     function SoftMax()
-        return new(Float64[], Float64[], Float64[]) 
+        return new(Float64[], Float64[], Float64[])
     end
 end
 
@@ -39,7 +39,7 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     end
     l.last_loss = DLDY' * u
     return l.last_loss
-   
+
 end
 
 function gradient(l::SoftMax)
@@ -54,6 +54,6 @@ function setParam!(l::SoftMax, theta)
     nothing
 end
 
-function getLDiff(l::SoftMax)
+function getVelocity(l::SoftMax)
     0
 end
