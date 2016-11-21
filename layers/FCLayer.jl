@@ -52,18 +52,20 @@ function forward(l::FCLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwa
     return l.last_output
 end
 
-function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
-    #@assert size(DLDY)[2] == size(l.W)[2]
+function backward(l::FCLayer, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     @assert size(DLDY,2) == size(l.W,2)
-    l.last_loss = DLDY
-    local ret = (DLDY * l.W')[:, 1:l.i] # get rid of the bias
-  return ret
+    if size(l.last_loss,1) != size(DLDY,1)
+      l.last_dldy = Array{Float64}(size(DLDY,1),size(DLDY,2))
+      l.last_loss = Array{Float64}(size(DLDY,1),l.i+1)
+    end
+    l.last_dldy = DLDY
+    A_mul_Bt!(l.last_loss, DLDY, l.W)
+    return view(l.last_loss, :, 1:l.i)
 end
 
 function gradient(l::FCLayer)
-    local g = l.last_input' * l.last_loss
-    @assert size(g) == size(l.W)
-    return g
+  At_mul_B!(l.gradi, l.last_input, l.last_dldy)
+  return l.gradi
 end
 
 function getParam(l::FCLayer)
@@ -80,52 +82,28 @@ function getLDiff(l::FCLayer)
     return l.last_diff
 end
 
-#l = FCLayer(2,3)
-#println(l)
-#l.W = [ 2 3 4 ; 0 9 8 ; 1 1 1]
-#X = [ 1. 2; 3 4 ]
-#Y = [ 5. 6 7 ; 7 8 9 ]
-#println(forward(l, X))
-#println(backward(l,Y))
-#println(gradient(l))
-
 l = FCLayer(784, 800)
 X = rand(500, 784) #input size 784, batch size 500
 Y = rand(500, 800)
 
+println("First time (compiling...)")
 @time forward(l,X)
 @time backward(l,Y)
 @time gradient(l)
 
-@time forward(l,X)
-@time backward(l,Y)
-@time gradient(l)
-
-#using IProfile
-#forward(l,X)
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#    forward(l, X)
-#  end
-#end
-#Profile.print()
-#
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#        backward(l, Y)
-#  end
-#end
-#Profile.print()
-#
-#Profile.clear()
-#Profile.init()
-#@profile begin
-#  for i = 1:1000
-#        gradient(l)
-#  end
-#end
-#Profile.print()
+println("Second time (profiling...)")
+@time begin
+  for i = 1:1000
+    forward(l,X)
+  end
+end
+@time begin
+  for i = 1:1000
+    backward(l,Y)
+  end
+end
+@time begin
+  for i = 1:1000
+    gradient(l)
+  end
+end
