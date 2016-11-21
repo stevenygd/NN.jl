@@ -33,18 +33,23 @@ end
 
 verbose = 0
 
-function forward(l::FCLayer, X::Array{Float64,2}; kwargs...)
+function forward(l::FCLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
+
+    if size(l.last_input,1)  != size(X,1) ||
+       size(l.last_output,1) != size(X,1)
+      l.last_input = Array{Float64}(size(X,1), l.i + 1)
+      l.last_output = Array{Float64}(size(X,1), size(l.W,2))
+    end
     # Pad one at the end of the vector
-    l.last_input = Array{Float64}(size(X,1), l.i + 1)
     l.last_input[:,1:l.i] = X
     l.last_input[:,l.i+1] = 1
-#    l.last_input  = ones(size(X)[1], l.i + 1)
-#    l.last_input[:,1:l.i]  = X
-    l.last_output = l.last_input * l.W
-  return l.last_output
+
+    # Multiplication inplaces
+    A_mul_B!(l.last_output, l.last_input, l.W)
+    return l.last_output
 end
 
 function backward(l::FCLayer, DLDY::Array{Float64,2}; kwargs...)
