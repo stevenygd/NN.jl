@@ -1,20 +1,25 @@
 abstract NN
 abstract Layer
-abstract Nonlinearity  <: Layer
-abstract LossCriteria  <: Layer
+abstract LearnableLayer <: Layer
+abstract Nonlinearity   <: Layer
+abstract LossCriteria   <: Layer
+abstract NoiseLayer     <: Layer
 
-function gradient(l::Nonlinearity)
-    return 0
+StaticLayer = Union{Nonlinearity, NoiseLayer}
+
+
+function gradient(l::StaticLayer)
+    0
 end
 
-function getParam(l::Nonlinearity)
-    return 0
+function getParam(l::StaticLayer)
+    0
 end
 
-function setParam!(l::Nonlinearity, theta)
+function setParam!(l::StaticLayer, theta)
     nothing
 end
 
-function getLDiff(l::Nonlinearity)
+function getVelocity(l::StaticLayer)
     0
 end

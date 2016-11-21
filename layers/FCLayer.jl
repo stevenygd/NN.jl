@@ -26,8 +26,8 @@ type FCLayer <: Layer
         end
         newW[i+1,:] = zeros(o)
         # save the original input size
-        return new(i, newW, zeros(i), zeros(o), Array{Float64}(o), zeros(o),
-                   Array{Float64}(i+1, o), Array{Float64}(i+1, o))
+        return new(i, newW, zeros(i), zeros(o), zeros(o), zeros(i),
+                   zeros(i+1, o), zeros(i+1, o))
     end
 end
 
@@ -74,11 +74,12 @@ end
 
 function setParam!(l::FCLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
-    l.last_diff = theta - l.W
+    broadcast!(-, l.last_diff, theta, l.W)
+    # l.last_diff = theta - l.W
     l.W = theta
 end
 
-function getLDiff(l::FCLayer)
+function getVelocity(l::FCLayer)
     return l.last_diff
 end
 

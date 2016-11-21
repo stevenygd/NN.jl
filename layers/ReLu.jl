@@ -36,7 +36,7 @@ function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs
     broadcast!(*, l.last_loss, l.last_loss, DLDY)
     return l.last_loss
 end
-#
+
 # l = ReLu()
 # X = rand(1000, 500)
 # Y = rand(1000, 500)
