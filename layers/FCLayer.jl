@@ -74,11 +74,12 @@ end
 
 function setParam!(l::FCLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
-    l.last_diff = theta - l.W
+    broadcast!(-, l.last_diff, theta, l.W)
+    # l.last_diff = theta - l.W
     l.W = theta
 end
 
-function getLDiff(l::FCLayer)
+function getVelocity(l::FCLayer)
     return l.last_diff
 end
 
