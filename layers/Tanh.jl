@@ -22,22 +22,6 @@ function backward(l::Tanh, DLDY::Array{Float64}; kwargs...)
     return l.last_loss
 end
 
-function gradient(l::Tanh)
-    0
-end
-
-function getParam(l::Tanh)
-    0
-end
-
-function setParam!(l::Tanh, theta)
-    nothing
-end
-
-function getVelocity(l::Tanh)
-    0
-end
-
 # l = Tanh()
 # X = [ 1. 2; -1 3; 1 -2; -3 -3]
 # Y = [ 2. 3; 2 5; 3 6; 2 2]

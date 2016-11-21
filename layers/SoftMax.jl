@@ -41,19 +41,3 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     return l.last_loss
 
 end
-
-function gradient(l::SoftMax)
-    0
-end
-
-function getParam(l::SoftMax)
-    0
-end
-
-function setParam!(l::SoftMax, theta)
-    nothing
-end
-
-function getVelocity(l::SoftMax)
-    0
-end

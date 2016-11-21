@@ -38,22 +38,6 @@ function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs
 end
 
 
-function gradient(l::ReLu)
-    0
-end
-
-function getParam(l::ReLu)
-    0
-end
-
-function setParam!(l::ReLu, theta)
-    nothing
-end
-
-function getVelocity(l::ReLu)
-    0
-end
-
 #
 # l = ReLu()
 # X = rand(1000, 500)

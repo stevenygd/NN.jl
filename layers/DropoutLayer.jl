@@ -1,6 +1,6 @@
 include("Base.jl")
 
-type DropoutLayer <: Layer
+type DropoutLayer <: NoiseLayer
     p :: Float64
     last_drop  :: Array{Float64}
     last_input :: Array{Float64}
@@ -47,22 +47,6 @@ function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64
     l.last_dldy = DLDY
     broadcast!(*, l.last_loss, l.last_dldy, l.last_drop)
     return l.last_loss
-end
-
-function gradient(l::DropoutLayer)
-    0
-end
-
-function getParam(l::DropoutLayer)
-    0
-end
-
-function setParam!(l::DropoutLayer, theta)
-    nothing
-end
-
-function getVelocity(l::DropoutLayer)
-    0
 end
 
 # l = DropoutLayer(0.3)
