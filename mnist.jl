@@ -1,14 +1,10 @@
+include("src/NN.jl")
+include("util/datasets.jl")
+
+using NN
 using PyPlot
 using IProfile
 
-include("layers/SoftMaxCrossEntropy.jl")
-include("layers/SquareLossLayer.jl")
-include("layers/FCLayer.jl")
-include("layers/DropoutLayer.jl")
-include("layers/ReLu.jl")
-include("layers/Tanh.jl")
-include("layers/SequnetialNet.jl")
-include("util/datasets.jl")
 
 function build_mlp()
     layers = [
@@ -73,7 +69,7 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
               for i = 1:length(net.layers)
                 local t0 = @elapsed begin
                   local layer = net.layers[i]
-                  local g = gradient(layer)
+                  local g = NN.gradient(layer)
                   local v = getVelocity(layer)
                   local w = getParam(layer)
                 end
