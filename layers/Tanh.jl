@@ -10,13 +10,13 @@ type Tanh <: Nonlinearity
     end
 end
 
-function forward(l::Tanh, X::Array{Float64}; kwargs...)
+function forward(l::Tanh, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     l.last_input  = X
     l.last_output = tanh(X)
     return l.last_output
 end
 
-function backward(l::Tanh, DLDY::Array{Float64}; kwargs...)
+function backward(l::Tanh, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     @assert size(l.last_input) == size(DLDY)
     l.last_loss = (1 - l.last_output .* l.last_output) .* DLDY #d(tanh(x))/dx = 1 - tanh(x)^2
     return l.last_loss
