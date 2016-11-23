@@ -1,5 +1,3 @@
-include("Base.jl")
-
 type SoftMaxCrossEntropyLoss <: LossCriteria
     last_loss   :: Array{Float64}
     last_input  :: Array{Float64}

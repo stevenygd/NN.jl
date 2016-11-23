@@ -1,6 +1,4 @@
-include("Base.jl")
-
-type SequentialNet <: NN
+type SequentialNet <: ANN
     layers :: Array{Layer}
     lossfn :: LossCriteria
     function SequentialNet(layers::Array{Layer}, lossfn::LossCriteria)

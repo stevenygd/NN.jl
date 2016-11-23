@@ -1,5 +1,3 @@
-include("Base.jl")
-
 # Define the Fully Connected layers
 type FCLayer <: Layer
     i           :: Int64

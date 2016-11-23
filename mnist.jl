@@ -105,11 +105,6 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
         end
         println("Epoch $(epo) training time: $(tftime + tbtime + tgtime) s.")
         println("Decomposition: $(tftime), $(tbtime), $(tgtime)")
-        for i = 1:length(net.layers)
-          if tt0[i] + tt1[i] + tt2[i] + tt3[i] + tt4[i] > 1.
-            println("Gradient[$(i)]: $(tt0[i]) $(tt1[i]) $(tt2[i]) $(tt3[i]) $(tt4[i])")
-          end
-        end
 
         local ttime = @elapsed begin
           local epo_loss = mean(all_losses)

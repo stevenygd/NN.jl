@@ -1,5 +1,3 @@
-include("Base.jl")
-
 # Define the ReLu layers
 type ReLu <: Nonlinearity
     alpha       :: Float64

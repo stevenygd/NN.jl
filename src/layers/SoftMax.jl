@@ -1,5 +1,3 @@
-include("Criteria.jl")
-
 type SoftMax <: Nonlinearity
     last_input  :: Array{Float64}
     last_output :: Array{Float64}

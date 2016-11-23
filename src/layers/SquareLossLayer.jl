@@ -1,5 +1,3 @@
-include("Base.jl")
-
 type SquareLossLayer <: LossCriteria
     last_input :: Array{Float64}
     last_output :: Array{Float64}
@@ -7,8 +5,6 @@ type SquareLossLayer <: LossCriteria
         return new(Float64[], Float64[])
     end
 end
-
-verbose = 1
 
 function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwargs...)
     """
@@ -26,12 +22,6 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwarg
     local temp = Y - t
     local loss = temp' * temp / 2.
     local pred = map(x -> (x > 0)?1:-1, Y)
-    if verbose > 0
-        println("Diff: $(temp)")
-        if verbose > 1
-            println("Input:$(Y), Target:$(t)")
-        end
-    end
     return loss, pred
 
 end
@@ -43,12 +33,6 @@ function backward(l::SquareLossLayer, t::Array{Float64}; kwargs...)
     """
     local N = convert(Float64, size(l.last_input)[1])
     local DLDY = l.last_input - t
-    if verbose > 0
-        println("dldy:$(DLDY)")
-        if verbose > 1
-            println("Input $(l.last_input), Target:$(t)")
-        end
-    end
     return DLDY
 end
 

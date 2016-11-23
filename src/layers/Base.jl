@@ -1,4 +1,4 @@
-abstract NN
+abstract ANN
 abstract Layer
 abstract LearnableLayer <: Layer
 abstract Nonlinearity   <: Layer
