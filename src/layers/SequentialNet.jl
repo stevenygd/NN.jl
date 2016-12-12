@@ -6,6 +6,10 @@ type SequentialNet <: ANN
     end
 end
 
+
+ # TODO could remove the local
+ # TODO inp could be updated in-places
+ # TODO define inplace operator
 function forward(net::SequentialNet, x::Array{Float64}, label::Array; kwargs...)
     local inp = x
     for i = 1:length(net.layers)

@@ -5,17 +5,19 @@ using NN
 using PyPlot
 using IProfile
 
+# Multi threaded
+# Blas numthreads
 
 function build_mlp()
     layers = [
         DropoutLayer(0.2),
-        FCLayer(784, 800),
+        DenseLayer(784, 800),
         ReLu(),
         DropoutLayer(0.5),
-        FCLayer(800, 800),
+        DenseLayer(800, 800),
         ReLu(),
         DropoutLayer(0.5),
-        FCLayer(800, 10)
+        DenseLayer(800, 10)
     ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
@@ -25,13 +27,16 @@ function get_corr(pred, answ)
     return length(filter(e -> abs(e) < 1e-5, pred-answ))
 end
 
+# TODO could remove the [local]
 function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 = 64, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
     X, Y = train_set
     valX, valY = validation_set
     local N = size(Y)[1]
     local batch=0
-    local epo_losses = []
-    local epo_accus = []
+
+    # TODO could preallocate with Type
+    local epo_losses = Float64[]
+    local epo_accus = Float64[]
 
     local val_losses = []
     local val_accu   = []
@@ -50,8 +55,12 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
         local etime = @elapsed begin
           for bid = 0:(num_batch-1)
             batch += 1
+            # TODO: double check, this should be Int64
+            # TODO: INt64 will be chosen automatically
             local sidx::Int = convert(Int64, bid*batch_size+1)
             local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
+
+            # TODO: array view is better
             local batch_X = X[sidx:eidx,:]
             local batch_Y = Y[sidx:eidx,:]
 
@@ -76,6 +85,7 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
                 tt0[i] += t0
                 local t1 = @elapsed begin
                   local gradi = lr * g
+                #   scale!()
                 end
                 tt1[i] += t1
                 local t2 = @elapsed begin
@@ -83,16 +93,16 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
                 end
                 tt2[i] += t2
                 local t3 = @elapsed begin
-                  local theta = w + alpha * veloc - gradi
+                  w += alpha * veloc - gradi
                 end
                 tt3[i] += t3
                 local t4 = @elapsed begin
-                  setParam!(layer, theta)
+                  setParam!(layer, w)
                 end
                 tt4[i] += t4
-                if t0 > 0.1 || t1 > 0.1 || t2 > 0.1 || t3 > 0.1 || t4 > 0.1
-                  println("batch$(bid) : $(t0) $(t1) $(t2) $(t3) $(t4)")
-                end
+                # if t0 > 0.1 || t1 > 0.1 || t2 > 0.1 || t3 > 0.1 || t4 > 0.1
+                # println("batch$(bid) : $(t0) $(t1) $(t2) $(t3) $(t4)")
+                # end
               end
             end
             tgtime += gtime

@@ -1,3 +1,4 @@
+# Abtract out DropOut
 type DropoutLayer <: NoiseLayer
     p :: Float64
     last_drop  :: Array{Float64}

@@ -1,12 +1,12 @@
 module NN
     export SequentialNet, forward, backward, gradient,
            getParam, setParam!, getVelocity
-    export Layer, DropoutLayer, FCLayer, ReLu, Sigmoid, SoftMax,
+    export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
            SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh
 
-    include("layers/Base.jl")
+    include("layers/LayerBase.jl")
     include("layers/DropoutLayer.jl")
-    include("layers/FCLayer.jl")
+    include("layers/DenseLayer.jl")
     include("layers/ReLu.jl")
     include("layers/Sigmoid.jl")
     include("layers/SoftMax.jl")
