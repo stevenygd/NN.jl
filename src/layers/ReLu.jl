@@ -7,10 +7,11 @@ type ReLu <: Nonlinearity
     x        :: Array{Float64}
     y        :: Array{Float64}
     dldx     :: Array{Float64}
+    dldy     :: Array{Float64}
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(false, alpha, Float64[], Float64[], Float64[])
+        return new(false, alpha, Float64[], Float64[], Float64[], Float64[])
     end
 end
 
@@ -31,11 +32,6 @@ function init(l::ReLu, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...
 end
 
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
-    # if size(l.x, 1)  != size(X, 1) ||
-    #    size(l.y, 1) != size(X, 1)
-    #    l.x = Array{Float64}(size(X))
-    #    l.y = Array{Float64}(size(X))
-    # end
     l.x = X
     broadcast!(max, l.y, X, 0.)
     broadcast!(*,   l.y, l.y, l.alpha)
@@ -47,6 +43,7 @@ function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs
     # if size(l.dldx, 1) != size(DLDY, 1)
     #     l.dldx = Array{Float64}(size(DLDY))
     # end
+    l.dldy = DLDY
     broadcast!(>, l.dldx, l.x, 0.)        # l.dldx = l.x .> 0.
     broadcast!(*, l.dldx, l.dldx, l.alpha)    # l.dldx = l.dldx * alpha
     broadcast!(*, l.dldx, l.dldx, DLDY)
