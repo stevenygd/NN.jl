@@ -1,58 +1,103 @@
 # Define the ReLu layers
+# include("LayerBase.jl")
+
 type ReLu <: Nonlinearity
-    alpha       :: Float64
-    last_input  :: Array{Float64}
-    last_output :: Array{Float64}
-    last_loss   :: Array{Float64}
-    last_diff   :: Array{Float64}
+    has_init :: Bool
+    alpha    :: Float64
+    x        :: Array{Float64}
+    y        :: Array{Float64}
+    dldx     :: Array{Float64}
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(false, alpha, Float64[], Float64[], Float64[])
     end
+end
+
+function init(l::ReLu, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    # TODO: currently I only accept Single dimensional dropout
+    if p == nothing
+        # [l] is the first layer, batch_size used default network batch_size
+        # and input_size should be single dimensional (i.e. vector)
+        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+    else
+        out_size = getOutputSize(p)
+    end
+    l.x = Array{Float64}(out_size)
+    l.y = Array{Float64}(out_size)
+    l.dldx = Array{Float64}(out_size)
+    l.has_init = true
 end
 
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
-    if size(l.last_input, 1)  != size(X, 1) ||
-       size(l.last_output, 1) != size(X, 1)
-       l.last_input = Array{Float64}(size(X))
-       l.last_output = Array{Float64}(size(X))
-    end
-    l.last_input = X
-    broadcast!(max, l.last_output, X, 0.)
-    broadcast!(*,   l.last_output, l.last_output, l.alpha)
-    return l.last_output
+    # if size(l.x, 1)  != size(X, 1) ||
+    #    size(l.y, 1) != size(X, 1)
+    #    l.x = Array{Float64}(size(X))
+    #    l.y = Array{Float64}(size(X))
+    # end
+    l.x = X
+    broadcast!(max, l.y, X, 0.)
+    broadcast!(*,   l.y, l.y, l.alpha)
+    return l.y
 end
 
 function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs...)
-    @assert size(l.last_input) == size(DLDY)
-    if size(l.last_loss, 1) != size(DLDY, 1)
-        l.last_loss = Array{Float64}(size(DLDY))
+    @assert size(l.x) == size(DLDY)
+    # if size(l.dldx, 1) != size(DLDY, 1)
+    #     l.dldx = Array{Float64}(size(DLDY))
+    # end
+    broadcast!(>, l.dldx, l.x, 0.)        # l.dldx = l.x .> 0.
+    broadcast!(*, l.dldx, l.dldx, l.alpha)    # l.dldx = l.dldx * alpha
+    broadcast!(*, l.dldx, l.dldx, DLDY)
+    return l.dldx
+end
+
+function getInputSize(l::ReLu)
+    if !l.has_init
+        println("Warning: layer $(l) hasn't been initizalized. But input shapes wanted.")
     end
-    broadcast!(>, l.last_loss, l.last_input, 0.)        # l.last_loss = l.last_input .> 0.
-    broadcast!(*, l.last_loss, l.last_loss, l.alpha)    # l.last_loss = l.last_loss * alpha
-    broadcast!(*, l.last_loss, l.last_loss, DLDY)
-    return l.last_loss
+    return size(l.x)
+end
+
+function getOutputSize(l::ReLu)
+    if !l.has_init
+        println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
+    end
+    return size(l.y)
 end
 
 # l = ReLu()
 # X = rand(1000, 500)
 # Y = rand(1000, 500)
 # println("Compile the method for the first time...")
-# forward(l,X)
-# backward(l,Y)
+# @time init(l, nothing, Dict{String, Any}("batch_size" => 1000, "input_size" => [500]))
+# @time forward(l,X)
+# @time backward(l,Y)
 #
 # println("Start profiling...")
 # print("Forward:")
 # @time begin
-#   for i = 1:1000
+#   for i = 1:10
 #     forward(l,X)
+#   end
+# end
+#
+# @time begin
+#   for i = 1:1000
+#     forward(l, X)
 #   end
 # end
 #
 # print("Backward")
 # @time begin
-#   for i = 1:1000
+#   for i = 1:10
 #     backward(l,Y)
+#   end
+# end
+#
+# @time begin
+#   for i = 1:1000
+#     forward(l, X)
 #   end
 # end

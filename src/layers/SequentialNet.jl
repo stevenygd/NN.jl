@@ -2,10 +2,16 @@ type SequentialNet <: ANN
     layers :: Array{Layer}
     lossfn :: LossCriteria
     function SequentialNet(layers::Array{Layer}, lossfn::LossCriteria)
+        # Initialize all the layers
+        config = Dict{String, Any}()
+        @assert isa(layers[1], DataLayer)
+        for i = 2:length(layers)
+            init(layers[i], layers[i-1], config)
+        end
+        init(lossfn, layers[end], config)
         return new(layers, lossfn)
     end
 end
-
 
  # TODO could remove the local
  # TODO inp could be updated in-places

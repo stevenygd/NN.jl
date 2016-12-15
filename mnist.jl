@@ -7,23 +7,25 @@ using IProfile
 
 # Multi threaded
 # Blas numthreads
-
+batch_size = 500
 function build_mlp()
-    layers = [
+    layers = Layer[
+        InputLayer((batch_size,784)),
         DropoutLayer(0.2),
-        DenseLayer(784, 800),
+        DenseLayer(800),
         ReLu(),
         DropoutLayer(0.5),
-        DenseLayer(800, 800),
+        DenseLayer(800),
         ReLu(),
         DropoutLayer(0.5),
-        DenseLayer(800, 10)
+        DenseLayer(10)
     ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
     return net
 end
 function get_corr(pred, answ)
+    println(size(pred), size(answ))
     return length(filter(e -> abs(e) < 1e-5, pred-answ))
 end
 
@@ -78,7 +80,7 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
               for i = 1:length(net.layers)
                 local t0 = @elapsed begin
                   local layer = net.layers[i]
-                  local g = NN.gradient(layer)
+                  local g = getGradient(layer)
                   local v = getVelocity(layer)
                   local w = getParam(layer)
                 end
@@ -128,10 +130,10 @@ function train(net::SequentialNet, train_set, validation_set; batch_size::Int64 
           # append!(epo_accus, epo_accu)
 
           # Run validation set
-          v_ls, v_pd = forward(net, valX, valY)
+          v_ls, v_pd = forward(net, valX[1:batch_size,:], valY[1:batch_size,:])
           local v_loss = mean(v_ls)
           v_size = size(valX)[1]
-          v_accu = get_corr(v_pd, valY) / v_size
+          v_accu = get_corr(v_pd, valY[1:batch_size,:]) / v_size
           append!(val_losses, v_loss)
           append!(val_accu,   v_accu)
         end
@@ -150,8 +152,8 @@ teX, teY = test_set[1], test_set[2]
 
 
 net = build_mlp()
-train(net, (trX, trY), (valX, valY); ttl_epo = 1, batch_size = 500)
-train(net, (trX, trY), (valX, valY); ttl_epo = 5, batch_size = 500)
+train(net, (trX, trY), (valX, valY); ttl_epo = 1, batch_size = batch_size)
+train(net, (trX, trY), (valX, valY); ttl_epo = 5, batch_size = batch_size)
 # Profile.clear()
 # Profile.init()
 # @profile begin train(net, (trX, trY), (valX, valY); ttl_epo = 3, batch_size = 500) end

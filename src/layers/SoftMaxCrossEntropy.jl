@@ -1,16 +1,39 @@
+include("LayerBase.jl")
+
 type SoftMaxCrossEntropyLoss <: LossCriteria
-    last_loss   :: Array{Float64}
-    last_input  :: Array{Float64}
-    last_output :: Array{Float64}
-    target      :: Array{Float64}
-    loss        :: Array{Float64}
-    pred        :: Array{Int64}
-    label       :: Array{Int64}
-    iter        :: UnitRange{Int64}
+    dldx   :: Array{Float64}
+    x      :: Array{Float64}
+    y      :: Array{Float64}
+    target :: Array{Float64}
+    loss   :: Array{Float64}
+    pred   :: Array{Int64}
+    label  :: Array{Int64}
+    iter   :: UnitRange{Int64}
 
     function SoftMaxCrossEntropyLoss()
         return new(Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
     end
+end
+
+function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    # TODO: currently I only accept Single dimensional dropout
+    if p == nothing
+        # [l] is the first layer, batch_size used default network batch_size
+        # and input_size should be single dimensional (i.e. vector)
+        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+    else
+        out_size = getOutputSize(p)
+    end
+    N, D     = out_size
+    l.dldx   = Array{Float64}(out_size)
+    l.x      = Array{Float64}(out_size)
+    l.y      = Array{Float64}(out_size)
+    l.loss   = Array{Float64}(N)
+    l.pred   = Array{Int64}(N)
+    l.label  = Array{Int64}(N)
+    l.iter   = 1:N
+    l.target = zeros(size(l.x))
 end
 
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
@@ -19,21 +42,21 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     [y]      final input to the loss layer
     """
     local N = size(Y, 1)
-    if  size(l.last_input, 1) != N || size(l.last_output, 1) != N
-        l.last_loss   = Array{Float64}(size(Y))
-        l.last_input  = Array{Float64}(size(Y))
-        l.last_output = Array{Float64}(size(Y))
-        l.loss        = Array{Float64}(N)
-        l.pred        = Array{Int64}(N)
-        l.label       = Array{Int64}(N)
-        l.iter        = 1:N
-    end
+    # if  size(l.x, 1) != N || size(l.y, 1) != N
+    #     l.dldx   = Array{Float64}(size(Y))
+    #     l.x  = Array{Float64}(size(Y))
+    #     l.y = Array{Float64}(size(Y))
+    #     l.loss        = Array{Float64}(N)
+    #     l.pred        = Array{Int64}(N)
+    #     l.label       = Array{Int64}(N)
+    #     l.iter        = 1:N
+    # end
 
-    # l.last_input = Y
-    broadcast!(-, l.last_input, Y, maximum(Y, 2))
-    broadcast!(-, l.last_output, log(sum(exp(l.last_input),2)), l.last_input)
+    # l.x = Y
+    broadcast!(-, l.x, Y, maximum(Y, 2))
+    broadcast!(-, l.y, log(sum(exp(l.x),2)), l.x)
     map!(x -> convert(Int64, x) + 1,        l.label, label)
-    map!(i -> l.last_output[i, l.label[i]], l.loss,  l.iter)
+    map!(i -> l.y[i, l.label[i]], l.loss,  l.iter)
     map!(i -> findmax(Y[i,:])[2] - 1,       l.pred,  l.iter)
 
     return l.loss, l.pred
@@ -44,29 +67,30 @@ function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
-    local N = size(l.last_input, 1)
-    if size(l.target,1) != N
-        l.target    = zeros(size(l.last_input))
-        l.last_loss = Array{Float64}(size(l.last_input))
-    end
+    # local N = size(l.x, 1)
+    # if size(l.target,1) != N
+    #     l.target    = zeros(size(l.x))
+    #     l.dldx = Array{Float64}(size(l.x))
+    # end
 
-    # local TAR = zeros(size(l.last_input))
+    # local TAR = zeros(size(l.x))
     # for i = 1:N
     fill!(l.target, 0)
     for i = l.iter
         l.target[i,l.label[i]] = 1
     end
 
-    # local Y = l.last_input
+    # local Y = l.x
     # Y = exp(broadcast(+, Y, - maximum(Y,2)))
-    l.last_loss = exp(l.last_input)
-    broadcast!(/, l.last_loss, l.last_loss, sum(l.last_loss,2))
-    broadcast!(-, l.last_loss, l.last_loss, l.target)
+    l.dldx = exp(l.x)
+    broadcast!(/, l.dldx, l.dldx, sum(l.dldx,2))
+    broadcast!(-, l.dldx, l.dldx, l.target)
     # return Y .- TAR
-    return l.last_loss
+    return l.dldx
 end
 
 # l = SoftMaxCrossEntropyLoss()
+# @time init(l, nothing, Dict{String, Any}("batch_size" => 500, "input_size" => [10]))
 # X = rand(500, 10) #input size 784, batch size 500
 # L = map(x -> ceil(x), rand(500, 1))
 #
@@ -75,9 +99,16 @@ end
 # @time backward(l,L)
 #
 # println("Second time ...")
-# @time forward(l,X,L)
-# @time backward(l,L)
-#
+# @time begin
+#   for i = 1:10
+#     forward(l,X,L)
+#   end
+# end
+# @time begin
+#   for i = 1:10
+#     backward(l,L)
+#   end
+# end
 #
 # println("Third time (profiling...)")
 # @time begin

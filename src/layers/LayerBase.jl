@@ -4,11 +4,12 @@ abstract LearnableLayer <: Layer
 abstract Nonlinearity   <: Layer
 abstract LossCriteria   <: Layer
 abstract NoiseLayer     <: Layer
+abstract DataLayer      <: Layer
 
-StaticLayer = Union{Nonlinearity, NoiseLayer}
+StaticLayer = Union{Nonlinearity, NoiseLayer, DataLayer}
 
 
-function gradient(l::StaticLayer)
+function getGradient(l::StaticLayer)
     0
 end
 
