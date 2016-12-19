@@ -50,19 +50,6 @@ function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs
     return l.dldx
 end
 
-function getInputSize(l::ReLu)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But input shapes wanted.")
-    end
-    return size(l.x)
-end
-
-function getOutputSize(l::ReLu)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
-    end
-    return size(l.y)
-end
 
 # l = ReLu()
 # X = rand(1000, 500)

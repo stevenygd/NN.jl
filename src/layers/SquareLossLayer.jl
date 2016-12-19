@@ -1,9 +1,27 @@
 type SquareLossLayer <: LossCriteria
-    last_input :: Array{Float64}
-    last_output :: Array{Float64}
+    has_init :: Bool
+    x :: Array{Float64}
+    y :: Array{Float64}
     function SquareLossLayer()
-        return new(Float64[], Float64[])
+        return new(false, Float64[], Float64[])
     end
+end
+
+function init(l::SquareLossLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    # TODO: currently I only accept Single dimensional dropout
+    if p == nothing
+        # [l] is the first layer, batch_size used default network batch_size
+        # and input_size should be single dimensional (i.e. vector)
+        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+    else
+        out_size = getOutputSize(p)
+    end
+    N, D     = out_size
+    l.x      = Array{Float64}(out_size)
+    l.y      = Array{Float64}(out_size)
+
+    l.has_init = true
 end
 
 function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwargs...)
@@ -17,7 +35,7 @@ function forward(l::SquareLossLayer, Y::Array{Float64}, t::Array{Float64}; kwarg
 
     """
     N = convert(Float64, size(Y)[1])
-    l.last_input = Y
+    l.x = Y
 
     local temp = Y - t
     local loss = temp' * temp / 2.
@@ -31,8 +49,8 @@ function backward(l::SquareLossLayer, t::Array{Float64}; kwargs...)
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
-    local N = convert(Float64, size(l.last_input)[1])
-    local DLDY = l.last_input - t
+    local N = convert(Float64, size(l.x)[1])
+    local DLDY = l.x - t
     return DLDY
 end
 

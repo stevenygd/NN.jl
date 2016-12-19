@@ -127,20 +127,6 @@ function getVelocity(l::DenseLayer)
     return l.velc
 end
 
-function getInputSize(l::DenseLayer)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But input shapes wanted.")
-    end
-    return size(l.x)
-end
-
-function getOutputSize(l::DenseLayer)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
-    end
-    return size(l.y)
-end
-
 # l = DenseLayer(800) # 800 hidden units
 # X = rand(500, 784)  #input size 784, batch size 500
 # Y = rand(500, 800)

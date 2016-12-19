@@ -24,3 +24,17 @@ end
 function getVelocity(l::StaticLayer)
     0
 end
+
+function getInputSize(l::Layer)
+    if !l.has_init
+        println("Warning: layer $(l) hasn't been initizalized. But input shapes wanted.")
+    end
+    return size(l.x)
+end
+
+function getOutputSize(l::Layer)
+    if !l.has_init
+        println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
+    end
+    return size(l.y)
+end

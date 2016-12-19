@@ -1,27 +1,47 @@
+include("LayerBase.jl")
 type Tanh <: Nonlinearity
-    last_input  :: Array{Float64}
-    last_output :: Array{Float64}
-    last_loss   :: Array{Float64}
+    has_init    :: Bool
+    x           :: Array{Float64}
+    y           :: Array{Float64}
+    dldx        :: Array{Float64}
+    dldy        :: Array{Float64}
 
     function Tanh()
-        return new(Float64[], Float64[], Float64[])
+        return new(false, Float64[], Float64[], Float64[], Float64[])
     end
 end
 
+function init(l::Tanh, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    # TODO: currently I only accept Single dimensional dropout
+    if p == nothing
+        # [l] is the first layer, batch_size used default network batch_size
+        # and input_size should be single dimensional (i.e. vector)
+        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+    else
+        out_size = getOutputSize(p)
+    end
+    l.x = Array{Float64}(out_size)
+    l.y = Array{Float64}(out_size)
+    l.dldx = Array{Float64}(out_size)
+    l.dldy = Array{Float64}(out_size)
+    l.has_init = true
+end
+
 function forward(l::Tanh, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
-    l.last_input  = X
-    l.last_output = tanh(X)
-    return l.last_output
+    l.x  = X
+    l.y = tanh(X)
+    return l.y
 end
 
 function backward(l::Tanh, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
-    @assert size(l.last_input) == size(DLDY)
-    l.last_loss = (1 - l.last_output .* l.last_output) .* DLDY #d(tanh(x))/dx = 1 - tanh(x)^2
-    return l.last_loss
+    @assert size(l.x) == size(DLDY)
+    l.dldx = (1 - l.y .* l.y) .* DLDY #d(tanh(x))/dx = 1 - tanh(x)^2
+    return l.dldx
 end
 
-# l = Tanh()
-# X = [ 1. 2; -1 3; 1 -2; -3 -3]
-# Y = [ 2. 3; 2 5; 3 6; 2 2]
-# println(forward(l, X))
-# println(backward(l, Y))
+l = Tanh()
+X = [ 1. 2; -1 3; 1 -2; -3 -3]
+Y = [ 2. 3; 2 5; 3 6; 2 2]
+println(forward(l, X))
+println(backward(l, Y))
