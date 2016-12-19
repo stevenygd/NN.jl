@@ -36,28 +36,47 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{Str
     l.target = zeros(size(l.x))
 end
 
+function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
+    # We only allow to update the batch size
+    @assert length(input_size) == 2
+    @assert input_size[2] == size(l.x, 2)
+    N, D = input_size[1], size(l.x, 2)
+    l.dldx   = Array{Float64}(out_size)
+    l.x      = Array{Float64}(out_size)
+    l.y      = Array{Float64}(out_size)
+    l.loss   = Array{Float64}(N)
+    l.pred   = Array{Int64}(N)
+    l.label  = Array{Int64}(N)
+    l.iter   = 1:N
+    l.target = zeros(size(l.x))
+end
+
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
+    @assert size(Y, 2) == size(l.x, 2)
     local N = size(Y, 1)
-    # if  size(l.x, 1) != N || size(l.y, 1) != N
-    #     l.dldx   = Array{Float64}(size(Y))
-    #     l.x  = Array{Float64}(size(Y))
-    #     l.y = Array{Float64}(size(Y))
-    #     l.loss        = Array{Float64}(N)
-    #     l.pred        = Array{Int64}(N)
-    #     l.label       = Array{Int64}(N)
-    #     l.iter        = 1:N
-    # end
-
-    # l.x = Y
+    if N != size(l.x, 1)
+        update(l, size(Y))
+    end
     broadcast!(-, l.x, Y, maximum(Y, 2))
     broadcast!(-, l.y, log(sum(exp(l.x),2)), l.x)
-    map!(x -> convert(Int64, x) + 1,        l.label, label)
-    map!(i -> l.y[i, l.label[i]], l.loss,  l.iter)
-    map!(i -> findmax(Y[i,:])[2] - 1,       l.pred,  l.iter)
+    for i = 1:N
+        l.label[i] = convert(Int64, label[i]) + 1
+    end
+    # map!(x -> convert(Int64, x) + 1,    l.label, label)
+
+    for i = 1:N
+         l.loss[i] = l.y[i, l.label[i]]
+    end
+    # map!(i -> l.y[i, l.label[i]],       l.loss,  l.iter)
+
+    for i = 1:N
+        l.pred[i] = findmax(Y[i,:])[2] - 1
+    end
+    # map!(i -> findmax(Y[i,:])[2] - 1,   l.pred,  l.iter)
 
     return l.loss, l.pred
 end

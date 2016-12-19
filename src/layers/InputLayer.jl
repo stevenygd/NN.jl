@@ -17,7 +17,15 @@ function init(l::InputLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     nothing
 end
 
+function update(l::InputLayer, input_size::Tuple;)
+    # Reinitialize the memory due to the updated of the batch_size
+    l.shape = input_size
+end
+
 function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
+    if size(X) != l.shape
+        update(l, size(X))
+    end
     l.x = X
     l.y = X
     return l.y

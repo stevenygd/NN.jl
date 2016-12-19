@@ -66,10 +66,30 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     l.has_init = true
 end
 
+function update(l::DenseLayer, input_size::Tuple;)
+    # Reinitialize the memory due to the updated of the batch_size
+    # Couldn't change the input and output size, only the bath size
+    # the outter dimension must be the same, so that we don't need
+    # to reinitialize the weights and bias
+    @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
+    batch_size = input_size[1]
+    l.x     = Array{Float64}(batch_size, l.i + 1)
+    l.y     = Array{Float64}(batch_size, l.num_units)
+    l.dldy  = Array{Float64}(batch_size, l.num_units)
+    l.dldx  = Array{Float64}(batch_size, l.i + 1)
+
+end
+
+
 function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
     @assert size(X)[2] == l.i
+
+    # update the batch_size, need to re-allocate the memory
+    if size(X, 1) != size(l.x, 1)
+        update(l, size(X))
+    end
 
     # Pad one at the end of the vector
     l.x[:,1:l.i] = X
