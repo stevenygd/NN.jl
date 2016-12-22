@@ -35,8 +35,26 @@ function init(l::DropoutLayer, p::Union{Layer,Void}, config::Dict{String,Any}; k
     l.has_init  = true
 end
 
+function update(l::DropoutLayer, input_size::Tuple;)
+    # Reinitialize the memory due to the updated of the batch_size
+    # Couldn't change the input and output size, only the bath size
+    # the outter dimension must be the same, so that we don't need
+    # to reinitialize the weights and bias
+    @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
+    N, D = input_size[1], size(l.x, 2)
+    l.last_drop = Array{Float64}(N, D)
+    l.x         = Array{Float64}(N, D)
+    l.y         = Array{Float64}(N, D)
+    l.dldy      = Array{Float64}(N, D)
+    l.dldx      = Array{Float64}(N, D)
+
+end
+
 function forward(l::DropoutLayer, x::Union{SubArray{Float64,2},Array{Float64,2}}; deterministics=false)
     # Need to rescale the inputs so that the expected output mean will be the same
+    if size(x, 1) != size(l.x, 1)
+        update(l, size(x))
+    end
     l.x  = x
     rand!(l.last_drop)
     if ! deterministics

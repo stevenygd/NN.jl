@@ -28,10 +28,22 @@ function init(l::ReLu, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...
     l.x = Array{Float64}(out_size)
     l.y = Array{Float64}(out_size)
     l.dldx = Array{Float64}(out_size)
+    l.dldy = Array{Float64}(out_size)
+
     l.has_init = true
 end
 
+function update(l::ReLu, input_size::Tuple;)
+    l.x = Array{Float64}(input_size)
+    l.y = Array{Float64}(input_size)
+    l.dldx = Array{Float64}(input_size)
+    l.dldy = Array{Float64}(input_size)
+end
+
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
+    if size(l.x) != size(X)
+        update(l, size(X))
+    end
     l.x = X
     broadcast!(max, l.y, X, 0.)
     broadcast!(*,   l.y, l.y, l.alpha)

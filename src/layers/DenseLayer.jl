@@ -47,8 +47,8 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     l.y     = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
     l.dldx  = Array{Float64}(batch_size, l.i + 1)
-    l.velc  = Array{Float64}(l.i + 1,    l.num_units)
-    l.grad  = Array{Float64}(l.i + 1,    l.num_units)
+    l.velc  = zeros(l.i + 1,    l.num_units)
+    l.grad  = zeros(l.i + 1,    l.num_units)
 
     # Pull out the output size
     i, o = l.i, l.num_units
@@ -118,8 +118,8 @@ end
 
 function setParam!(l::DenseLayer, theta::Array{Float64})
     @assert size(l.W) == size(theta)
-    broadcast!(-, l.velc, theta, l.W)
-    # l.velc = theta - l.W
+    # broadcast!(-, l.velc, theta, l.W)
+    l.velc = theta - l.W
     l.W = theta
 end
 
