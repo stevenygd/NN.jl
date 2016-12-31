@@ -1,6 +1,6 @@
 # Abtract out DropOut
 # include("LayerBase.jl")
-type DropoutLayer <: NoiseLayer
+type DropoutLayer <: RegularizationLayer
     has_init    :: Bool
     p           :: Float64
     last_drop   :: Array{Float64}

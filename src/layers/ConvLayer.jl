@@ -143,9 +143,7 @@ function forward(l::ConvLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; k
     for f = 1:l.filter
         # TODO, need to test whether the in place function works this way
         l.y[b,f,:,:] += inner_conv2(l.x[b,c,:,:], l.kern[f,c,:,:])
-    end
-    end
-    end
+    end; end; end
     return l.y
 end
 
@@ -158,9 +156,7 @@ function backward(l::ConvLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}
     for f=1:l.filter
     for c=1:depth
         l.dldx[b,c,:,:] += outter_conv2(l.dldy[b,f,:,:], flipped[f,c,:,:])
-    end
-    end
-    end
+    end; end; end
     return l.dldx
 end
 
@@ -173,9 +169,7 @@ function getGradient(l::ConvLayer)
     for f=1:l.filter
     for c=1:depth
         l.k_grad[f,c,:,:] += inner_conv2(l.x[b,c,:,:], l.dldy[b,f,:,:])
-    end
-    end
-    end
+    end; end; end
     l.b_grad = sum(sum(sum(l.dldy, 4), 3), 1)[1,:,1,1]
     return (l.k_grad, l.b_grad)
 end

@@ -5,8 +5,9 @@ abstract Nonlinearity   <: Layer
 abstract LossCriteria   <: Layer
 abstract NoiseLayer     <: Layer
 abstract DataLayer      <: Layer
+abstract RegularizationLayer <: Layer
 
-StaticLayer = Union{Nonlinearity, NoiseLayer, DataLayer}
+StaticLayer = Union{Nonlinearity, NoiseLayer, DataLayer, RegularizationLayer}
 
 
 function getGradient(l::StaticLayer)
