@@ -40,14 +40,14 @@ function update(l::DropoutLayer, input_size::Tuple;)
     # Couldn't change the input and output size, only the bath size
     # the outter dimension must be the same, so that we don't need
     # to reinitialize the weights and bias
-    @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
-    N, D = input_size[1], size(l.x, 2)
-    l.last_drop = Array{Float64}(N, D)
-    l.x         = Array{Float64}(N, D)
-    l.y         = Array{Float64}(N, D)
-    l.dldy      = Array{Float64}(N, D)
-    l.dldx      = Array{Float64}(N, D)
+    @assert length(input_size) == 2
+    l.last_drop = Array{Float64}(input_size)
+    l.x         = Array{Float64}(input_size)
+    l.y         = Array{Float64}(input_size)
+    l.dldy      = Array{Float64}(input_size)
+    l.dldx      = Array{Float64}(input_size)
 
+    println("DropoutLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
 function forward(l::DropoutLayer, x::Union{SubArray{Float64,2},Array{Float64,2}}; deterministics=false)

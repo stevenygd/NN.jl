@@ -1,4 +1,4 @@
-include("LayerBase.jl")
+# include("LayerBase.jl")
 
 # Assumptions:
 # 1. padding doesn't work yet
@@ -91,6 +91,8 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
     l.bias = zeros(l.filter)
     l.k_grad = zeros(size(l.kern))
     l.b_grad = zeros(size(l.bias))
+    l.k_velc = zeros(size(l.kern))
+    l.b_velc = zeros(size(l.bias))
     l.has_init = true
 end
 
@@ -108,6 +110,8 @@ function update(l::ConvLayer, input_size::Tuple;)
     l.dldx = Array{Float64}(input_size)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
+
+    println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 function inner_conv2(x::Array{Float64,2}, k::Array{Float64,2})
@@ -132,7 +136,7 @@ function flip(x::Union{SubArray{Float64,4},Array{Float64,4}})
 end
 
 function forward(l::ConvLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
-    if size(l.x) != size(l.x)
+    if size(x) != size(l.x)
         update(l, size(x))
     end
     l.x = x
@@ -171,15 +175,27 @@ function getGradient(l::ConvLayer)
         l.k_grad[f,c,:,:] += inner_conv2(l.x[b,c,:,:], l.dldy[b,f,:,:])
     end; end; end
     l.b_grad = sum(sum(sum(l.dldy, 4), 3), 1)[1,:,1,1]
-    return (l.k_grad, l.b_grad)
+    # return (l.k_grad, l.b_grad)
+
+    # convention: ret[:,end,1,1] is the gradient for bias
+    ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
+    ret[:,1:end-1,:,:] = l.k_grad
+    ret[:,end,1,1]     = l.b_grad
+    return ret
 end
 
 function getParam(l::ConvLayer)
-    return (l.kern, l.bias)
+    # convention: ret[:,end,1,1] is the gradient for bias
+    ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
+    ret[:,1:end-1,:,:] = l.kern
+    ret[:,end,1,1]     = l.bias
+    return ret
 end
 
 function setParam!(l::ConvLayer, theta::Array{Float64})
-    new_kern, new_bias = theta
+    # convention: ret[:,end,1,1] is the gradient for bias
+
+    new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
 
     l.k_velc = new_kern - l.kern
     l.kern   = new_kern
@@ -189,15 +205,20 @@ function setParam!(l::ConvLayer, theta::Array{Float64})
 end
 
 function getVelocity(l::ConvLayer)
-    return (l.k_velc, l.b_velc)
+    # return (l.k_velc, l.b_velc)
+    # convention: ret[:,end,1,1] is the gradient for bias
+    ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
+    ret[:,1:end-1,:,:] = l.k_velc
+    ret[:,end,1,1]     = l.b_velc
+    return ret
 end
 
-l = ConvLayer(64,(3,3))
-X = rand(64, 3, 30, 30)
-Y = rand(64, 64, 28, 28)
-
-println("First time (compiling...)")
-@time init(l, nothing, Dict{String, Any}("batch_size" => 64, "input_size" => (3,30,30)))
-@time forward(l,X)
-@time backward(l,Y)
-@time getGradient(l)
+# l = ConvLayer(64,(3,3))
+# X = rand(64, 3, 30, 30)
+# Y = rand(64, 64, 28, 28)
+#
+# println("First time (compiling...)")
+# @time init(l, nothing, Dict{String, Any}("batch_size" => 64, "input_size" => (3,30,30)))
+# @time forward(l,X)
+# @time backward(l,Y)
+# @time getGradient(l)

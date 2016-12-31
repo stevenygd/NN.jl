@@ -70,11 +70,13 @@ function update(l::MaxPoolingLayer, input_size::Tuple;)
     l.dldx = Array{Float64}(input_size)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
-    l.max_idx = zeros(Float64, input_size)
+    l.max_idx = Array{Tuple{Int,Int}}(output_size)
+
+    println("MaxPooling Layer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
-    if size(l.x) != size(l.x)
+    if size(x) != size(l.x)
         update(l, size(x))
     end
     l.x = x

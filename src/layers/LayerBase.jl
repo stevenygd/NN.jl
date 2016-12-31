@@ -3,11 +3,11 @@ abstract Layer
 abstract LearnableLayer <: Layer
 abstract Nonlinearity   <: Layer
 abstract LossCriteria   <: Layer
-abstract NoiseLayer     <: Layer
 abstract DataLayer      <: Layer
 abstract RegularizationLayer <: Layer
+abstract UtilityLayer <: Layer
 
-StaticLayer = Union{Nonlinearity, NoiseLayer, DataLayer, RegularizationLayer}
+StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
 
 function getGradient(l::StaticLayer)
