@@ -1,4 +1,45 @@
 using MNIST
+include("./CIFAR.jl")
+import CIFAR
+
+function cifarData(;ttl= 50000)
+    trainX = Array(Float64, 3072,50000)
+    trainY = Array(Float64, 50000,1)
+    for i in 1 : 5
+        idx_start = (i-1)*10000 + 1
+        idx_end   =  i * 10000
+        trainX[:, idx_start:idx_end], trainY[idx_start:idx_end], labels = CIFAR.traindata(batch_number = i)
+    end 
+    N = size(trainX)[2]
+    idx = randperm(N)
+    trainX = trainX[:,idx]'
+    trainY = trainY[idx]
+    X = zeros(N,3,32,32)
+    print(trainX[1,:])
+    for i in 1 : N 
+        X[i,:,:,:] = channelize(trainX[i,:])
+    end
+    
+    X = X[1:ttl,:,:,:]
+    Y = trainY[1:ttl,]
+    return X,Y
+end
+
+function channelize(sample)
+#    @assert size(sample)[1] = 3072
+    r = sample[1:1024]
+    g = sample[1025:2048]
+    b = sample[2049:3072]
+    
+    r = reshape(r,32,32)'
+    g = reshape(g,32,32)'
+    b = reshape(b,32,32)'
+    channel = zeros(3,32,32)
+    channel[1,:,:] = r
+    channel[2,:,:] = g
+    channel[3,:,:] = b
+    return channel
+end
 
 function mnistData(;ttl=55000)
     features = trainfeatures(1)
@@ -22,6 +63,7 @@ function mnistData(;ttl=55000)
     # println(size(trX), size(trY))
 
     # Tiny bit of preprocessing, the image will be put in range of 0..1
+    # print(X[1,:])
     X = X / 256.
     return X, Y
 end
