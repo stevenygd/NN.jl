@@ -15,7 +15,7 @@ function cifarData(;ttl= 50000)
     trainX = trainX[:,idx]'
     trainY = trainY[idx]
     X = zeros(N,3,32,32)
-    print(trainX[1,:])
+#    print(trainX[1,:])
     for i in 1 : N 
         X[i,:,:,:] = channelize(trainX[i,:])
     end
@@ -23,6 +23,10 @@ function cifarData(;ttl= 50000)
     X = X[1:ttl,:,:,:]
     Y = trainY[1:ttl,]
     return X,Y
+end
+
+function cifarLables()
+    return CIFAR.labelnames()
 end
 
 function channelize(sample)
