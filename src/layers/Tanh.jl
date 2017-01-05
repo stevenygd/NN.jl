@@ -1,4 +1,4 @@
-include("LayerBase.jl")
+# include("LayerBase.jl")
 type Tanh <: Nonlinearity
     has_init    :: Bool
     x           :: Array{Float64}
@@ -40,8 +40,8 @@ function backward(l::Tanh, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kw
     return l.dldx
 end
 
-l = Tanh()
-X = [ 1. 2; -1 3; 1 -2; -3 -3]
-Y = [ 2. 3; 2 5; 3 6; 2 2]
-println(forward(l, X))
-println(backward(l, Y))
+# l = Tanh()
+# X = [ 1. 2; -1 3; 1 -2; -3 -3]
+# Y = [ 2. 3; 2 5; 3 6; 2 2]
+# println(forward(l, X))
+# println(backward(l, Y))

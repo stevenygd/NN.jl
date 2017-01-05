@@ -90,7 +90,17 @@ function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,
         start_w, start_h   = (w-1)*sw+1, (h-1)*sh+1
         end_w,   end_h     = min(in_w, sw*w), min(in_h, sh*h)
         l.y[b,c,w,h], i    = findmax(view(l.x, b, c, start_w:end_w, start_h:end_h))
-        l.max_idx[b,c,w,h] = start_w+(i-1)%sh, start_h+Int(floor((i-1)/sw))
+        l.max_idx[b,c,w,h] = start_w+(i-1)%sw, start_h+Int(floor((i-1)/sh))
+
+        # x,y = l.max_idx[b,c,w,h]
+        # if x > end_w || y > end_h
+        #     println("$(start_w), $(end_w)")
+        #     println("$(start_h), $(end_h)")
+        #     println("$(l.y[b,c,w,h]), $(i)")
+        #     println("$((i-1)%sw), $(Int(floor((i-1)/sh)))")
+        #     println(l.max_idx[b,c,w,h])
+        # end
+
         ix, iy = l.max_idx[b,c,w,h]
     end; end; end; end
     return l.y
@@ -111,11 +121,11 @@ function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Floa
 end
 
 # l = MaxPoolingLayer((3,3))
-# X = rand(64, 3, 30, 30)
-# Y = rand(64, 3, 10, 10)
+# X = rand(64, 3, 31, 31)
+# Y = rand(64, 3, 11, 11)
 #
 # println("First time (compiling...)")
-# @time init(l, nothing, Dict{String, Any}("batch_size" => 64, "input_size" => (3,30,30)))
+# @time init(l, nothing, Dict{String, Any}("batch_size" => 64, "input_size" => (3,31,31)))
 # @time forward(l,X)
 # @time backward(l,Y)
 # @time getGradient(l)

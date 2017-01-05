@@ -1,4 +1,4 @@
-include("LayerBase.jl")
+# include("LayerBase.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
     dldx   :: Array{Float64}
@@ -51,7 +51,7 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     l.target = zeros(size(l.x))
 end
 
-function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
+function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2}; kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -64,7 +64,7 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     broadcast!(-, l.x, Y, maximum(Y, 2))
     broadcast!(-, l.y, log(sum(exp(l.x),2)), l.x)
     for i = 1:N
-        l.label[i] = convert(Int64, label[i]) + 1
+        l.label[i] = label[i] + 1
     end
     # map!(x -> convert(Int64, x) + 1,    l.label, label)
 
@@ -81,11 +81,12 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     return l.loss, l.pred
 end
 
-function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...)
+function backward(l::SoftMaxCrossEntropyLoss, label::Array{Int, 2};kwargs...)
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
     """
+    # TODO: [label] isn't used
     # local N = size(l.x, 1)
     # if size(l.target,1) != N
     #     l.target    = zeros(size(l.x))

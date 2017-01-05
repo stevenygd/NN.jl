@@ -1,5 +1,5 @@
 # Dummy Layer to create the input shape for initilization
-include("LayerBase.jl")
+# include("LayerBase.jl")
 type InputLayer <: DataLayer
     has_init :: Bool
     shape    :: Tuple
