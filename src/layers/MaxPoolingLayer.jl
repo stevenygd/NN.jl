@@ -89,9 +89,10 @@ function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,
     for h = 1:size(l.y,4)
         start_w, start_h   = (w-1)*sw+1, (h-1)*sh+1
         end_w,   end_h     = min(in_w, sw*w), min(in_h, sh*h)
+        view_w, view_h     = end_w - start_w + 1, end_h - start_h + 1
         l.y[b,c,w,h], i    = findmax(view(l.x, b, c, start_w:end_w, start_h:end_h))
-        l.max_idx[b,c,w,h] = start_w+(i-1)%sw, start_h+Int(floor((i-1)/sh))
-
+        l.max_idx[b,c,w,h] = (start_w + (i-1)%view_w,
+                                start_h + Int(floor((i-1)/view_w)))
         # x,y = l.max_idx[b,c,w,h]
         # if x > end_w || y > end_h
         #     println("$(start_w), $(end_w)")
@@ -108,13 +109,14 @@ end
 
 function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
-    scale!(l.dldx, 0.)
+    scale!(l.dldx, 0.)#clear l.dldx
     batch_size, img_depth = size(l.x, 1), size(l.x, 2)
     for b = 1:batch_size
     for c = 1:img_depth
     for w = 1:size(l.y,3)
     for h = 1:size(l.y,4)
         x, y = l.max_idx[b,c,w,h]
+        # print("x:$(x),y:$(y) coming from w:$(w), h:$(h)")
         l.dldx[b,c,x,y] = l.dldy[b,c,w,h]
     end; end; end; end
     return l.dldx
