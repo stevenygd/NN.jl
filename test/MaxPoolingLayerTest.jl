@@ -19,9 +19,7 @@ function testMaxPoolingLayer(l, x, y, dldy, dldx)
     # Testing forwarding
     @test forward(l,x) == y
     @test l.x == x
-    print(l.max_idx[1,:,:,:])
 
-    
     #Testing back propagation
     @test backward(l,dldy) == dldx
     @test l.dldy == dldy
@@ -89,15 +87,32 @@ testMaxPoolingLayer(l2, x2, y2, dldy2, dldx2)
 println("test 2 passed.\n")
 
 # # Third test
-# println("Unit test 3...")
-# w2 = [2. 3.; 3. 2.]
-# b2 = [1. 0;]
-# x  = [1. 1;]
-# y  = [6. 5;]
-# dldy = [1. 2;]
-# dldx = [8. 7;]
-# gw2 = [1. 1; 2. 2;]
-# gb2 = [1. 2;]
-# beforeTest(l2)
-# testDenseLayerOneVector(w2, b2, x, y, dldy, dldx, gw2, gb2)
-# println("test 3 passed.\n")
+# Second Test
+println("Unit test 3...")
+x3_channel = [7 1 9; 5 3 8; 6 4 0]
+x3 = zeros(1,3,3,3)
+for i = 1:3
+    x3[1,i,:,:] = x3_channel
+end
+
+y3_channel = [7 9; 6 0]
+y3 = zeros(1,3,2,2)
+for i = 1:3
+    y3[1,i,:,:] = y3_channel
+end
+
+dldy3_channel = [3 -1; 1 2]
+dldy3 = zeros(1,3,2,2)
+for i = 1:3
+    dldy3[1,i,:,:] = dldy3_channel
+end
+
+dldx3_channel = [3 0 -1; 0 0 0; 1 0 2]
+dldx3 = zeros(1,3,3,3)
+for i = 1:3
+    dldx3[1,i,:,:] = dldx3_channel
+end
+
+beforeTest2(l2)
+testMaxPoolingLayer(l2, x3, y3, dldy3, dldx3)
+println("test 3 passed.\n")
