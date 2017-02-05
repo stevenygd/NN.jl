@@ -1,10 +1,10 @@
-# include("LayerBase.jl")
+include("LayerBase.jl")
 
 # Assumptions:
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type ConvLayer <: LearnableLayer
+type FlatConvLayer <: LearnableLayer
     has_init :: Bool
 
     # Parameters
@@ -31,7 +31,7 @@ type ConvLayer <: LearnableLayer
     b_grad   :: Array{Float64, 1}       # (#filter)
     b_velc   :: Array{Float64, 1}       # (#filter)
 
-    function ConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function FlatConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
         @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -43,14 +43,14 @@ type ConvLayer <: LearnableLayer
     end
 end
 
-function computeOutputSize(l::ConvLayer, input_size::Tuple)
+function computeOutputSize(l::FlatConvLayer, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     b, _, w, h  = input_size
     return (b, f, convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1))
 end
 
-function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::FlatConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
@@ -96,7 +96,7 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
     l.has_init = true
 end
 
-function update(l::ConvLayer, input_size::Tuple;)
+function update(l::FlatConvLayer, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
@@ -117,64 +117,79 @@ end
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
 tensor4 = Union{SubArray{Float64,4},Array{Float64,4}}
 
-function inner_conv2(x::tensor2, k::tensor2)
-    """
-    2D convolution, inner convolution where the kernel only slides inside inside
-    the image; only applicable for the 2-D images and 2-D kernels
-    """
-    kw, kh = size(k)
-    return conv2(x,k)[kw:end-kw+1, kh:end-kh+1]
-end
-
-function outter_conv2(x::tensor2, k::tensor2)
-    """
-    2D convolution, inner convolution where the kernel will slide through every
-    position as long as there is intersection with the image; same as native [conv2]
-    """
-    return conv2(x,k)
-end
-
 function flip(x::tensor4)
     return x[:,:,end:-1:1, end:-1:1]
 end
 
-function forward(l::ConvLayer, x::tensor4; kwargs...)
+function conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool)
+    b, c,  w,   h   = size(x)
+    f, c2, k_w, k_h = size(kern)
+    o_w, o_h       = w+k_w-1, h+k_h-1
+    @assert c2 == c
+
+    # Initialize all the memories
+    forward_x = Array{Float64}(c, w,   (b-1)*(h+k_h-1)+h)
+    tmp_coved = Array{Float64}(c, o_w, o_h*b)
+    tmp_sumed = Array{Float64}(f, o_w, o_h*b)
+    tmp_out   = Array{Float64}(b, f, o_w, o_h)
+
+    # Ship the data
+    fill!(forward_x, 0.)
+    for c_i = 1:c
+    for b_i = 1:b
+        start_idx = (b_i-1)*(h+k_h-1)+1
+        end_idx   = start_idx + h - 1
+        forward_x[c_i, :, start_idx:end_idx] = x[b_i, c_i, :, :]
+    end
+    end
+
+    # apply each filter channel wise
+    fill!(tmp_sumed, 0.)
+    for f_i = 1:f
+        fill!(tmp_coved, 0.)
+        for c_i = 1:c
+            tmp_coved[c_i, :, :] = conv2(forward_x[c_i, :, :], kern[f_i, c_i, :, :])
+        end
+        tmp_sumed[f_i, :, :] = sum(tmp_coved, 1)
+        broadcast!(+, tmp_sumed[f_i:f_i, :, :], tmp_sumed[f_i:f_i, :, :], bias[f_i])
+    end
+
+
+    # reshape to the desirable shape
+    for b_i = 1:b
+        tmp_out[b_i,:,:,:] = tmp_sumed[:,:,(o_h*(b_i-1)+1):(o_h*b_i)]
+    end
+
+    if inner
+        return tmp_out[:,:,k_w:end-k_w+1, k_h:end-k_h+1]
+    else
+        return tmp_out
+    end
+end
+
+function forward(l::FlatConvLayer, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
     l.x = x
-    batch_size, img_depth = size(l.x, 1), size(l.x, 2)
-    scale!(l.y, 0.)
-    for b = 1:batch_size
-    for c = 1:img_depth
-    for f = 1:l.filter
-        l.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
-    end; end; end
+    l.y = conv4d(l.x, l.kern, l.bias, true) # inner convolution
     return l.y
 end
 
-function backward(l::ConvLayer, dldy::tensor4; kwargs...)
+function backward(l::FlatConvLayer, dldy::tensor4; kwargs...)
     l.dldy = dldy
-    scale!(l.dldx, 0.)
-    flipped = flip(l.kern)
-    batch_size, depth = size(l.x,1), size(l.x, 2)
-    for b=1:batch_size
-    for f=1:l.filter
-    for c=1:depth
-        l.dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
-    end; end; end
+    flipped = permutedims(flip(l.kern), [2,1,3,4])
+    f = size(flipped,1)
+    l.dldx  = conv4d(l.dldy, flipped, zeros(f), false) # outter convolution
     return l.dldx
 end
 
-function getGradient(l::ConvLayer)
-    flipped = flip(l.dldy)
+function getGradient(l::FlatConvLayer)
+    flipped  = permutedims(flip(l.dldy), [2,1,3,4])
+    f = size(flipped,1)
+    flipped_x = permutedims(l.x, [2,1,3,4])
+    l.k_grad =  permutedims(conv4d(flipped_x, flipped, zeros(f), true), [2,1,3,4]) # outter convolution
     batch_size, depth = size(l.x,1), size(l.x, 2)
-    scale!(l.k_grad,0.)
-    for b=1:batch_size
-    for f=1:l.filter
-    for c=1:depth
-        l.k_grad[f,c,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.dldy,b,f,:,:))
-    end; end; end
     l.b_grad = sum(sum(sum(l.dldy, 4), 3), 1)[1,:,1,1]
 
     # convention: ret[:,end,1,1] is the gradient for bias
@@ -184,7 +199,7 @@ function getGradient(l::ConvLayer)
     return ret
 end
 
-function getParam(l::ConvLayer)
+function getParam(l::FlatConvLayer)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
     ret[:,1:end-1,:,:] = l.kern
@@ -192,7 +207,7 @@ function getParam(l::ConvLayer)
     return ret
 end
 
-function setParam!(l::ConvLayer, theta::Array{Float64})
+function setParam!(l::FlatConvLayer, theta::Array{Float64})
     # convention: ret[:,end,1,1] is the gradient for bias
 
     new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
@@ -204,7 +219,7 @@ function setParam!(l::ConvLayer, theta::Array{Float64})
     l.bias   = new_bias
 end
 
-function getVelocity(l::ConvLayer)
+function getVelocity(l::FlatConvLayer)
     # return (l.k_velc, l.b_velc)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -213,15 +228,28 @@ function getVelocity(l::ConvLayer)
     return ret
 end
 
-# l = FlatConvLayer(128,(3,3))
-# X = rand(32, 3, 30, 30)
-# Y = rand(32, 128, 28, 28)
+# include("ConvLayer.jl")
+# using Base.Test
+# l = FlatConvLayer(16,(3,3))
+# l2= ConvLayer(16,(3,3))
+# X = rand(32, 3, 10, 10)
+# Y = rand(32, 16, 8, 8)
 #
 # println("First time (compiling...)")
-# @time init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,30,30)))
-# @time forward(l,X)
-# @time backward(l,Y)
-# @time getGradient(l)
+# init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,10,10)))
+# init(l2, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,10,10)))
+# l2.kern = l.kern
+# @time y1 = forward(l,X)
+# @time y2 = forward(l2,X)
+# @test_approx_eq y1 y2
+#
+# @time y1 = backward(l,Y)
+# @time y2 = backward(l2,Y)
+# @test_approx_eq y1 y2
+#
+# @time y1 = getGradient(l)
+# @time y2 = getGradient(l2)
+# @test_approx_eq y1 y2
 #
 # println("Second time (after compilation...)")
 # @time forward(l,X)
