@@ -9,17 +9,17 @@ function cifarData(;ttl= 50000)
         idx_start = (i-1)*10000 + 1
         idx_end   =  i * 10000
         trainX[:, idx_start:idx_end], trainY[idx_start:idx_end], labels = CIFAR.traindata(batch_number = i)
-    end 
+    end
     N = size(trainX)[2]
     idx = randperm(N)
     trainX = trainX[:,idx]'
     trainY = trainY[idx]
     X = zeros(N,3,32,32)
 #    print(trainX[1,:])
-    for i in 1 : N 
+    for i in 1 : N
         X[i,:,:,:] = channelize(trainX[i,:])
     end
-    
+
     X = X[1:ttl,:,:,:]
     Y = trainY[1:ttl,]
     return X,Y
@@ -34,7 +34,7 @@ function channelize(sample)
     r = sample[1:1024]
     g = sample[1025:2048]
     b = sample[2049:3072]
-    
+
     r = reshape(r,32,32)'
     g = reshape(g,32,32)'
     b = reshape(b,32,32)'
@@ -69,6 +69,7 @@ function mnistData(;ttl=55000)
     # Tiny bit of preprocessing, the image will be put in range of 0..1
     # print(X[1,:])
     X = X / 256.
+    Y = round(Int,Y)
     return X, Y
 end
 
