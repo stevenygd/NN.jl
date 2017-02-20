@@ -1,10 +1,10 @@
-# include("LayerBase.jl")
+include("LayerBase.jl")
 
 # Assumptions:
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type ConvLayer <: LearnableLayer
+type MultiThreadedConvLayer <: LearnableLayer
     has_init :: Bool
 
     # Parameters
@@ -31,7 +31,8 @@ type ConvLayer <: LearnableLayer
     b_grad   :: Array{Float64, 1}       # (#filter)
     b_velc   :: Array{Float64, 1}       # (#filter)
 
-    function ConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function MultiThreadedConvLayer(filters::Int, kernel::Tuple{Int,Int};
+                                    padding = 0, stride = 1, init="Uniform")
         @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -43,14 +44,14 @@ type ConvLayer <: LearnableLayer
     end
 end
 
-function computeOutputSize(l::ConvLayer, input_size::Tuple)
+function computeOutputSize(l::MultiThreadedConvLayer, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     b, _, w, h  = input_size
     return (b, f, convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1))
 end
 
-function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::MultiThreadedConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
@@ -96,7 +97,7 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
     l.has_init = true
 end
 
-function update(l::ConvLayer, input_size::Tuple;)
+function update(l::MultiThreadedConvLayer, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
@@ -114,19 +115,17 @@ function update(l::ConvLayer, input_size::Tuple;)
     println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
-tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
-tensor4 = Union{SubArray{Float64,4},Array{Float64,4}}
-
-function inner_conv2(x::tensor2, k::tensor2)
+function inner_conv2(x::Array{Float64,2}, k::Array{Float64,2})
     """
     2D convolution, inner convolution where the kernel only slides inside inside
     the image; only applicable for the 2-D images and 2-D kernels
     """
     kw, kh = size(k)
+        println("X")
     return conv2(x,k)[kw:end-kw+1, kh:end-kh+1]
 end
 
-function outter_conv2(x::tensor2, k::tensor2)
+function outter_conv2(x::Array{Float64,2}, k::Array{Float64,2})
     """
     2D convolution, inner convolution where the kernel will slide through every
     position as long as there is intersection with the image; same as native [conv2]
@@ -134,48 +133,51 @@ function outter_conv2(x::tensor2, k::tensor2)
     return conv2(x,k)
 end
 
-function flip(x::tensor4)
+function flip(x::Union{SubArray{Float64,4},Array{Float64,4}})
     return x[:,:,end:-1:1, end:-1:1]
 end
 
-function forward(l::ConvLayer, x::tensor4; kwargs...)
+function forward(l::MultiThreadedConvLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
     l.x = x
     batch_size, img_depth = size(l.x, 1), size(l.x, 2)
     scale!(l.y, 0.)
-    for b = 1:batch_size
-    for c = 1:img_depth
+    Threads.@threads for b = 1:batch_size
     for f = 1:l.filter
-        l.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
+    for c = 1:img_depth
+        # TODO, need to test whether the in place function works this way
+        l.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:;mutable=false), view(l.kern,f,c,:,:;mutable=false))
     end; end; end
     return l.y
 end
 
-function backward(l::ConvLayer, dldy::tensor4; kwargs...)
+function backward(l::MultiThreadedConvLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
     scale!(l.dldx, 0.)
     flipped = flip(l.kern)
     batch_size, depth = size(l.x,1), size(l.x, 2)
-    for b=1:batch_size
+    Threads.@threads for b=1:batch_size
     for f=1:l.filter
     for c=1:depth
-        l.dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
+        l.dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:;mutable=false), view(flipped,f,c,:,:;mutable=false))
     end; end; end
     return l.dldx
 end
 
-function getGradient(l::ConvLayer)
+function getGradient(l::MultiThreadedConvLayer)
     flipped = flip(l.dldy)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     scale!(l.k_grad,0.)
-    for b=1:batch_size
-    for f=1:l.filter
+    tmp = Array{Float64}(l.k_size)
+    Threads.@threads for f=1:l.filter
     for c=1:depth
-        l.k_grad[f,c,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.dldy,b,f,:,:))
+    for b=1:batch_size
+        l.k_grad[f,c,:,:] += inner_conv2(view(l.x, b,c,:,:;mutable=false), view(l.dldy,b,f,:,:;mutable=false))
     end; end; end
     l.b_grad = sum(sum(sum(l.dldy, 4), 3), 1)[1,:,1,1]
+    # return (l.k_grad, l.b_grad)
 
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -184,7 +186,7 @@ function getGradient(l::ConvLayer)
     return ret
 end
 
-function getParam(l::ConvLayer)
+function getParam(l::MultiThreadedConvLayer)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
     ret[:,1:end-1,:,:] = l.kern
@@ -192,7 +194,7 @@ function getParam(l::ConvLayer)
     return ret
 end
 
-function setParam!(l::ConvLayer, theta::Array{Float64})
+function setParam!(l::MultiThreadedConvLayer, theta::Array{Float64})
     # convention: ret[:,end,1,1] is the gradient for bias
 
     new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
@@ -204,7 +206,7 @@ function setParam!(l::ConvLayer, theta::Array{Float64})
     l.bias   = new_bias
 end
 
-function getVelocity(l::ConvLayer)
+function getVelocity(l::MultiThreadedConvLayer)
     # return (l.k_velc, l.b_velc)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -213,18 +215,18 @@ function getVelocity(l::ConvLayer)
     return ret
 end
 
-# println("Profiling ConvLayer")
-# l = ConvLayer(128,(3,3))
-# X = rand(32, 3, 30, 30)
-# Y = rand(32, 128, 28, 28)
-#
-# println("First time (compiling...)")
-# @time init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,30,30)))
-# @time forward(l,X)
-# @time backward(l,Y)
-# @time getGradient(l)
-#
-# println("Second time (after compilation...)")
-# @time forward(l,X)
-# @time backward(l,Y)
-# @time getGradient(l)
+println("Profiling MultiThreadedConvLayer")
+l = MultiThreadedConvLayer(128,(3,3))
+X = rand(32, 3, 30, 30)
+Y = rand(32, 128, 28, 28)
+
+println("First time (compiling...)")
+@time init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,30,30)))
+@time forward(l,X)
+@time backward(l,Y)
+@time getGradient(l)
+
+println("Second time (after compilation...)")
+@time forward(l,X)
+@time backward(l,Y)
+@time getGradient(l)
