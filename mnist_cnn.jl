@@ -14,15 +14,17 @@ function build_cnn()
         InputLayer((1,1,28,28)),
         # ConvLayer(32,(5,5)),
         # FlatConvLayer(32,(5,5)),
-        MultiThreadedConvLayer(32,(5,5)),
+        # MultiThreadedConvLayer(32,(5,5)),
+        CaffeConvLayer(32,(5,5)),
         ReLu(),
         MaxPoolingLayer((2,2)),
 
         # ConvLayer(32,(5,5)),
         # FlatConvLayer(32,(5,5)),
-        MultiThreadedConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
+        # MultiThreadedConvLayer(32,(5,5)),
+        # CaffeConvLayer(32,(5,5)),
+        # ReLu(),
+        # MaxPoolingLayer((2,2)),
 
         FlattenLayer(),
 

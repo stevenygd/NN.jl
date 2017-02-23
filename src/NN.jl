@@ -3,7 +3,8 @@ module NN
            getParam, setParam!, getVelocity
     export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
            SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh, InputLayer,
-           ConvLayer, FlatConvLayer, MaxPoolingLayer, FlattenLayer
+           ConvLayer, FlatConvLayer, MaxPoolingLayer, FlattenLayer,
+           MultiThreadedConvLayer, CaffeConvLayer
 
     include("layers/LayerBase.jl")
     include("layers/InputLayer.jl")
@@ -20,5 +21,6 @@ module NN
     include("layers/MaxPoolingLayer.jl")
     include("layers/FlattenLayer.jl")
     include("layers/FlatConvLayer.jl")
-    # include("layers/MultiThreadedConvLayer.jl")
+    include("layers/MultiThreadedConvLayer.jl")
+    include("layers/CaffeConvLayer.jl")
 end
