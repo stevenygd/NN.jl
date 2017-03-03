@@ -234,14 +234,15 @@ end
 
 # include("ConvLayer.jl")
 # using Base.Test
-# l = CaffeConvLayer(16,(3,3))
-# l2= ConvLayer(16,(3,3))
-# X = rand(32, 3, 10, 10)
-# Y = rand(32, 16, 8, 8)
+# bsize= 500
+# l = CaffeConvLayer(32,(3,3))
+# l2= ConvLayer(32,(3,3))
+# X = rand(bsize, 3, 10, 10)
+# Y = rand(bsize, 16, 8, 8)
 #
 # println("First time (compiling...)")
-# init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,10,10)))
-# init(l2, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,10,10)))
+# init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3,10,10)))
+# init(l2, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3,10,10)))
 # l2.kern = l.kern
 # @time y1 = forward(l,X)
 # @time y2 = forward(l2,X)
@@ -256,11 +257,27 @@ end
 # # @test_approx_eq y1 y2
 #
 # println("Second time (after compilation) ConvLayer")
-# @time for _=1:100 forward(l2,X)   end
-# @time for _=1:100 backward(l2,Y)  end
-# @time for _=1:100 getGradient(l2) end
+# @time begin
+#     X = rand(bsize, 3, 10, 10)
+#     forward(l2,X)
+# end
+# @time begin
+#     Y = rand(bsize, 16, 8, 8)
+#     backward(l2,Y)
+# end
+# @time begin
+#     getGradient(l2)
+# end
 #
 # println("Second time (after compilation) CaffeConvLayer")
-# @time for _=1:100 forward(l,X)   end
-# @time for _=1:100 backward(l,Y)  end
-# @time for _=1:100 getGradient(l) end
+# @time begin
+#     X = rand(bsize, 3, 10, 10)
+#     forward(l,X)
+# end
+# @time begin
+#     Y = rand(bsize, 16, 8, 8)
+#     backward(l,Y)
+# end
+# @time begin
+#     getGradient(l)
+# end

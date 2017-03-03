@@ -12,12 +12,12 @@ batch_size = 500
 function build_cnn()
     layers = Layer[
         InputLayer((1,1,28,28)),
-        # ConvLayer(32,(5,5)),
-        # FlatConvLayer(32,(5,5)),
-        # MultiThreadedConvLayer(32,(5,5)),
-        CaffeConvLayer(32,(5,5)),
+        # ConvLayer(3,(5,5)),
+        # FlatConvLayer(3,(5,5)),
+        # MultiThreadedConvLayer(3,(5,5)),
+        CaffeConvLayer(3,(5,5)),
         ReLu(),
-        MaxPoolingLayer((2,2)),
+        # MaxPoolingLayer((2,2)),
 
         # ConvLayer(32,(5,5)),
         # FlatConvLayer(32,(5,5)),
@@ -28,11 +28,11 @@ function build_cnn()
 
         FlattenLayer(),
 
-        DropoutLayer(0.5),
-        DenseLayer(256),
-        ReLu(),
+        # DropoutLayer(0.5),
+        # DenseLayer(256),
+        # ReLu(),
 
-        DropoutLayer(0.5),
+        # DropoutLayer(0.5),
         DenseLayer(10)
     ]
     criteria = SoftMaxCrossEntropyLoss()
