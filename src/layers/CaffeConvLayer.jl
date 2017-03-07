@@ -1,4 +1,4 @@
-# include("LayerBase.jl")
+include("LayerBase.jl")
 
 # Assumptions:
 # 1. padding doesn't work yet
@@ -209,8 +209,13 @@ function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner:
             # Compute starting points
             ix = 1 + (nx - 1) * stride
             iy = 1 + (ny - 1) * stride
-            fiber = x_p[nb,:,ix:ix+k_w-1,iy:iy+k_h-1]
-            m_img[row,:] = reshape(fiber, c*k_w*k_h, 1) # flatten a filber
+            col = 1
+            for ic = 1:c
+            for iw = ix:ix+k_w-1
+            for ih = iy:iy+k_h-1
+              m_img[row, col] = x_p[nb,ic,iw,ih]
+              col += 1
+            end
             row += 1
         end
         end
@@ -288,52 +293,28 @@ function getVelocity(l::CaffeConvLayer)
     return ret
 end
 
-# include("ConvLayer.jl")
-# using Base.Test
-# bsize= 500
-# l = CaffeConvLayer(32,(3,3))
-# l2= ConvLayer(32,(3,3))
-# X = rand(bsize, 3, 10, 10)
-# Y = rand(bsize, 16, 8, 8)
-#
-# println("First time (compiling...)")
-# init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3,10,10)))
-# init(l2, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3,10,10)))
-# l2.kern = l.kern
-# @time y1 = forward(l,X)
-# @time y2 = forward(l2,X)
-# # @test_approx_eq y1 y2
-#
-# @time y1 = backward(l,Y)
-# @time y2 = backward(l2,Y)
-# # @test_approx_eq y1 y2
-#
-# @time y1 = getGradient(l)
-# @time y2 = getGradient(l2)
-# # @test_approx_eq y1 y2
-#
-# println("Second time (after compilation) ConvLayer")
-# @time begin
-#     X = rand(bsize, 3, 10, 10)
-#     forward(l2,X)
-# end
-# @time begin
-#     Y = rand(bsize, 16, 8, 8)
-#     backward(l2,Y)
-# end
-# @time begin
-#     getGradient(l2)
-# end
-#
-# println("Second time (after compilation) CaffeConvLayer")
-# @time begin
-#     X = rand(bsize, 3, 10, 10)
-#     forward(l,X)
-# end
-# @time begin
-#     Y = rand(bsize, 16, 8, 8)
-#     backward(l,Y)
-# end
-# @time begin
-#     getGradient(l)
-# end
+bsize= 500
+l = CaffeConvLayer(32,(3,3))
+X = rand(bsize, 3, 27, 27)
+Y = rand(bsize, 32, 25, 25)
+
+println("First time (compiling...)")
+init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3, 27, 27)))
+@time y1 = forward(l,X)
+
+@time y1 = backward(l,Y)
+
+@time y1 = getGradient(l)
+
+println("Second time (after compilation) CaffeConvLayer")
+X = rand(bsize, 3, 10, 10)
+Y = rand(bsize, 16, 8, 8)
+@time begin
+    forward(l,X)
+end
+@time begin
+    backward(l,Y)
+end
+@time begin
+    getGradient(l)
+end
