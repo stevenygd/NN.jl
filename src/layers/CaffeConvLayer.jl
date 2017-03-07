@@ -122,6 +122,62 @@ function flip(x::tensor4)
     return x[:,:,end:-1:1, end:-1:1]
 end
 
+function caffe_conv4d_masking(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool; stride=1)
+    b, c,  w, h     = size(x)
+    f, c2, k_w, k_h = size(kern)
+    o_w, o_h  = w+k_w-1, h+k_h-1
+    @assert c == c2
+
+    # Initialize memory
+    mask     = Array{CartesianIndex{3}}(o_w*o_h,   c*k_w*k_h)
+    m_conved = zeros(o_w*o_h,   f)
+    m_transp = zeros(f, o_w, o_h)
+    output   = zeros(b, f, o_w, o_h)
+
+    row = 1
+    for nx = 1:o_w
+    for ny = 1:o_h
+        # Compute starting points
+        ix = 1 + (nx - 1) * stride
+        iy = 1 + (ny - 1) * stride
+        c_range = CartesianRange(
+            CartesianIndex(1, ix      , iy),
+            CartesianIndex(c, ix+k_w-1, iy+k_h-1)
+        )
+        col = 1
+        for idx in c_range
+            mask[row, col] = idx
+            col+=1
+        end
+        row+=1
+    end
+    end
+
+    # flatten a 3D-kernel
+    m_ker  = zeros(c*k_w*k_h, f)
+    for col = 1:f
+        m_ker[:,col] = reshape(kern[col,:,:,:], 1,c*k_w*k_h)
+    end
+
+    # Padded images
+    x_p = zeros(b, c, w+2*k_w-2, h+2*k_h-2)
+    x_p[:,:,k_w:w+k_w-1,k_h:h+k_h-1] = x
+
+    # For each batch, fill m_img, and make computation
+    for nb = 1:b
+        A_mul_B!(m_conved, x_p[nb,:,:,:][mask], m_ker)
+        m_reshpe = reshape(m_conved, o_w, o_h, f)
+        permutedims!(m_transp, m_reshpe, [3,1,2])
+        output[nb,:,:,:] = m_transp
+    end
+
+    if inner
+        return output[:,:,k_w:end-k_w+1, k_h:end-k_h+1]
+    else
+        return output
+    end
+end
+
 function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool;stride=1)
     b, c,  w,   h   = size(x)
     f, c2, k_w, k_h = size(kern)
