@@ -96,6 +96,66 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     l.has_init = true
 end
 
+function im2col_impl{T}(img::Array{T}, col::Array{T},
+    kernel::NTuple{2,Int}, pad::NTuple{2,Int}, stride::NTuple{2,Int})
+
+  width, height, channels = size(img,1), size(img,2), size(img,3)
+  kernel_w, kernel_h = kernel
+  pad_w, pad_h = pad
+  stride_w, stride_h = stride
+
+  height_col = div(height + 2pad_h - kernel_h, stride_h) + 1
+  width_col = div(width + 2pad_w - kernel_w, stride_w) + 1
+  channels_col = channels * kernel_h * kernel_w
+
+  for c = 0:channels_col-1
+    w_offset = c % kernel_w
+    h_offset = div(c, kernel_w) % kernel_h
+    c_im = div(c, kernel_h * kernel_w) # channel
+    for h = 0:height_col-1
+      for w = 0:width_col-1
+        h_pad = h*stride_h - pad_h + h_offset
+        w_pad = w*stride_w - pad_w + w_offset
+        if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+            @inbounds col[1 + (c*height_col+h) * width_col + w] =
+                img[1 + (c_im * height + h_pad) * width + w_pad]
+        else
+          @inbounds col[1 + (c*height_col+h) * width_col + w] = 0
+        end
+      end
+    end
+  end
+end
+
+function col2im_impl{T}(col::Array{T}, img::Array{T},
+    kernel::NTuple{2,Int}, pad::NTuple{2,Int}, stride::NTuple{2,Int})
+  width, height, channels = size(img,1), size(img,2), size(img,3)
+  kernel_w, kernel_h = kernel
+  pad_w, pad_h = pad
+  stride_w, stride_h = stride
+
+  height_col = div(height + 2pad_h - kernel_h, stride_h) + 1
+  width_col = div(width + 2pad_w - kernel_w, stride_w) + 1
+  channels_col = channels * kernel_h * kernel_w
+
+  fill!(img, 0)
+  for c = 0:channels_col-1
+    w_offset = c % kernel_w
+    h_offset = div(c, kernel_w) % kernel_h
+    c_im = div(c, kernel_w * kernel_h)
+    for h = 0:height_col-1
+      for w = 0:width_col-1
+        h_pad = h * stride_h - pad_h + h_offset
+        w_pad = w * stride_w - pad_w + w_offset
+        if h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width
+          @inbounds img[1 + (c_im * height + h_pad) * width + w_pad] +=
+              col[1 + (c * height_col + h) * width_col + w]
+        end
+      end
+    end
+  end
+end
+
 function update(l::CaffeConvLayer, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
@@ -197,10 +257,14 @@ function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner:
     end
 
     # Padded images
-    x_p = zeros(b, c, w+2*k_w-2, h+2*k_h-2)
-    x_p[:,:,k_w:w+k_w-1,k_h:h+k_h-1] = x
+    # x_p = zeros(b, c, w+2*k_w-2, h+2*k_h-2)
+    # x_p[:,:,k_w:w+k_w-1,k_h:h+k_h-1] = x
+
+    # Put C at the last place of the codes, so that we have (b,w,h,c)
+    permutedims!(x, x, [1,3,4,2])
 
     # For each batch, fill m_img, and make computation
+
     for nb = 1:b
         row = 1
         fill!(m_img, 0.)
@@ -215,6 +279,8 @@ function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner:
             for ih = iy:iy+k_h-1
               m_img[row, col] = x_p[nb,ic,iw,ih]
               col += 1
+            end
+            end
             end
             row += 1
         end
