@@ -261,30 +261,13 @@ function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner:
     # x_p[:,:,k_w:w+k_w-1,k_h:h+k_h-1] = x
 
     # Put C at the last place of the codes, so that we have (b,w,h,c)
-    permutedims!(x, x, [1,3,4,2])
+    x_p = zeros(w, h, c, b)
+    permutedims!(x_p, x, [3,4,2,1])
 
     # For each batch, fill m_img, and make computation
-
+    kernel = (k_w, k_h)
     for nb = 1:b
-        row = 1
-        fill!(m_img, 0.)
-        for nx = 1:o_w
-        for ny = 1:o_h
-            # Compute starting points
-            ix = 1 + (nx - 1) * stride
-            iy = 1 + (ny - 1) * stride
-            col = 1
-            for ic = 1:c
-            for iw = ix:ix+k_w-1
-            for ih = iy:iy+k_h-1
-              m_img[row, col] = x_p[nb,ic,iw,ih]
-              col += 1
-            end
-            end
-            end
-            row += 1
-        end
-        end
+        im2col_impl(x_p[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
         A_mul_B!(m_conved, m_img, m_ker)
         m_reshpe = reshape(m_conved, o_w, o_h, f)
         permutedims!(m_transp, m_reshpe, [3,1,2])
@@ -367,14 +350,12 @@ Y = rand(bsize, 32, 25, 25)
 println("First time (compiling...)")
 init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (3, 27, 27)))
 @time y1 = forward(l,X)
-
 @time y1 = backward(l,Y)
-
 @time y1 = getGradient(l)
 
 println("Second time (after compilation) CaffeConvLayer")
-X = rand(bsize, 3, 10, 10)
-Y = rand(bsize, 16, 8, 8)
+X = rand(bsize, 3, 27, 27)
+Y = rand(bsize, 32, 25, 25)
 @time begin
     forward(l,X)
 end
