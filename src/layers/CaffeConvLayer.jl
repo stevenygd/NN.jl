@@ -109,9 +109,9 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     l.tmps_forward = (
         # output_size should be that of the outter convolution,
         # Although only the inner convolution is used
-        Array{Float64}((w + kw - 1) * (h + kh - 1), c * kw * kh),
-        Array{Float64}(kw * kh * c,                 f),
-        Array{Float64}((w + kw - 1) * (h + kh - 1), f)
+        Array{Float64}(ow * oh,     c * kw * kh),
+        Array{Float64}(kw * kh * c, f),
+        Array{Float64}(ow * oh,     f)
     )
 
     l.tmps_backward = (
@@ -121,9 +121,9 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     )
 
     l.tmps_gradient = (
-        Array{Float64}((w + ow - 1) * (h + oh - 1),     ow * oh * b),
-        Array{Float64}(ow * oh * b,                     f),
-        Array{Float64}((w + ow - 1) * (h + oh - 1),     f)
+        Array{Float64}(kw * kh,     ow * oh * b),
+        Array{Float64}(ow * oh * b, f),
+        Array{Float64}(kw * kh,     f)
     )
 
     l.has_init = true
@@ -151,9 +151,12 @@ function im2col_impl{T}(img::Array{T}, col::Array{T},
         h_pad = h*stride_h - pad_h + h_offset
         w_pad = w*stride_w - pad_w + w_offset
         if (h_pad >= 0 && h_pad < height && w_pad >= 0 && w_pad < width)
+            # col[w, h, c] = img[w_pad, h_pad, c_im]
             @inbounds col[1 + (c*height_col+h) * width_col + w] =
                 img[1 + (c_im * height + h_pad) * width + w_pad]
         else
+          # col[w, h, c] = 0
+          # assume size(col) = (width_col * height_col, channels_col)
           @inbounds col[1 + (c*height_col+h) * width_col + w] = 0
         end
       end
@@ -217,9 +220,9 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
     l.tmps_forward = (
         # output_size should be that of the outter convolution,
         # Although only the inner convolution is used
-        Array{Float64}((w + kw - 1) * (h + kh - 1), c * kw * kh),
-        Array{Float64}(kw * kh * c,                 f),
-        Array{Float64}((w + kw - 1) * (h + kh - 1), f)
+        Array{Float64}(ow * oh,     c * kw * kh),
+        Array{Float64}(kw * kh * c, f),
+        Array{Float64}(ow * oh,     f)
     )
 
     l.tmps_backward = (
@@ -229,9 +232,9 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
     )
 
     l.tmps_gradient = (
-        Array{Float64}((w + ow - 1) * (h + oh - 1),     ow * oh * b),
-        Array{Float64}(ow * oh * b,                     f),
-        Array{Float64}((w + ow - 1) * (h + oh - 1),     f)
+        Array{Float64}(kw * kh,     ow * oh * b),
+        Array{Float64}(ow * oh * b, f),
+        Array{Float64}(kw * kh,     f)
     )
 
     println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
@@ -261,7 +264,7 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     _, t_a, a_a, _, _ = @timed begin
         w,   h,   c,  b = size(x)
         k_w, k_h, c2, f = size(kern)
-        o_w, o_h        = w+k_w-1, h+k_h-1
+        o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
         kernel          = (k_w, k_h)
         @assert c2 == c
 
@@ -281,17 +284,21 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     t_1, t_2, t_3 = 0., 0., 0.
     a_1, a_2, a_3 = 0., 0., 0.
     for nb = 1:b
-        _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
+        if inner
+            _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
+        else # outter convolution, add padding
+            _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w,k_h), (stride,stride))
+        end
+
         _, t2_curr, a2_curr, _, _ = @timed A_mul_B!(m_conved, m_img, m_ker)
         _, t3_curr, a3_curr, _, _ = @timed begin
             # TODO: this could be wrong
             m_transp = reshape(m_conved, o_w, o_h, f)
-            if inner
-                output[:,:,:,nb] = m_transp[k_w:end-k_w+1, k_h:end-k_h+1,:]
-            else
-                output[:,:,:,nb] = m_transp
-            end
-
+            # if inner
+            #     output[:,:,:,nb] = m_transp[k_w:end-k_w+1, k_h:end-k_h+1,:]
+            # else
+            output[:,:,:,nb] = m_transp
+            # end
         end
         t_1 += t1_curr
         t_2 += t2_curr
@@ -385,8 +392,8 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
 end
 
 function getGradient(l::CaffeConvLayer)
-    img    = permutedims(l.x, [1,2,4,3])
-    kernel = permutedims(flip(l.dldy), [1,2,4,3])
+    img    = permutedims(l.x, [1,2,4,3])            # (w,h,c,b)   -> (w,h,b,c)
+    kernel = permutedims(flip(l.dldy), [1,2,4,3])   # (ow,oh,f,b) -> (ow,oh,b,f)
     f = size(kernel,4) # TODO: this could be wrong
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
     permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
