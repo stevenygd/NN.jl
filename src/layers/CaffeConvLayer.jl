@@ -261,57 +261,31 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
              [m_conved] (o_w*o_h,   f)
     [kern]   size : (k_width,   k_height, channel,  #filter)
     """
-    _, t_a, a_a, _, _ = @timed begin
-        w,   h,   c,  b = size(x)
-        k_w, k_h, c2, f = size(kern)
-        o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
-        kernel          = (k_w, k_h)
-        @assert c2 == c
+    w,   h,   c,  b = size(x)
+    k_w, k_h, c2, f = size(kern)
+    o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
+    kernel          = (k_w, k_h)
+    @assert c2 == c
 
-        m_img, m_ker, m_conved = tmps
-        fill!(m_img, 0.)
-        fill!(m_ker, 0.)
-        fill!(m_conved, 0.)
-        fill!(output, 0.)
-    end
+    m_img, m_ker, m_conved = tmps
 
     # Fill m_ker
-    _, t_rshp, a_rshp, _, _ = @timed for col = 1:f
+    for col = 1:f
         m_ker[:,col] = reshape(kern[:,:,:,col], 1,c*k_w*k_h) # flatten a 3D-kernel
     end
 
-
-    t_1, t_2, t_3 = 0., 0., 0.
-    a_1, a_2, a_3 = 0., 0., 0.
     for nb = 1:b
         if inner
-            _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
+            im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
         else # outter convolution, add padding
-            _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w,k_h), (stride,stride))
+            im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w,k_h), (stride,stride))
         end
 
-        _, t2_curr, a2_curr, _, _ = @timed A_mul_B!(m_conved, m_img, m_ker)
-        _, t3_curr, a3_curr, _, _ = @timed begin
-            # TODO: this could be wrong
-            m_transp = reshape(m_conved, o_w, o_h, f)
-            # if inner
-            #     output[:,:,:,nb] = m_transp[k_w:end-k_w+1, k_h:end-k_h+1,:]
-            # else
-            output[:,:,:,nb] = m_transp
-            # end
-        end
-        t_1 += t1_curr
-        t_2 += t2_curr
-        t_3 += t3_curr
-        a_1 += a1_curr
-        a_2 += a2_curr
-        a_3 += a3_curr
+        A_mul_B!(m_conved, m_img, m_ker)
+        # TODO: this could be wrong
+        m_transp = reshape(m_conved, o_w, o_h, f)
+        output[:,:,:,nb] = m_transp
     end
-    println("Init_ALLOC : $(t_a)s, $(a_a/1000000) M");
-    println("Init_KERNL : $(t_rshp)s, $(a_rshp/1000000) M");
-    println("IM2COL     : $(t_1)s, $(a_1/1000000) M");
-    println("MATMUL     : $(t_2)s, $(a_2/1000000) M");
-    println("RESHAPE    : $(t_3)s, $(a_3/1000000) M");
 
     return output
 end
