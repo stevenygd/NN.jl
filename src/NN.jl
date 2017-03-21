@@ -1,10 +1,10 @@
 module NN
     export SequentialNet, forward, backward, getGradient,
-           getParam, setParam!, getVelocity
+           getParam, setParam!, getVelocity, getNumParams
     export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
            SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh, InputLayer,
-           ConvLayer, FlatConvLayer, MaxPoolingLayer, FlattenLayer,
-           MultiThreadedConvLayer, CaffeConvLayer
+           ConvLayer, MaxPoolingLayer, FlattenLayer,
+           CaffeConvLayer
 
     include("layers/LayerBase.jl")
     include("layers/InputLayer.jl")
@@ -20,7 +20,7 @@ module NN
     include("layers/ConvLayer.jl")
     include("layers/MaxPoolingLayer.jl")
     include("layers/FlattenLayer.jl")
-    include("layers/FlatConvLayer.jl")
-    include("layers/MultiThreadedConvLayer.jl")
+    # include("layers/FlatConvLayer.jl")
+    # include("layers/MultiThreadedConvLayer.jl")
     include("layers/CaffeConvLayer.jl")
 end

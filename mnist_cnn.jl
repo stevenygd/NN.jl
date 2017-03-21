@@ -11,12 +11,12 @@ using IProfile
 batch_size = 500
 function build_cnn()
     layers = Layer[
-        InputLayer((1,1,28,28)),
+        InputLayer((28,28,1,500)),
         # ConvLayer(3,(5,5)),
         # FlatConvLayer(3,(5,5)),
         # MultiThreadedConvLayer(3,(5,5)),
         CaffeConvLayer(3,(5,5)),
-        ReLu(),
+        # ReLu(),
         # MaxPoolingLayer((2,2)),
 
         # ConvLayer(32,(5,5)),
@@ -88,16 +88,29 @@ function train(net::SequentialNet, train_set, validation_set;
                 batch += 1
                 local sidx::Int = convert(Int64, bid*batch_size+1)
                 local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
-                local batch_X = X[sidx:eidx,:,:,:]
+                local batch_X = X[:,:,:,sidx:eidx]
                 local batch_Y = Y[sidx:eidx,:]
                 loss, _ = forward(net, batch_X, batch_Y)
                 backward(net, batch_Y)
                 append!(all_losses, mean(loss))
                 for i = 1:length(net.layers)
-                    local layer = net.layers[i]
-                    local gradi = lrSchedule(epo) * getGradient(layer) / batch_size
-                    local veloc = getVelocity(layer) * alpha - gradi
-                    local theta = getParam(layer) + alpha * veloc - gradi
+                    layer = net.layers[i]
+
+                    gradi = getGradient(layer)
+                    for j = 1:length(gradi)
+                        gradi[j] = lrSchedule(epo) * gradi[j] / batch_size
+                    end
+
+                    # veloc = getVelocity(layer)
+                    # for j = 1:length(veloc)
+                    #     veloc[j] = veloc[j] * alpha - gradi[j]
+                    # end
+
+                    param = getParam(layer)
+                    for j = 1:length(param)
+                        # param[j] = param[j] + alpha * veloc[j] - gradi[j]
+                        param[j] = param[j] - gradi[j]
+                    end
                     if verbose > 2
                         print("Layer $(i)")
                         print("\tGradient: $(sum(abs(theta - getVelocity(layer))))")
@@ -106,14 +119,14 @@ function train(net::SequentialNet, train_set, validation_set;
                         end
                         println()
                     end
-                    setParam!(layer, theta)
+                    setParam!(layer, param)
                 end
 
                 _, pred = forward(net, batch_X, batch_Y; deterministics = true)
                 epo_cor  += get_corr(pred, batch_Y)
                 local acc = get_corr(pred, batch_Y) / batch_size
             end
-            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            # println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
         local epo_loss = mean(all_losses)
         local epo_accu = epo_cor / N
@@ -142,9 +155,9 @@ trX, trY = train_set[1], train_set[2]
 valX, valY = validation_set[1], validation_set[2]
 teX, teY = test_set[1], test_set[2]
 
-trX  = reshape(trX,  (size(trX,1),  1, 28, 28))
-valX = reshape(valX, (size(valX,1), 1, 28, 28))
-teX  = reshape(teX,  (size(teX,1),  1, 28, 28))
+trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
+valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
+teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 
 net = build_cnn()
 # net = build_cnn_multi_threaded()

@@ -18,11 +18,11 @@ function init(l::FlattenLayer, p::Union{Layer,Void}, config::Dict{String,Any}; k
         input_size = getOutputSize(p)
     else
         batch_size = config["batch_size"]
-        c,w,h      = config["input_size"]
-        input_size = batch_size, c, w, h
+        w,h,c      = config["input_size"]
+        input_size = w, h, c, batch_size
     end
     @assert length(input_size) == 4
-    b, c, w, h  = input_size
+    w, h, c, b  = input_size
     output_size = b, c*w*h
     l.x    = Array{Float64}(input_size)
     l.dldx = Array{Float64}(input_size)
@@ -33,8 +33,9 @@ end
 
 function update(l::FlattenLayer, input_size::Tuple;)
     # only allow to change the batch size
-    @assert length(input_size) == 4 && input_size[2:end] == size(l.x)[2:end]
-    b,x,y,z = input_size
+    @assert length(input_size) == 4 && input_size[1:3] == size(l.x)[1:3]
+    # b,x,y,z = input_size
+    x,y,z,b = input_size
     output_size = b,x*y*z
     l.x    = Array{Float64}(input_size)
     l.dldx = Array{Float64}(input_size)
@@ -48,14 +49,14 @@ function forward(l::FlattenLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}
         update(l, size(x))
     end
     l.x = x
-    l.y = reshape(l.x, (size(l.x,1), size(l.x,2)*size(l.x,3)*size(l.x,4)))
+    permutedims!(l.y, reshape(l.x, (size(l.x,1)*size(l.x,2)*size(l.x,3), size(l.x,4))), [2,1])
     return l.y
 end
 
 # Donot annotate DLDY since it could be subarray
 function backward(l::FlattenLayer, dldy::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     l.dldy = dldy
-    l.dldx = reshape(l.dldy, size(l.x))
+    l.dldx = reshape(permutedims(l.dldy, [2,1]), size(l.x))
     return l.dldx
 end
 

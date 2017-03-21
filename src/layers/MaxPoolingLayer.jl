@@ -38,8 +38,8 @@ function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}
     if p == nothing
         @assert length(config["input_size"]) == 3
         batch_size = config["batch_size"]
-        c, w, h    = config["input_size"]
-        input_size = (batch_size, c, w, h)
+        w, h, c    = config["input_size"]
+        input_size = (w, h, c, batch_size)
     else
         input_size = getOutputSize(p)
     end
@@ -61,9 +61,9 @@ function update(l::MaxPoolingLayer, input_size::Tuple;)
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
 
-    b = input_size[1]
+    b = input_size[4]
     output_size = size(l.y)
-    output_size = (b, output_size[2], output_size[3], output_size[4])
+    output_size = (output_size[1], output_size[2], output_size[3], b)
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)

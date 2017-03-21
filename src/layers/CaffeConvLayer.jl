@@ -1,4 +1,4 @@
-include("LayerBase.jl")
+# include("LayerBase.jl")
 
 # Assumptions:
 # 1. padding doesn't work yet
@@ -203,9 +203,8 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
     @assert length(input_size) == 4
     @assert input_size[1:2] == size(l.x)[1:2]
 
-    b = input_size[1]
-    output_size = size(l.y)
-    output_size = (b, output_size[2], output_size[3], output_size[4])
+    b = input_size[4]
+    output_size = (size(l.y,1), size(l.y,2), size(l.y,3), b)
     ow, oh, f, _ = output_size
     w,  h,  c, _ = input_size
     kw, kh, _, _ = size(l.kern)
@@ -238,6 +237,7 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
     )
 
     println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    println("$(size(l.x))\t$(size(l.y))\t$(size(l.dldx))\t$(size(l.dldy))")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
@@ -290,64 +290,6 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     return output
 end
 
-function caffe_conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool;stride=1)
-    _, t_a, a_a, _, _ = @timed begin
-        b, c,  w,   h   = size(x)
-        f, c2, k_w, k_h = size(kern)
-        o_w, o_h       = w+k_w-1, h+k_h-1
-        @assert c2 == c
-
-        # Initialize memory
-        m_img    = zeros(o_w*o_h,   c*k_w*k_h)
-        m_ker    = zeros(c*k_w*k_h, f)
-        m_conved = zeros(o_w*o_h,   f)
-
-         # update to have (b,w,h,c)
-        output   = zeros(o_w, o_h, f, b)
-
-        # Put C at the last place of the codes, so that we have (w, h, c, b)
-        x_p = zeros(w, h, c, b)
-        permutedims!(x_p, x, [3,4,2,1])
-        # For each batch, fill m_img, and make computation
-        kernel = (k_w, k_h)
-    end
-
-    # Fill m_ker
-    _, t_rshp, a_rshp, _, _ = @timed for col = 1:f
-        m_ker[:,col] = reshape(kern[col,:,:,:], 1,c*k_w*k_h) # flatten a 3D-kernel
-    end
-
-
-    t_1, t_2, t_3 = 0., 0., 0.
-    a_1, a_2, a_3 = 0., 0., 0.
-    for nb = 1:b
-        _, t1_curr, a1_curr, _, _ = @timed im2col_impl(x_p[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
-        _, t2_curr, a2_curr, _, _ = @timed A_mul_B!(m_conved, m_img, m_ker)
-        # col2im_impl(m_conved, m_transp, size(x_p)[1:3], kernel, (0,0), (stride,stride))
-        _, t3_curr, a3_curr, _, _ = @timed begin
-            m_transp = reshape(m_conved, o_w, o_h, f)
-            output[:,:,:,nb] = m_transp
-        end
-        t_1 += t1_curr
-        t_2 += t2_curr
-        t_3 += t3_curr
-        a_1 += a1_curr
-        a_2 += a2_curr
-        a_3 += a3_curr
-    end
-    println("Init_ALLOC : $(t_a)s, $(a_a/1000000) M");
-    println("Init_KERNL : $(t_rshp)s, $(a_rshp/1000000) M");
-    println("IM2COL     : $(t_1)s, $(a_1/1000000) M");
-    println("MATMUL     : $(t_2)s, $(a_2/1000000) M");
-    println("RESHAPE    : $(t_3)s, $(a_3/1000000) M");
-
-    if inner
-        return output[k_w:end-k_w+1, k_h:end-k_h+1,:,:]
-    else
-        return output
-    end
-end
-
 function forward(l::CaffeConvLayer, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
@@ -374,49 +316,51 @@ function getGradient(l::CaffeConvLayer)
     batch_size, depth = size(l.x,4), size(l.x, 3)
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
 
-    return (l.k_grad, l.b_grad)
+    return Array[l.k_grad, l.b_grad]
 end
 
 function getParam(l::CaffeConvLayer)
-    return (l.k_grad, l.b_grad)
+    return Array[l.k_grad, l.b_grad]
 end
 
-function setParam!(l::CaffeConvLayer, theta::Tuple{Array{Float64}})
+function setParam!(l::CaffeConvLayer, theta)
     # convention: ret[:,end,1,1] is the gradient for bias
 
-    new_kern, new_bias = theta
+    l.k_velc = theta[1] - l.kern
+    l.kern   = theta[1]
 
-    l.k_velc = new_kern - l.kern
-    l.kern   = new_kern
-
-    l.b_velc = new_bias - l.bias
-    l.bias   = new_bias
+    l.b_velc = theta[2] - l.bias
+    l.bias   = theta[2]
 end
 
 function getVelocity(l::CaffeConvLayer)
-    return (l.k_velc, l.b_velc)
+    return Array[l.k_velc, l.b_velc]
 end
 
-bsize= 500
-l = CaffeConvLayer(32,(3,3))
-X = rand(27, 27, 3,  bsize)
-Y = rand(25, 25, 32, bsize)
+function getNumParams(l::CaffeConvLayer)
+    return 2
+end
 
-println("First time (compiling...)")
-init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (27, 27, 3)))
-@time y1 = forward(l,X)
-@time y1 = backward(l,Y)
-@time y1 = getGradient(l)
-
-println("Second time (after compilation) CaffeConvLayer")
-X = rand(27, 27, 3,  bsize)
-Y = rand(25, 25, 32, bsize)
-@time begin
-    forward(l,X)
-end
-@time begin
-    backward(l,Y)
-end
-@time begin
-    getGradient(l)
-end
+# bsize= 500
+# l = CaffeConvLayer(32,(3,3))
+# X = rand(27, 27, 3,  bsize)
+# Y = rand(25, 25, 32, bsize)
+#
+# println("First time (compiling...)")
+# init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (27, 27, 3)))
+# @time y1 = forward(l,X)
+# @time y1 = backward(l,Y)
+# @time y1 = getGradient(l)
+#
+# println("Second time (after compilation) CaffeConvLayer")
+# X = rand(27, 27, 3,  bsize)
+# Y = rand(25, 25, 32, bsize)
+# @time begin
+#     forward(l,X)
+# end
+# @time begin
+#     backward(l,Y)
+# end
+# @time begin
+#     getGradient(l)
+# end

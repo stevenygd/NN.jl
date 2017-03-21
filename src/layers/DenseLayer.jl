@@ -109,22 +109,22 @@ function backward(l::DenseLayer, DLDY::Union{SubArray{Float64,2},Array{Float64,2
 end
 
 function getGradient(l::DenseLayer)
-  return l.grad
+  return Array[l.grad]
 end
 
 function getParam(l::DenseLayer)
-    return l.W
+    return Array[l.W]
 end
 
-function setParam!(l::DenseLayer, theta::Array{Float64})
-    @assert size(l.W) == size(theta)
+function setParam!(l::DenseLayer, theta)
+    @assert size(l.W) == size(theta[1])
     # broadcast!(-, l.velc, theta, l.W)
-    l.velc = theta - l.W
-    l.W = theta
+    l.velc = theta[1] - l.W
+    l.W = theta[1]
 end
 
 function getVelocity(l::DenseLayer)
-    return l.velc
+    return Array[l.velc]
 end
 
 # l = DenseLayer(800) # 800 hidden units

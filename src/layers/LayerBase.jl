@@ -11,11 +11,11 @@ StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
 
 function getGradient(l::StaticLayer)
-    0
+    return Array[]
 end
 
 function getParam(l::StaticLayer)
-    0
+    return Array[]
 end
 
 function setParam!(l::StaticLayer, theta)
@@ -23,7 +23,7 @@ function setParam!(l::StaticLayer, theta)
 end
 
 function getVelocity(l::StaticLayer)
-    0
+    return Array[]
 end
 
 function getInputSize(l::Layer)
@@ -38,4 +38,8 @@ function getOutputSize(l::Layer)
         println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
     end
     return size(l.y)
+end
+
+function getNumParams(l::Layer)
+    return 1
 end
