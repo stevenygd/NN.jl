@@ -17,17 +17,17 @@ function gradient_check(f, g, w, d=1e-5, tol=0.01, nsamples=1)
     w_neg = copy(w)
 
     for i = 1:Int(length(w))
-        tmp_anl_g = 0.
         @inbounds w_pos[i] = w[i] + d
         @inbounds w_neg[i] = w[i] - d
-        tmp_anl_g += (f(w_pos) - f(w_neg)) / (2. * d)
-        w_pos[i] = w[i]
-        w_neg[i] = w[i]
-        # anl_g[i] = tmp_anl_g / nsamples
-        anl_g[i] = tmp_anl_g
+        v1 = f(w_pos)
+        v2 = f(w_neg)
+        tmp_anl_g = (v1 - v2) / (2. * d)
+        @inbounds w_pos[i] = w[i]
+        @inbounds w_neg[i] = w[i]
+        @inbounds anl_g[i] = tmp_anl_g
     end;
-    err_r = abs(anl_g - g) ./ max(abs(anl_g), abs(g))
-    return reshape(anl_g, size(g)), mean(err_r)
+    err_r = abs(anl_g .- g) ./ max(abs(anl_g), abs(g))
+    return anl_g, mean(err_r)
 end;
 
 # Test for gradient test

@@ -1,55 +1,30 @@
-include("../src/layers/ConvLayer.jl")
-import Calculus: check_gradient
+include("../src/layers/LayerBase.jl")
+include("../src/layers/CaffeConvLayer.jl")
+include("gradient_test.jl")
 using Base.Test
 
-# TODO: this example has stride == 1
-l = ConvLayer(2,(3,3))
-kern = zeros(2,3,3,3)
-kern[1,1,:,:] = [0 -1 -1; 0  -1 -1; 0  1  -1.]
-kern[1,2,:,:] = [1 0  1 ; -1 1  1 ; 1  1  1. ]
-kern[1,3,:,:] = [0 -1 0 ; -1 0  0 ; 0  0  0. ]
-kern[2,1,:,:] = [0 -1 0 ; 1  0  0 ; 1  -1 1. ]
-kern[2,2,:,:] = [0 0  0 ; 0  1  -1; -1 0  -1.]
-kern[2,3,:,:] = [0 0  0 ; 0  1  1 ; 1  -1 1. ]
+bsize= 500
+l = CaffeConvLayer(32,(3,3))
+init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (27, 27, 3)))
+X = rand(27, 27, 3,  bsize)
+Y = rand(25, 25, 32, bsize)
+function f_kernel(k)
+    l.kern = k
+    return sum(forward(l,X))
+end
+backward(l,ones(size(forward(l, X))))
+g, _ = getGradient(l)
+k = copy(l.kern)
+v1 = f_kernel(k)
+k[10] +=  1e-4
+v2 = f_kernel(k)
+println("$(v1) $(v2) $(abs(v2-v1))")
 
-bias = [1 0.]
-X = zeros(Float64,1,3,7,7)
-X[1,1,2:6,2:6] = [
-    2 2 0 0 0;
-    1 1 0 1 2;
-    0 2 0 0 2;
-    0 0 1 0 2;
-    1 0 2 1 2
-]
-X[1,2,2:6,2:6] = [
-    2 0 1 0 1;
-    2 1 2 0 1;
-    1 1 0 2 0;
-    0 0 1 0 2;
-    1 2 1 2 1
-]
-X[1,3,2:6,2:6] = [
-    2 2 2 0 2;
-    2 1 0 2 1;
-    2 2 1 2 1;
-    2 2 2 1 0;
-    1 2 0 0 2
-]
-Y = zeros(Float64, 1, 2, 3, 3)
-Y[1,1,:,:] = [
-    2  2  5  ;
-    -2 2  -4 ;
-    1  -6 -4
-]
-Y[1,2,:,:] = [
-    4  9  3  ;
-    3  3  -2 ;
-    2  -2 2
-]
+anl_g, err = gradient_check(f_kernel, g, k)
+println("Relative error: $(err) $(mean(abs(anl_g))) $(mean(abs(g)))")
+# @test_approx_eq_eps anl_g g 1e-4*max(abs(anl_g))
+@test_approx_eq_eps err 0. 1e-4
+println("[PASS] convolution gradient check test.")
 
-init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => (3,7,7)))
-y = forward(l,X)
-@test size(y) == size(Y)
-@test y == Y
-# @time backward(l,Y)
-# @time getGradient(l)
+# println(f_kernel(k))
+# println(sum(forward(l,X)))
