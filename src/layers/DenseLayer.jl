@@ -1,17 +1,17 @@
 # Define the Fully Connected layers
 # include("LayerBase.jl")
 type DenseLayer <: Layer
-    has_init :: Bool
-    init_type:: String
-    i        :: Int
-    num_units:: Int
-    W        :: Array{Float64}
-    x        :: Array{Float64}
-    y        :: Array{Float64}
-    dldy     :: Array{Float64}
-    dldx     :: Array{Float64}
-    velc     :: Array{Float64}
-    grad     :: Array{Float64}
+    has_init  :: Bool
+    init_type :: String
+    i         :: Int
+    num_units :: Int
+    W         :: Array{Float64}
+    x         :: Array{Float64}
+    y         :: Array{Float64}
+    dldy      :: Array{Float64}
+    dldx      :: Array{Float64}
+    velc      :: Array{Float64}
+    grad      :: Array{Float64}
 
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
@@ -32,7 +32,7 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size
         # and input_size should be single dimensional (i.e. vector)
-        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        @assert length(config["input_size"]) == 1 # TODO: maybe a error message?
         out_size = (config["batch_size"], config["input_size"][1])
     else
         out_size = getOutputSize(p)

@@ -126,7 +126,7 @@ function train(net::SequentialNet, train_set, validation_set;
                 epo_cor  += get_corr(pred, batch_Y)
                 local acc = get_corr(pred, batch_Y) / batch_size
             end
-            # println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
         local epo_loss = mean(all_losses)
         local epo_accu = epo_cor / N

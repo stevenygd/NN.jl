@@ -270,15 +270,13 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     m_img, m_ker, m_conved = tmps
 
     # Fill m_ker
-    for col = 1:f
-        m_ker[:,col] = reshape(kern[:,:,:,col], 1,c*k_w*k_h) # flatten a 3D-kernel
-    end
+    im2col_impl(kern, m_ker, kernel, (0,0), (1,1))
 
     for nb = 1:b
         if inner
             im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
         else # outter convolution, add padding
-            im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w,k_h), (stride,stride))
+            im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w-1,k_h-1), (stride,stride))
         end
 
         A_mul_B!(m_conved, m_img, m_ker)
@@ -296,6 +294,7 @@ function forward(l::CaffeConvLayer, x::tensor4; kwargs...)
     end
     l.x = x
     caffe_conv4d!(l.y, l.tmps_forward, l.x, l.kern, l.bias, true) # inner convolution
+    # println("Forward:\nx:$(mean(x))\t$(mean(l.y))\t$(mean(l.kern))")
     return l.y
 end
 
@@ -304,18 +303,19 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
     flipped = permutedims(flip(l.kern), [1,2,4,3]) # (kw, kh, f, c)
     f = size(flipped,3)
     caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(f), false) # outter convolution
+    # println("Backward:\nx:$(mean(l.dldy))\t$(mean(l.dldx))")
     return l.dldx
 end
 
 function getGradient(l::CaffeConvLayer)
-    img    = permutedims(l.x, [1,2,4,3])            # (w,h,c,b)   -> (w,h,b,c)
-    kernel = permutedims(flip(l.dldy), [1,2,4,3])   # (ow,oh,f,b) -> (ow,oh,b,f)
-    f = size(kernel,4) # TODO: this could be wrong
+    img    = permutedims(l.x,          [1,2,4,3]) # (w,h,c,b)   -> (w,h,b,c)
+    kernel = permutedims(flip(l.dldy), [1,2,4,3]) # (ow,oh,f,b) -> (ow,oh,b,f)
+    f = size(kernel,4)
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
-    permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
-    batch_size, depth = size(l.x,4), size(l.x, 3)
-    l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
+    permutedims!(l.k_grad, flip(l.k_grad_tmp), [1,2,4,3])
 
+    l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
+    println("Gradient:\ngrad:$(mean(abs(l.k_grad)))\t$(mean(abs(img)))\t$(mean(abs(kernel)))")
     return Array[l.k_grad, l.b_grad]
 end
 
