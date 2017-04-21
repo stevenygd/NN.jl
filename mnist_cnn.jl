@@ -11,11 +11,11 @@ using IProfile
 batch_size = 500
 function build_cnn()
     layers = Layer[
-        InputLayer((28,28,1,500)),
+        InputLayer((28,28,1,batch_size)),
         # ConvLayer(3,(5,5)),
         # FlatConvLayer(3,(5,5)),
         # MultiThreadedConvLayer(3,(5,5)),
-        CaffeConvLayer(3,(5,5)),
+        CaffeConvLayer(10,(28,28)),
         # ReLu(),
         # MaxPoolingLayer((2,2)),
 
@@ -33,7 +33,7 @@ function build_cnn()
         # ReLu(),
 
         # DropoutLayer(0.5),
-        DenseLayer(10)
+        # DenseLayer(10)
     ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
@@ -95,7 +95,6 @@ function train(net::SequentialNet, train_set, validation_set;
                 append!(all_losses, mean(loss))
                 for i = 1:length(net.layers)
                     layer = net.layers[i]
-
                     gradi = getGradient(layer)
                     for j = 1:length(gradi)
                         gradi[j] = lrSchedule(epo) * gradi[j] / batch_size
@@ -141,14 +140,16 @@ function train(net::SequentialNet, train_set, validation_set;
         append!(val_losses, v_loss)
         append!(val_accu,   v_accu)
 
-        if verbose > 0
+        # if verbose > 0
             println("Epo $(epo) has loss :$(epo_loss)\t\taccuracy : $(epo_accu)")
-        end
+        # end
     end
     return epo_losses,epo_accus, val_losses, val_accu
 end
 
 X,Y = mnistData(ttl=55000)
+X = (X  - 0.5) * 2
+println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
 Y = round(Int, Y)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
 trX, trY = train_set[1], train_set[2]
@@ -162,7 +163,7 @@ teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 net = build_cnn()
 # net = build_cnn_multi_threaded()
 epo_losses, epo_accu, val_losses, val_accu = train(net, (trX, trY), (valX, valY);
-                ttl_epo = 100, batch_size = 500, lrSchedule = x -> 0.01, verbose=1, alpha=0.9)
+                ttl_epo = 100, batch_size = batch_size, lrSchedule = x -> 0.001, verbose=1, alpha=0.9)
 figure(figsize=(12,6))
 subplot(221)
 plot(1:length(epo_losses), epo_losses)

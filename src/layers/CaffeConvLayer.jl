@@ -37,8 +37,7 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
-        @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
+    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
         return new(false, init,
@@ -89,10 +88,12 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     kernel_size = (kw, kh, c, f)
 
     if l.init_type == "Uniform"
-        a = sqrt(12./(f_in + f_out))
+        # a = sqrt(12./(f_in + f_out))
+        a = 1e-5
         l.kern = rand(kernel_size) * 2 * a - a
     elseif l.init_type == "Normal"
-        a = sqrt(2./(f_in + f_out))
+        # a = sqrt(2./(f_in + f_out))
+        a = 1e-10
         l.kern = randn(kernel_size) * a
     else # l.init_type == Random : )
         l.kern = rand(kernel_size) - 0.5
@@ -300,7 +301,7 @@ end
 
 function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
     l.dldy = dldy
-    flipped = permutedims(flip(l.kern), [1,2,4,3]) # (kw, kh, f, c)
+    flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f = size(flipped,3)
     caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(f), false) # outter convolution
     # println("Backward:\nx:$(mean(l.dldy))\t$(mean(l.dldx))")
@@ -308,14 +309,15 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
 end
 
 function getGradient(l::CaffeConvLayer)
-    img    = permutedims(l.x,          [1,2,4,3]) # (w,h,c,b)   -> (w,h,b,c)
-    kernel = permutedims(flip(l.dldy), [1,2,4,3]) # (ow,oh,f,b) -> (ow,oh,b,f)
+    img    = permutedims(l.x,    [1,2,4,3]) # (w,h,c,b)   -> (w,h,b,c)
+    kernel = permutedims(l.dldy, [1,2,4,3]) # (ow,oh,f,b) -> (ow,oh,b,f)
     f = size(kernel,4)
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
-    permutedims!(l.k_grad, flip(l.k_grad_tmp), [1,2,4,3])
+    permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
+    broadcast!(/, l.k_grad, l.k_grad, max(size(l.dldy,1),size(l.x,1))*max(size(l.dldy,2), size(l.x,2)))
 
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
-    println("Gradient:\ngrad:$(mean(abs(l.k_grad)))\t$(mean(abs(img)))\t$(mean(abs(kernel)))")
+    println("Grad:$(mean(abs(l.k_grad)))\t$(mean(abs(img)))\t$(mean(abs(kernel)))")
     return Array[l.k_grad, l.b_grad]
 end
 

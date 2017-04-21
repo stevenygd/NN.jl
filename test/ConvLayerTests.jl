@@ -24,5 +24,5 @@ println("Relative error: $(err) $(mean(abs(anl_g))) $(mean(abs(g)))")
 @test_approx_eq_eps err 0. 1e-4
 println("[PASS] convolution gradient check test.")
 
-# println(f_kernel(k))
-# println(sum(forward(l,X)))
+println(f_kernel(k))
+println(sum(forward(l,X)))
