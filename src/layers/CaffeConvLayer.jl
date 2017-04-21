@@ -316,7 +316,6 @@ function getGradient(l::CaffeConvLayer)
     f = size(kernel,4)
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
     permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
-    broadcast!(/, l.k_grad, l.k_grad, max(size(l.dldy,1),size(l.x,1))*max(size(l.dldy,2), size(l.x,2)))
 
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
     println("Grad:$(mean(abs(l.k_grad)))\t$(mean(abs(img)))\t$(mean(abs(kernel)))")
