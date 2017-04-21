@@ -29,6 +29,13 @@ function build_cnn()
         # DropoutLayer(0.5),
         # DenseLayer(10)
     ]
+
+    # # Dense Layer-> SoftMaxClassifier
+    # layers = Layer[
+    #     InputLayer((28,28,1,batch_size)),
+    #     FlattenLayer(),
+    #     DenseLayer(10)
+    # ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
     return net

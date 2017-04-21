@@ -37,7 +37,7 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
+    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
         return new(false, init,
@@ -88,12 +88,11 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     kernel_size = (kw, kh, c, f)
 
     if l.init_type == "Uniform"
-        # a = sqrt(12./(f_in + f_out))
-        a = 1e-5
+        a = sqrt(12./(f_in + f_out))*10
         l.kern = rand(kernel_size) * 2 * a - a
+        println("Kernel Statistics[$(a)]: $(mean(abs(l.kern))) $(maximum(l.kern)) $(minimum(l.kern))")
     elseif l.init_type == "Normal"
-        # a = sqrt(2./(f_in + f_out))
-        a = 1e-10
+        a = sqrt(12./(f_in + f_out))
         l.kern = randn(kernel_size) * a
     else # l.init_type == Random : )
         l.kern = rand(kernel_size) - 0.5
@@ -110,21 +109,21 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     l.tmps_forward = (
         # output_size should be that of the outter convolution,
         # Although only the inner convolution is used
-        Array{Float64}(ow * oh,     c * kw * kh),
-        Array{Float64}(kw * kh * c, f),
-        Array{Float64}(ow * oh,     f)
+        zeros(ow * oh,     c * kw * kh),
+        zeros(kw * kh * c, f),
+        zeros(ow * oh,     f)
     )
 
     l.tmps_backward = (
-        Array{Float64}(w * h,       f * kw * kh),
-        Array{Float64}(kw * kh * f, c),
-        Array{Float64}(w * h,       c)
+        zeros(w * h,       f * kw * kh),
+        zeros(kw * kh * f, c),
+        zeros(w * h,       c)
     )
 
     l.tmps_gradient = (
-        Array{Float64}(kw * kh,     ow * oh * b),
-        Array{Float64}(ow * oh * b, f),
-        Array{Float64}(kw * kh,     f)
+        zeros(kw * kh,     ow * oh * b),
+        zeros(ow * oh * b, f),
+        zeros(kw * kh,     f)
     )
 
     l.has_init = true
@@ -220,21 +219,21 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
     l.tmps_forward = (
         # output_size should be that of the outter convolution,
         # Although only the inner convolution is used
-        Array{Float64}(ow * oh,     c * kw * kh),
-        Array{Float64}(kw * kh * c, f),
-        Array{Float64}(ow * oh,     f)
+        zeros(ow * oh,     c * kw * kh),
+        zeros(kw * kh * c, f),
+        zeros(ow * oh,     f)
     )
 
     l.tmps_backward = (
-        Array{Float64}(w * h,       f * kw * kh),
-        Array{Float64}(kw * kh * f, c),
-        Array{Float64}(w * h,       c)
+        zeros(w * h,       f * kw * kh),
+        zeros(kw * kh * f, c),
+        zeros(w * h,       c)
     )
 
     l.tmps_gradient = (
-        Array{Float64}(kw * kh,     ow * oh * b),
-        Array{Float64}(ow * oh * b, f),
-        Array{Float64}(kw * kh,     f)
+        zeros(kw * kh,     ow * oh * b),
+        zeros(ow * oh * b, f),
+        zeros(kw * kh,     f)
     )
 
     println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
@@ -269,6 +268,9 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     @assert c2 == c
 
     m_img, m_ker, m_conved = tmps
+    fill!(m_img, 0.)
+    fill!(m_ker, 0.)
+    fill!(m_conved, 0.)
 
     # Fill m_ker
     im2col_impl(kern, m_ker, kernel, (0,0), (1,1))
