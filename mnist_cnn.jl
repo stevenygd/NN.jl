@@ -12,16 +12,10 @@ batch_size = 500
 function build_cnn()
     layers = Layer[
         InputLayer((28,28,1,batch_size)),
-        # ConvLayer(3,(5,5)),
-        # FlatConvLayer(3,(5,5)),
-        # MultiThreadedConvLayer(3,(5,5)),
         CaffeConvLayer(10,(28,28)),
         # ReLu(),
         # MaxPoolingLayer((2,2)),
 
-        # ConvLayer(32,(5,5)),
-        # FlatConvLayer(32,(5,5)),
-        # MultiThreadedConvLayer(32,(5,5)),
         # CaffeConvLayer(32,(5,5)),
         # ReLu(),
         # MaxPoolingLayer((2,2)),
@@ -39,27 +33,6 @@ function build_cnn()
     net = SequentialNet(layers, criteria)
     return net
 end
-
-# function build_cnn_multi_threaded()
-#     layers = Layer[
-#         InputLayer((1,1,28,28)),
-#         ConvLayer(32,(5,5)),
-#         ReLu(),
-#         MaxPoolingLayer((2,2)),
-#         # ConvLayer(32,(5,5)),
-#         # ReLu(),
-#         # MaxPoolingLayer((2,2)),
-#         FlattenLayer(),
-#         DropoutLayer(0.5),
-#         DenseLayer(256),
-#         ReLu(),
-#         DropoutLayer(0.5),
-#         DenseLayer(10)
-#     ]
-#     criteria = SoftMaxCrossEntropyLoss()
-#     net = SequentialNet(layers, criteria)
-#     return net
-# end
 
 function get_corr(pred, answ)
     return length(filter(e -> abs(e) < 1e-5, pred-answ))
@@ -147,14 +120,17 @@ function train(net::SequentialNet, train_set, validation_set;
     return epo_losses,epo_accus, val_losses, val_accu
 end
 
-X,Y = mnistData(ttl=55000)
-X = (X  - 0.5) * 2
+X,Y = mnistData(ttl=55000) # 0-1
 println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+
 Y = round(Int, Y)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
 trX, trY = train_set[1], train_set[2]
 valX, valY = validation_set[1], validation_set[2]
 teX, teY = test_set[1], test_set[2]
+println("TrainSet: $(size(trX)) $(size(trY))")
+println("ValSet  : $(size(valX)) $(size(valY))")
+println("TestSet : $(size(teX)) $(size(teY))")
 
 trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
 valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
