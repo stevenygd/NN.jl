@@ -22,11 +22,12 @@ function gradient_check(f, g, w, d=1e-5, tol=0.01, nsamples=1)
         v1 = f(w_pos)
         v2 = f(w_neg)
         tmp_anl_g = (v1 - v2) / (2. * d)
+        # println("Analytical Gradient: $(tmp_anl_g) $(v1) $(v2) $(d)")
         @inbounds w_pos[i] = w[i]
         @inbounds w_neg[i] = w[i]
         @inbounds anl_g[i] = tmp_anl_g
     end;
-    err_r = abs(anl_g .- g) ./ max(abs(anl_g), abs(g))
+    err_r = abs(anl_g .- g) ./ (max(abs(anl_g), abs(g)) + 1e-10)
     return anl_g, mean(err_r)
 end;
 

@@ -37,7 +37,7 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
         return new(false, init,
@@ -85,6 +85,7 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     # initialize weights
     f_in   = kw * kh * c    # Input number of neron: (kernel_w x kernel_h x channel)
     f_out  = f              # Output number of neron is the number of filters
+    # f_out  = kw * kh * f    # Output number of neron is the number of filters
     kernel_size = (kw, kh, c, f)
 
     if l.init_type == "Uniform"
@@ -273,7 +274,8 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     fill!(m_conved, 0.)
 
     # Fill m_ker
-    im2col_impl(kern, m_ker, kernel, (0,0), (1,1))
+    # im2col_impl(kern, m_ker, kernel, (0,0), (1,1))
+    m_ker = reshape(kern, k_w*k_h*c, f)
 
     for nb = 1:b
         if inner
@@ -283,7 +285,7 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
         end
 
         A_mul_B!(m_conved, m_img, m_ker)
-        # TODO: this could be wrong
+
         m_transp = reshape(m_conved, o_w, o_h, f)
         output[:,:,:,nb] = m_transp
     end
@@ -316,6 +318,7 @@ function getGradient(l::CaffeConvLayer)
     f = size(kernel,4)
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
     permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
+    # broadcast!(/, l.k_grad, l.k_grad, max(size(l.x,1), size(l.y,1)) * max(size(l.x,2), size(l.y, 2)))
 
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
     println("Grad:$(mean(abs(l.k_grad)))\t$(mean(abs(img)))\t$(mean(abs(kernel)))")
