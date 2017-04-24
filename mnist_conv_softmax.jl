@@ -21,32 +21,6 @@ function softmax_classifier()
     return net
 end
 
-function build_cnn()
-    layers = Layer[
-        InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
-
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
-
-        FlattenLayer(),
-
-        DropoutLayer(0.5),
-        DenseLayer(256),
-        ReLu(),
-
-        DropoutLayer(0.5),
-        DenseLayer(10)
-    ]
-
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
-
 function get_corr(pred, answ)
     return length(filter(e -> abs(e) < 1e-5, pred-answ))
 end
@@ -149,8 +123,7 @@ trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
 valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
 teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 
-net = build_cnn()
-# net = build_cnn_multi_threaded()
+net = softmax_classifier()
 epo_losses, epo_accu, val_losses, val_accu = train(net, (trX, trY), (valX, valY);
                 ttl_epo = 100, batch_size = batch_size, lrSchedule = x -> 0.01, verbose=1, alpha=0.9)
 figure(figsize=(12,6))

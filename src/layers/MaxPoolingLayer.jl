@@ -59,7 +59,7 @@ end
 function update(l::MaxPoolingLayer, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
-    @assert input_size[2:end] == size(l.x)[2:end]
+    @assert input_size[1:end-1] == size(l.x)[1:end-1]
 
     b = input_size[4]
     output_size = size(l.y)
