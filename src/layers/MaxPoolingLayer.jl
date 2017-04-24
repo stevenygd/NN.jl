@@ -25,10 +25,10 @@ type MaxPoolingLayer <: RegularizationLayer
 end
 
 function computeOutputSize(l::MaxPoolingLayer, input_size::Tuple)
-    b, c, w, h  = input_size
+    w, h, c, b = input_size
     x, y = l.size
     s = l.stride
-    return (b, c, Int(ceil(w/x)), Int(ceil(h/y)))
+    return (Int(ceil(w/x)), Int(ceil(h/y)), c, b)
 end
 
 function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
@@ -80,29 +80,28 @@ function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,
         update(l, size(x))
     end
     l.x = x
-    batch_size, img_depth = size(l.x, 1), size(l.x, 2)
-    in_w, in_h = size(l.x, 3), size(l.x, 4)
+    batch_size, img_depth = size(l.x, 4), size(l.x, 3)
+    in_w, in_h = size(l.x, 1), size(l.x, 2)
     sw, sh = l.size
     for b = 1:batch_size
     for c = 1:img_depth
-    for w = 1:size(l.y,3)
-    for h = 1:size(l.y,4)
+    for w = 1:size(l.y,1)
+    for h = 1:size(l.y,2)
         start_w, start_h   = (w-1)*sw+1, (h-1)*sh+1
         end_w,   end_h     = min(in_w, sw*w), min(in_h, sh*h)
         view_w, view_h     = end_w - start_w + 1, end_h - start_h + 1
-        l.y[b,c,w,h], i    = findmax(view(l.x, b, c, start_w:end_w, start_h:end_h))
-        l.max_idx[b,c,w,h] = (start_w + (i-1)%view_w,
-                                start_h + Int(floor((i-1)/view_w)))
-        # x,y = l.max_idx[b,c,w,h]
+
+        l.y[w,h,c,b], i    = findmax(view(l.x, start_w:end_w, start_h:end_h, c, b))
+        l.max_idx[w,h,c,b] = (start_w + (i-1)%view_w, start_h + Int(floor((i-1)/view_w)))
+        # x,y = l.max_idx[w,h,c,b]
         # if x > end_w || y > end_h
         #     println("$(start_w), $(end_w)")
         #     println("$(start_h), $(end_h)")
-        #     println("$(l.y[b,c,w,h]), $(i)")
+        #     println("$(l.y[w,h,c,b]), $(i)")
         #     println("$((i-1)%sw), $(Int(floor((i-1)/sh)))")
-        #     println(l.max_idx[b,c,w,h])
+        #     println(l.max_idx[w,h,c,b])
         # end
-
-        ix, iy = l.max_idx[b,c,w,h]
+        # ix, iy = l.max_idx[w,h,c,b]
     end; end; end; end
     return l.y
 end
@@ -110,14 +109,14 @@ end
 function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
     scale!(l.dldx, 0.)#clear l.dldx
-    batch_size, img_depth = size(l.x, 1), size(l.x, 2)
+    batch_size, img_depth = size(l.x, 4), size(l.x, 3)
     for b = 1:batch_size
     for c = 1:img_depth
-    for w = 1:size(l.y,3)
-    for h = 1:size(l.y,4)
-        x, y = l.max_idx[b,c,w,h]
+    for w = 1:size(l.y,1)
+    for h = 1:size(l.y,2)
+        x, y = l.max_idx[w,h,c,b]
         # print("x:$(x),y:$(y) coming from w:$(w), h:$(h)")
-        l.dldx[b,c,x,y] = l.dldy[b,c,w,h]
+        l.dldx[x,y,c,b] = l.dldy[w,h,c,b]
     end; end; end; end
     return l.dldx
 end

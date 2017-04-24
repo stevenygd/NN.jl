@@ -9,33 +9,39 @@ using IProfile
 # Multi threaded
 # Blas numthreads
 batch_size = 500
-function build_cnn()
+
+function softmax_classifier()
     layers = Layer[
         InputLayer((28,28,1,batch_size)),
         CaffeConvLayer(10,(28,28)),
-        # ReLu(),
-        # MaxPoolingLayer((2,2)),
+        FlattenLayer(),
+    ]
+    criteria = SoftMaxCrossEntropyLoss()
+    net = SequentialNet(layers, criteria)
+    return net
+end
 
-        # CaffeConvLayer(32,(5,5)),
-        # ReLu(),
-        # MaxPoolingLayer((2,2)),
+function build_cnn()
+    layers = Layer[
+        InputLayer((28,28,1,batch_size)),
+        CaffeConvLayer(32,(5,5)),
+        ReLu(),
+        MaxPoolingLayer((2,2)),
+
+        CaffeConvLayer(64,(5,5)),
+        ReLu(),
+        MaxPoolingLayer((2,2)),
 
         FlattenLayer(),
 
-        # DropoutLayer(0.5),
-        # DenseLayer(256),
-        # ReLu(),
+        DropoutLayer(0.5),
+        DenseLayer(256),
+        ReLu(),
 
-        # DropoutLayer(0.5),
-        # DenseLayer(10)
+        DropoutLayer(0.5),
+        DenseLayer(10)
     ]
 
-    # # Dense Layer-> SoftMaxClassifier
-    # layers = Layer[
-    #     InputLayer((28,28,1,batch_size)),
-    #     FlattenLayer(),
-    #     DenseLayer(10)
-    # ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
     return net
@@ -80,10 +86,10 @@ function train(net::SequentialNet, train_set, validation_set;
                         gradi[j] = lrSchedule(epo) * gradi[j] / batch_size
                     end
 
-                    # veloc = getVelocity(layer)
-                    # for j = 1:length(veloc)
-                    #     veloc[j] = veloc[j] * alpha - gradi[j]
-                    # end
+                    veloc = getVelocity(layer)
+                    for j = 1:length(veloc)
+                        veloc[j] = veloc[j] * alpha - gradi[j]
+                    end
 
                     param = getParam(layer)
                     for j = 1:length(param)
@@ -146,7 +152,7 @@ teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 net = build_cnn()
 # net = build_cnn_multi_threaded()
 epo_losses, epo_accu, val_losses, val_accu = train(net, (trX, trY), (valX, valY);
-                ttl_epo = 100, batch_size = batch_size, lrSchedule = x -> 0.001, verbose=1, alpha=0.9)
+                ttl_epo = 100, batch_size = batch_size, lrSchedule = x -> 0.01, verbose=1, alpha=0.9)
 figure(figsize=(12,6))
 subplot(221)
 plot(1:length(epo_losses), epo_losses)
