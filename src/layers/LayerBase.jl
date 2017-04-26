@@ -11,11 +11,11 @@ StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
 
 function getGradient(l::StaticLayer)
-    return Array[]
+    return nothing
 end
 
 function getParam(l::StaticLayer)
-    return Array[]
+    return nothing
 end
 
 function setParam!(l::StaticLayer, theta)
@@ -23,7 +23,7 @@ function setParam!(l::StaticLayer, theta)
 end
 
 function getVelocity(l::StaticLayer)
-    return Array[]
+    return nothing
 end
 
 function getInputSize(l::Layer)
@@ -41,5 +41,5 @@ function getOutputSize(l::Layer)
 end
 
 function getNumParams(l::Layer)
-    return 1
+    return 0
 end

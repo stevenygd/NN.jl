@@ -10,17 +10,6 @@ using IProfile
 # Blas numthreads
 batch_size = 500
 
-function softmax_classifier()
-    layers = Layer[
-        InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(10,(28,28)),
-        FlattenLayer(),
-    ]
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
-
 function build_cnn()
     layers = Layer[
         InputLayer((28,28,1,batch_size)),
@@ -93,9 +82,9 @@ function train(net::SequentialNet, train_set, validation_set;
 
                     param = getParam(layer)
                     for j = 1:length(param)
-                        # param[j] = param[j] + alpha * veloc[j] - gradi[j]
-                        param[j] = param[j] - gradi[j]
+                        param[j] = param[j] + alpha * veloc[j] - gradi[j]
                     end
+
                     if verbose > 2
                         print("Layer $(i)")
                         print("\tGradient: $(sum(abs(theta - getVelocity(layer))))")
@@ -107,9 +96,9 @@ function train(net::SequentialNet, train_set, validation_set;
                     setParam!(layer, param)
                 end
 
-                _, pred = forward(net, batch_X, batch_Y; deterministics = true)
-                epo_cor  += get_corr(pred, batch_Y)
-                local acc = get_corr(pred, batch_Y) / batch_size
+                # _, pred = forward(net, batch_X, batch_Y; deterministics = true)
+                # epo_cor  += get_corr(pred, batch_Y)
+                # local acc = get_corr(pred, batch_Y) / batch_size
             end
             println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end

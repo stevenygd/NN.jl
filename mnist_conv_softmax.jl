@@ -67,8 +67,7 @@ function train(net::SequentialNet, train_set, validation_set;
 
                     param = getParam(layer)
                     for j = 1:length(param)
-                        # param[j] = param[j] + alpha * veloc[j] - gradi[j]
-                        param[j] = param[j] - gradi[j]
+                        param[j] = param[j] + alpha * veloc[j] - gradi[j]
                     end
                     if verbose > 2
                         print("Layer $(i)")
