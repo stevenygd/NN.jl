@@ -91,7 +91,7 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     if l.init_type == "Uniform"
         a = sqrt(12./(f_in + f_out))
         l.kern = rand(kernel_size) * 2 * a - a
-        println("Kernel Statistics[$(a)]: $(mean(abs(l.kern))) $(maximum(l.kern)) $(minimum(l.kern))")
+        # println("Kernel Statistics[$(a)]: $(mean(abs(l.kern))) $(maximum(l.kern)) $(minimum(l.kern))")
     elseif l.init_type == "Normal"
         a = sqrt(12./(f_in + f_out))
         l.kern = randn(kernel_size) * a
@@ -237,8 +237,8 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
         zeros(kw * kh,     f)
     )
 
-    println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
-    println("$(size(l.x))\t$(size(l.y))\t$(size(l.dldx))\t$(size(l.dldy))")
+    # println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    # println("$(size(l.x))\t$(size(l.y))\t$(size(l.dldx))\t$(size(l.dldy))")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}

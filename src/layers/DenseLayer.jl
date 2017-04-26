@@ -77,7 +77,7 @@ function update(l::DenseLayer, input_size::Tuple;)
     l.y     = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
     l.dldx  = Array{Float64}(batch_size, l.i + 1)
-    println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
+    # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
 
