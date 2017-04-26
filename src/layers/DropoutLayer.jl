@@ -47,7 +47,7 @@ function update(l::DropoutLayer, input_size::Tuple;)
     l.dldy      = Array{Float64}(input_size)
     l.dldx      = Array{Float64}(input_size)
 
-    println("DropoutLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
+    # println("DropoutLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
 function forward(l::DropoutLayer, x::Union{SubArray{Float64,2},Array{Float64,2}}; deterministics=false)

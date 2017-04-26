@@ -41,7 +41,7 @@ function update(l::FlattenLayer, input_size::Tuple;)
     l.dldx = Array{Float64}(input_size)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
-    println("FlattenLayer update:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    # println("FlattenLayer update:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 function forward(l::FlattenLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; deterministics=false)

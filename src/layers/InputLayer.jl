@@ -20,7 +20,7 @@ end
 function update(l::InputLayer, input_size::Tuple;)
     # Reinitialize the memory due to the updated of the batch_size
     l.shape = input_size
-    println("Input layer shape update:$(l.shape)")
+    # println("Input layer shape update:$(l.shape)")
 end
 
 function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
