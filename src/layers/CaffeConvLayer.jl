@@ -37,7 +37,7 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
         return new(false, init,
@@ -93,7 +93,7 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
         l.kern = rand(kernel_size) * 2 * a - a
         # println("Kernel Statistics[$(a)]: $(mean(abs(l.kern))) $(maximum(l.kern)) $(minimum(l.kern))")
     elseif l.init_type == "Normal"
-        a = sqrt(12./(f_in + f_out))
+        a = sqrt(2./f_in)
         l.kern = randn(kernel_size) * a
     else # l.init_type == Random : )
         l.kern = rand(kernel_size) - 0.5
