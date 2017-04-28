@@ -395,6 +395,7 @@ function Adam(net::SequentialNet, train_set, validation_set;
         end;
     end;
 
+    iter = 1 # number of iterations
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
             local num_batch = ceil(N/batch_size)
@@ -430,8 +431,8 @@ function Adam(net::SequentialNet, train_set, validation_set;
                             v = v * beta_2 + g.^2 * (1 - beta_2)
 
                             # Compute the counter biased version of [m] and [v]
-                            m_hat = m / (1. - beta_1)
-                            v_hat = v / (1. - beta_2)
+                            m_hat = m / (1. - beta_1^iter)
+                            v_hat = v / (1. - beta_2^iter)
 
                             # Update gradients
                             p = p - lrSchedule(epo) * m_hat ./ (sqrt(v_hat) + 1e-4)
@@ -444,6 +445,7 @@ function Adam(net::SequentialNet, train_set, validation_set;
                         end
                         setParam!(layer, param)
                     end
+                    iter += 1
 
                     append!(all_losses, mean(loss))
                     epo_cor  += get_corr(pred, batch_Y)
@@ -487,8 +489,19 @@ teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 
 net = build_cnn()
 # net = build_cnn_multi_threaded()
-epo_losses, epo_accu, val_losses, val_accu = train(net, (trX, trY), (valX, valY);
-                ttl_epo = 100, batch_size = batch_size, lrSchedule = x -> 0.01, verbose=1, alpha=0.9)
+# epo_losses, epo_accu, val_losses, val_accu = train(
+#     net, (trX, trY), (valX, valY);
+#     ttl_epo = 100, batch_size = batch_size,
+#     lrSchedule = x -> 0.01, verbose=1, alpha=0.9
+# )
+
+epo_losses, epo_accu, val_losses, val_accu = Adam(
+    net, (trX, trY), (valX, valY);
+    ttl_epo = 100, batch_size = batch_size,
+    lrSchedule = x -> 0.001, verbose=1
+)
+
+
 figure(figsize=(12,6))
 subplot(221)
 plot(1:length(epo_losses), epo_losses)
