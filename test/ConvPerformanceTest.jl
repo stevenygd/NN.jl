@@ -47,10 +47,11 @@ end
 include("../src/layers/ConvLayer.jl")
 test_performance(ConvLayer(32,(3,3)), "ConvLayer")
 
+include("../src/layers/FlatConvLayer.jl")
+test_performance(FlatConvLayer(32,(3,3)), "FlatConvLayer")
+
 include("../src/layers/CaffeConvLayer.jl")
 test_performance(CaffeConvLayer(32,(3,3)), "CaffeConvLayer")
 
-include("../src/layers/FlatConvLayer.jl")
-test_performance(FlatConvLayer(32,(3,3)), "FlatConvLayer")
 
 # include("../layers/MultiThreadedConvLayer.jl")
