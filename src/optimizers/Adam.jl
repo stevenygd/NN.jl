@@ -7,7 +7,7 @@ type AdamOptimizer
     beta_2  :: Float64
     iter    :: Int
 
-    function AdamOptimizer(net::SequentialNet,  base_lr::Float64=0.01,
+    function AdamOptimizer(net::SequentialNet;  base_lr::Float64=0.01,
                            beta_1::Float64=0.9, beta_2::Float64=0.999)
         m_t, v_t = [], []
         for i = 1:length(net.layers)
@@ -62,8 +62,8 @@ function optimize(this::AdamOptimizer, batch_X, batch_Y)
 
             # store the things back
             param[j] = p
-            m_t[i][j] = m
-            v_t[i][j] = v
+            this.m_t[i][j] = m
+            this.v_t[i][j] = v
 
         end
         setParam!(layer, param)
