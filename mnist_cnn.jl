@@ -330,7 +330,7 @@ function Adam(net::SequentialNet, train_set, validation_set;
     local val_losses = []
     local val_accu   = []
 
-    optimizer  = AdamOptimizer(net, lrSchedule, beta_1=0.9, beta_2=0.999)
+    optimizer  = AdamOptimizer(net)
     all_losses = []
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
@@ -399,7 +399,7 @@ net = build_cnn()
 #     lrSchedule = x -> 0.001, verbose=1
 # )
 
-epo_losses, epo_accu, val_losses, val_accu, all_losses = RMSprop(
+epo_losses, epo_accu, val_losses, val_accu, all_losses = Adam(
     net, (trX, trY), (valX, valY);
     ttl_epo = 10, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
