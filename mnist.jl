@@ -58,6 +58,9 @@ function train(net::SequentialNet, train_set, validation_set;
             append!(all_losses, mean(loss))
             for i = 1:length(net.layers)
                 local layer = net.layers[i]
+                if(getParam(layer)==nothing)
+                  continue
+                end
                 local gradi = lrSchedule(epo) * getGradient(layer) / batch_size
                 local veloc = getVelocity(layer) * alpha - gradi
                 local theta = getParam(layer) + alpha * veloc - gradi
