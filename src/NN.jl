@@ -23,4 +23,9 @@ module NN
     # include("layers/FlatConvLayer.jl")
     # include("layers/MultiThreadedConvLayer.jl")
     include("layers/CaffeConvLayer.jl")
+
+    # optimizers
+    include("optimizers/Adam.jl")
+    include("optimizers/RMSprop.jl")
+    export AdamOptimizer, RMSPropOptimizer, optimize
 end

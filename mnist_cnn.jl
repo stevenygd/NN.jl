@@ -1,6 +1,6 @@
 include("src/NN.jl")
 include("util/datasets.jl")
-BLAS.set_num_threads(8)
+# BLAS.set_num_threads(20)
 
 using NN
 using PyPlot
@@ -23,7 +23,6 @@ function build_cnn()
 
         FlattenLayer(),
 
-        DropoutLayer(0.5),
         DenseLayer(256),
         ReLu(),
 
@@ -40,7 +39,7 @@ function get_corr(pred, answ)
     return length(filter(e -> abs(e) < 1e-5, pred-answ))
 end
 
-function train(net::SequentialNet, train_set, validation_set;
+function sgd(net::SequentialNet, train_set, validation_set;
     batch_size::Int64 = 100, ttl_epo::Int64 = 10, lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
     X, Y = train_set
     valX, valY = validation_set
@@ -48,6 +47,7 @@ function train(net::SequentialNet, train_set, validation_set;
     local batch=0
     local epo_losses = []
     local epo_accus = []
+    all_losses = []
 
     local val_losses = []
     local val_accu   = []
@@ -56,7 +56,6 @@ function train(net::SequentialNet, train_set, validation_set;
         if verbose > 0
             println("Epo $(epo) num batches : $(num_batch)")
         end
-        all_losses = []
         epo_cor = 0
         for bid = 0:(num_batch-1)
             time_used = @elapsed begin
@@ -65,40 +64,27 @@ function train(net::SequentialNet, train_set, validation_set;
                 local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
                 local batch_X = X[:,:,:,sidx:eidx]
                 local batch_Y = Y[sidx:eidx,:]
-                loss, _ = forward(net, batch_X, batch_Y)
+                loss, pred = forward(net, batch_X, batch_Y)
                 backward(net, batch_Y)
                 append!(all_losses, mean(loss))
                 for i = 1:length(net.layers)
                     layer = net.layers[i]
-                    gradi = getGradient(layer)
-                    for j = 1:length(gradi)
-                        gradi[j] = lrSchedule(epo) * gradi[j] / batch_size
-                    end
-
-                    veloc = getVelocity(layer)
-                    for j = 1:length(veloc)
-                        veloc[j] = veloc[j] * alpha - gradi[j]
-                    end
 
                     param = getParam(layer)
-                    for j = 1:length(param)
-                        param[j] = param[j] + alpha * veloc[j] - gradi[j]
+                    if param == nothing
+                        continue
                     end
 
-                    if verbose > 2
-                        print("Layer $(i)")
-                        print("\tGradient: $(sum(abs(theta - getVelocity(layer))))")
-                        if verbose > 1
-                            print("\tLastloss: $(sum(abs(layer.dldx))) $(sum(abs(layer.dldy)))")
-                        end
-                        println()
+                    gradi = getGradient(layer)
+                    for j = 1:length(gradi)
+                        param[j] -= lrSchedule(epo) * gradi[j] / batch_size
                     end
                     setParam!(layer, param)
                 end
 
                 # _, pred = forward(net, batch_X, batch_Y; deterministics = true)
-                # epo_cor  += get_corr(pred, batch_Y)
-                # local acc = get_corr(pred, batch_Y) / batch_size
+                epo_cor  += get_corr(pred, batch_Y)
+                local acc = get_corr(pred, batch_Y) / batch_size
             end
             println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
@@ -119,7 +105,7 @@ function train(net::SequentialNet, train_set, validation_set;
             println("Epo $(epo) has loss :$(epo_loss)\t\taccuracy : $(epo_accu)")
         # end
     end
-    return epo_losses,epo_accus, val_losses, val_accu
+    return epo_losses,epo_accus, val_losses, val_accu, all_losses
 end
 
 function nestorove_momemtum(net::SequentialNet, train_set, validation_set;
@@ -128,6 +114,7 @@ function nestorove_momemtum(net::SequentialNet, train_set, validation_set;
     valX, valY = validation_set
     local N = size(Y)[1]
     local batch=0
+    all_losses = []
     local epo_losses = []
     local epo_accus = []
 
@@ -136,7 +123,6 @@ function nestorove_momemtum(net::SequentialNet, train_set, validation_set;
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
             local num_batch = ceil(N/batch_size)
-            all_losses = []
             epo_cor = 0
             for bid = 0:(num_batch-1)
                 time_used = @elapsed begin
@@ -168,6 +154,7 @@ function nestorove_momemtum(net::SequentialNet, train_set, validation_set;
                     epo_cor  += get_corr(pred, batch_Y)
                     local acc = get_corr(pred, batch_Y) / batch_size
                 end
+                println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
             end
 
             v_size = size(valX)[1]
@@ -185,7 +172,7 @@ function nestorove_momemtum(net::SequentialNet, train_set, validation_set;
         end
         println("Epo $(epo) [$(epo_time_used)s] has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
     end
-    return epo_losses,epo_accus, val_losses, val_accu
+    return epo_losses,epo_accus, val_losses, val_accu, all_losses
 end
 
 function adagrad(net::SequentialNet, train_set, validation_set;
@@ -194,6 +181,7 @@ function adagrad(net::SequentialNet, train_set, validation_set;
     valX, valY = validation_set
     local N = size(Y)[1]
     local batch=0
+    all_losses = []
     local epo_losses = []
     local epo_accus = []
 
@@ -218,7 +206,6 @@ function adagrad(net::SequentialNet, train_set, validation_set;
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
             local num_batch = ceil(N/batch_size)
-            all_losses = []
             epo_cor = 0
             for bid = 0:(num_batch-1)
                 time_used = @elapsed begin
@@ -255,6 +242,7 @@ function adagrad(net::SequentialNet, train_set, validation_set;
                     epo_cor  += get_corr(pred, batch_Y)
                     local acc = get_corr(pred, batch_Y) / batch_size
                 end
+                println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
             end
 
             v_size = size(valX)[1]
@@ -272,7 +260,7 @@ function adagrad(net::SequentialNet, train_set, validation_set;
         end
         println("Epo $(epo) [$(epo_time_used)s] has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
     end
-    return epo_losses,epo_accus, val_losses, val_accu
+    return epo_losses,epo_accus, val_losses, val_accu, all_losses
 end
 
 function RMSprop(net::SequentialNet, train_set, validation_set;
@@ -283,31 +271,17 @@ function RMSprop(net::SequentialNet, train_set, validation_set;
     valX, valY = validation_set
     local N = size(Y)[1]
     local batch=0
+    all_losses = []
     local epo_losses = []
     local epo_accus = []
 
     local val_losses = []
     local val_accu   = []
 
-    cache = []
-    for i = 1:length(net.layers)
-        layer = net.layers[i]
-        param = getParam(layer)
-        if param == nothing
-            push!(cache, nothing)
-        else
-            c = []
-            for j = 1:length(param)
-                push!(c, zeros(size(param[j])))
-            end
-            push!(cache, c)
-        end
-    end;
-
+    optimizer = RMSPropOptimizer(net, alpha=0.9)
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
             local num_batch = ceil(N/batch_size)
-            all_losses = []
             epo_cor = 0
             for bid = 0:(num_batch-1)
                 time_used = @elapsed begin
@@ -316,34 +290,13 @@ function RMSprop(net::SequentialNet, train_set, validation_set;
                     local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
                     local batch_X = X[:,:,:,sidx:eidx]
                     local batch_Y = Y[sidx:eidx,:]
-                    loss, pred = forward(net, batch_X, batch_Y)
-                    backward(net, batch_Y)
-
-                    for i = 1:length(net.layers)
-                        layer = net.layers[i]
-                        param = getParam(layer)
-                        if param == nothing
-                            continue # not a learnable layer
-                        end
-
-                        grad  = getGradient(layer)
-                        for j = 1:length(param)
-                            c = cache[i][j]
-                            p = param[j]
-                            g = grad[j]
-                            @assert size(c) == size(p) && size(c) == size(g)
-                            c = c * alpha + g.^2 * (1 - alpha)
-                            p = p - lrSchedule(epo) * g ./ (sqrt(c) + 1e-8)
-                            cache[i][j] = c
-                            param[j] =    p
-                        end
-                        setParam!(layer, param)
-                    end
+                    loss, pred = optimize(optimizer, batch_X, batch_Y)
 
                     append!(all_losses, mean(loss))
                     epo_cor  += get_corr(pred, batch_Y)
                     local acc = get_corr(pred, batch_Y) / batch_size
                 end
+                println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
             end
 
             v_size = size(valX)[1]
@@ -361,7 +314,7 @@ function RMSprop(net::SequentialNet, train_set, validation_set;
         end
         println("Epo $(epo) [$(epo_time_used)s] has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
     end
-    return epo_losses,epo_accus, val_losses, val_accu
+    return epo_losses,epo_accus, val_losses, val_accu,all_losses
 end
 
 function Adam(net::SequentialNet, train_set, validation_set;
@@ -377,29 +330,11 @@ function Adam(net::SequentialNet, train_set, validation_set;
     local val_losses = []
     local val_accu   = []
 
-    m_t, v_t = [], []
-    for i = 1:length(net.layers)
-        layer = net.layers[i]
-        param = getParam(layer)
-        if param == nothing
-            push!(m_t, nothing)
-            push!(v_t, nothing)
-        else
-            c_1, c_2 = [], []
-            for j = 1:length(param)
-                push!(c_1, zeros(size(param[j])))
-                push!(c_2, zeros(size(param[j])))
-            end
-            push!(m_t, c_1)
-            push!(v_t, c_2)
-        end;
-    end;
-
-    iter = 1 # number of iterations
+    optimizer  = AdamOptimizer(net, lrSchedule, beta_1=0.9, beta_2=0.999)
+    all_losses = []
     for epo = 1:ttl_epo
         epo_time_used = @elapsed begin
             local num_batch = ceil(N/batch_size)
-            all_losses = []
             epo_cor = 0
             for bid = 0:(num_batch-1)
                 time_used = @elapsed begin
@@ -408,49 +343,12 @@ function Adam(net::SequentialNet, train_set, validation_set;
                     local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
                     local batch_X = X[:,:,:,sidx:eidx]
                     local batch_Y = Y[sidx:eidx,:]
-                    loss, pred = forward(net, batch_X, batch_Y)
-                    backward(net, batch_Y)
-
-                    for i = 1:length(net.layers)
-                        layer = net.layers[i]
-                        param = getParam(layer)
-                        if param == nothing
-                            continue # not a learnable layer
-                        end
-
-                        grad  = getGradient(layer)
-                        for j = 1:length(param)
-                            m = m_t[i][j]
-                            v = v_t[i][j]
-                            p = param[j]
-                            g = grad[j]
-                            @assert size(m) == size(p) && size(m) == size(g) && size(m) == size(v)
-
-                            # Moving average to approximate gradient with velocity
-                            m = m * beta_1 + g    * (1 - beta_1)
-                            v = v * beta_2 + g.^2 * (1 - beta_2)
-
-                            # Compute the counter biased version of [m] and [v]
-                            m_hat = m / (1. - beta_1^iter)
-                            v_hat = v / (1. - beta_2^iter)
-
-                            # Update gradients
-                            p = p - lrSchedule(epo) * m_hat ./ (sqrt(v_hat) + 1e-4)
-
-                            # store the things back
-                            param[j] = p
-                            m_t[i][j] = m
-                            v_t[i][j] = v
-
-                        end
-                        setParam!(layer, param)
-                    end
-                    iter += 1
-
+                    loss, pred = optimize(optimizer, batch_X, batch_Y)
                     append!(all_losses, mean(loss))
                     epo_cor  += get_corr(pred, batch_Y)
                     local acc = get_corr(pred, batch_Y) / batch_size
                 end
+                println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
             end
 
             v_size = size(valX)[1]
@@ -468,7 +366,7 @@ function Adam(net::SequentialNet, train_set, validation_set;
         end
         println("Epo $(epo) [$(epo_time_used)s] has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
     end
-    return epo_losses,epo_accus, val_losses, val_accu
+    return epo_losses,epo_accus, val_losses, val_accu,all_losses
 end
 
 X,Y = mnistData(ttl=55000) # 0-1
@@ -495,30 +393,63 @@ net = build_cnn()
 #     lrSchedule = x -> 0.01, verbose=1, alpha=0.9
 # )
 
-epo_losses, epo_accu, val_losses, val_accu = Adam(
+# epo_losses, epo_accu, val_losses, val_accu, all_losses = Adam(
+#     net, (trX, trY), (valX, valY);
+#     ttl_epo = 10, batch_size = batch_size,
+#     lrSchedule = x -> 0.001, verbose=1
+# )
+
+epo_losses, epo_accu, val_losses, val_accu, all_losses = RMSprop(
     net, (trX, trY), (valX, valY);
-    ttl_epo = 100, batch_size = batch_size,
+    ttl_epo = 10, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
 
+# epo_losses, epo_accu, val_losses, val_accu, all_losses = adagrad(
+#     net, (trX, trY), (valX, valY);
+#     ttl_epo = 10, batch_size = batch_size,
+#     lrSchedule = x -> 0.001, verbose=1
+# )
+
+# epo_losses, epo_accu, val_losses, val_accu, all_losses = nestorove_momemtum(
+#     net, (trX, trY), (valX, valY);
+#     ttl_epo = 10, batch_size = batch_size,
+#     lrSchedule = x -> 0.01, verbose=1
+# )
+
+# epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
+#     net, (trX, trY), (valX, valY);
+#     ttl_epo = 10, batch_size = batch_size,
+#     lrSchedule = x -> 0.01, verbose=1
+# )
+
+# figure(figsize=(12,6))
+# plot(1:length(all_losses), all_losses)
+# title("Adam : Training losses")
+
+# figure(figsize=(12,6))
+# # subplot(221)
+# plot(1:length(all_losses), all_losses)
+# title("RMSprop : Training losses")
 
 figure(figsize=(12,6))
-subplot(221)
-plot(1:length(epo_losses), epo_losses)
-title("Training losses (epoch)")
+# subplot(221)
+plot(1:length(all_losses), all_losses)
+title("Nestorove Momemtum : Training losses")
 
-subplot(223)
-plot(1:length(epo_accu), epo_accu)
-ylim([0, 1])
-title("Training Accuracy (epoch)")
 
-subplot(222)
-plot(1:length(val_losses), val_losses)
-title("Validaiton Losses (epoch)")
+# subplot(223)
+# plot(1:length(epo_accu), epo_accu)
+# ylim([0, 1])
+# title("Training Accuracy (epoch)")
 
-subplot(224)
-plot(1:length(val_accu), val_accu)
-ylim([0, 1])
-title("Validaiton Accuracy (epoch)")
+# subplot(222)
+# plot(1:length(val_losses), val_losses)
+# title("Validaiton Losses (epoch)")
+
+# subplot(224)
+# plot(1:length(val_accu), val_accu)
+# ylim([0, 1])
+# title("Validaiton Accuracy (epoch)")
 
 show()
