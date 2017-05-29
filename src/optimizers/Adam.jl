@@ -7,7 +7,7 @@ type AdamOptimizer
     beta_2  :: Float64
     iter    :: Int
 
-    function AdamOptimizer(net::SequentialNet;  base_lr::Float64=0.0001,
+    function AdamOptimizer(net::SequentialNet;  base_lr::Float64=0.001,
                            beta_1::Float64=0.9, beta_2::Float64=0.999)
         m_t, v_t = [], []
         for i = 1:length(net.layers)
@@ -26,15 +26,12 @@ type AdamOptimizer
                push!(v_t, c_2)
            end;
         end;
-        return new(net, m_t, v_t, base_lr, beta_1, beta_2, 0)
+        return new(net, m_t, v_t, base_lr, beta_1, beta_2, 1)
     end
 end
 
 function optimize(this::AdamOptimizer, batch_X, batch_Y)
-    # println(this.base_lr)
-    # println(this.beta_1)
-    # println(this.beta_2)
-    # println(this.iter)
+
     loss, pred = forward(this.net, batch_X, batch_Y)
     backward(this.net, batch_Y)
 
@@ -46,6 +43,7 @@ function optimize(this::AdamOptimizer, batch_X, batch_Y)
         end
 
         grad  = getGradient(layer)
+
         for j = 1:length(param)
             m = this.m_t[i][j]
             v = this.v_t[i][j]
@@ -66,9 +64,9 @@ function optimize(this::AdamOptimizer, batch_X, batch_Y)
 
             # store the things back
             param[j] = p
+
             this.m_t[i][j] = m
             this.v_t[i][j] = v
-
         end
         setParam!(layer, param)
     end
