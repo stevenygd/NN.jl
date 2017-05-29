@@ -89,10 +89,16 @@ function Adam(net::SequentialNet, train_set, validation_set;
             for bid = 0:(num_batch-1)
                 time_used = @elapsed begin
                     batch += 1
-                    local sidx::Int = convert(Int64, bid*batch_size+1)
+                    local sidx::Int = convert(Int64, bid*batch_size+1))
                     local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
                     local batch_X = X[:,:,:,sidx:eidx]
                     local batch_Y = Y[sidx:eidx,:]
+
+                    println(base_lr)
+                    println(beta_1)
+                    println(beta_2)
+                    println(iter)
+
                     loss, pred = forward(net, batch_X, batch_Y)
                     backward(net, batch_Y)
 

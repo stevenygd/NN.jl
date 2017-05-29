@@ -31,6 +31,10 @@ type AdamOptimizer
 end
 
 function optimize(this::AdamOptimizer, batch_X, batch_Y)
+    # println(this.base_lr)
+    # println(this.beta_1)
+    # println(this.beta_2)
+    # println(this.iter)
     loss, pred = forward(this.net, batch_X, batch_Y)
     backward(this.net, batch_Y)
 
@@ -68,6 +72,7 @@ function optimize(this::AdamOptimizer, batch_X, batch_Y)
         end
         setParam!(layer, param)
     end
+
     this.iter += 1;
     return loss, pred
 end
