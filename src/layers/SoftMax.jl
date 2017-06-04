@@ -8,13 +8,22 @@ type SoftMax <: Nonlinearity
     end
 end
 
-function forward(l::SoftMax, X::Array{Float64}; kwargs...)
+function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
 	  # X = broadcast(+, X, -maximum(X))
-    l.x = X
-    x_exp = exp(X)
-    sumX = sum(exp(X))
-    Y = (x_exp ./ sumX)
-    @assert size(Y) == size(X)
+    m,n = size(X)
+    Y = zeros(m,n)
+    # iterating each row/picture
+    for i=1:m
+      exp_sum = 0
+      # find the exponential sum of output for each class for this row/picture
+      for j=1:n
+        exp_sum+=exp(X[i,j])
+      end
+      # softmaxly normalizing the score
+      for j=1:n
+        Y[i,j]=X[i,j]/exp_sum
+      end
+    end
     l.y = Y
     return Y
 end
