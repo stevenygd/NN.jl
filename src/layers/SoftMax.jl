@@ -10,6 +10,7 @@ end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
 	  # X = broadcast(+, X, -maximum(X))
+    l.x=X
     m,n = size(X)
     Y = zeros(m,n)
     # iterating each row/picture
@@ -33,7 +34,7 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     # credits: https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network?newreg=d1e89b443dd346ae8bccaf038a944221
     X = l.x
     jacobian = zeros(size(l.x)[1], size(l.x)[1])
-    println(typeof(jacobian))
+    # println(typeof(jacobian))
     for i=1:size(l.x)[1]
       for j=1:size(l.x)[1]
         if i==j

@@ -28,8 +28,8 @@ end
 
 ```
 Invaraint for this to work:
-Label needs to be either a vector specifying each item's class or a matrix made up with multiple one hot vectors.
-In the former case, labels need to be in the range of 0:classes-1.
+  Label needs to be either a vector specifying each item's class or a matrix made up with multiple one hot vectors.
+  In the former case, labels need to be in the range of 0:classes-1.
 ```
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2}; kwargs...)
   if size(label,2)[2] == 1
@@ -58,4 +58,21 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{I
     pred[i] = findmax(Y[i,:])[2]-1
   end
   return loss, pred
+end
+
+```
+for each row x, let x_i be j^th element, loss(x)=log(q_i/x_i)/n+...(other elements)
+thus d(loss_j)/dx_j=1/n*x_j/q = x_j/(q_j*n)
+where j is the num of classes,
+```
+function backward(l::SoftMaxCrossEntropyLoss, label::Array{Int, 2};kwargs...)
+  dldx = zeros(classes)
+  m,n=size(l.x)
+  for i=1:m
+    for j=:1:n
+      dlidx=l.x[i,j]/(label[i,j]*classes)
+      dldlx[j]+=dlidx
+    end
+  end
+  return dldx
 end
