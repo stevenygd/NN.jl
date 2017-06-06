@@ -1,11 +1,26 @@
 type SoftMax <: Nonlinearity
     x  :: Array{Float64}
     y :: Array{Float64}
+    has_init :: Bool
     # last_loss   :: Array{Float64}
 
     function SoftMax()
         return new(Float64[], Float64[])
     end
+end
+
+function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+  if p == nothing
+      # [l] is the first layer, batch_size used default network batch_size
+      # and input_size should be single dimensional (i.e. vector)
+      @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+      out_size = (config["batch_size"], config["input_size"][1])
+  else
+      out_size = getOutputSize(p)
+  end
+  l.x = Array{Float64}(out_size)
+  l.y = Array{Float64}(out_size)
+  l.has_init = true;
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)

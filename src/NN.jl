@@ -4,7 +4,7 @@ module NN
     export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
            SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh, InputLayer,
            ConvLayer, MaxPoolingLayer, FlattenLayer,
-           CaffeConvLayer
+           CaffeConvLayer, CrossEntropyLoss
 
     include("layers/LayerBase.jl")
     include("layers/InputLayer.jl")
@@ -23,7 +23,7 @@ module NN
     # include("layers/FlatConvLayer.jl")
     # include("layers/MultiThreadedConvLayer.jl")
     include("layers/CaffeConvLayer.jl")
-
+    include("layers/CrossEntropyLoss.jl")
     # optimizers
     include("optimizers/Adam.jl")
     include("optimizers/RMSprop.jl")
