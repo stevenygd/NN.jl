@@ -37,7 +37,12 @@ function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
       end
       # softmaxly normalizing the score
       for j=1:n
-        Y[i,j]=X[i,j]/exp_sum
+        Y[i,j]=exp(X[i,j])/exp_sum
+        # if isnan(Y[i,j])
+        #   println(X[i,j])
+        #   println(exp_sum)
+        #   println()
+        # end
       end
     end
     l.y = Y
@@ -45,7 +50,6 @@ function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
 end
 
 function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
-    @assert size(l.x) == size(DLDY)
     # credits: https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network?newreg=d1e89b443dd346ae8bccaf038a944221
     X = l.x
     jacobian = zeros(size(l.x)[1], size(l.x)[1])
@@ -59,6 +63,7 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
         end
       end
     end
+    # println(DLDY)
     return jacobian * DLDY
     # sumX = sum(exp(X))
     # u = zeros(ndims(X), ndims(X))
