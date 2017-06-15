@@ -9,9 +9,6 @@ type CrossEntropyLoss <: LossCriteria
 end
 
 function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-  if p==nothing || typeof(p)<:InputLayer
-    error("Loss functions cannot be the first layer; makes no sense")
-  end
   if p == nothing
       @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
       out_size = (config["batch_size"], config["input_size"][1])
@@ -57,10 +54,10 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2};
         log_sum+=q*log(q/p)
       end
     end
-    loss[i]=log_sum/n
+    loss[i]=log_sum
   end
-  x = Y
-  y = loss
+  l.x = Y
+  l.y = loss
   # generate prediction
   pred = zeros(m)
   for i=1:m
@@ -70,8 +67,8 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2};
 end
 
 """
-for each row x, let x_j be j^th element, loss(x)=q_j*log(q_j/x_j)/n+...(other elements)
-thus d(loss_j)/dx_j= -x_j/(q_j*n)
+for each row x, let x_j be j^th element, loss(x)=q_j*log(q_j/x_j)+...(other elements)
+thus d(loss_j)/dx_j= q_j * x_j/q_j * - q_j*x_j^(-2) = x_j * - q_j*x_j^(-2) = - q_j/x_j
 where j is the num of classes,
 l.x: 500*10 - 500 sample, possibility for each of 10 classes
 label: 500*10 - 500 sample, one hot vectors of actual classes
@@ -91,9 +88,7 @@ function backward(l::CrossEntropyLoss, label::Array{Int, 2};kwargs...)
   dldx = zeros(m,n)
   for i=1:m
     for j=:1:n
-      if label[i,j]!=0
-        dldx[i,j] = -l.x[i,j]/(label[i,j]*n)
-      end
+      dldx[i,j] = -label[i,j]/l.x[i,j]
     end
   end
   return dldx

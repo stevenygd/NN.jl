@@ -53,6 +53,7 @@ function Adam(net::SequentialNet, train_set, validation_set;
     optimizer  = AdamOptimizer(net)
     all_losses = []
     for epo = 1:ttl_epo
+      epo_time_used = @elapsed begin
         local num_batch = ceil(N/batch_size)
         epo_cor = 0
         for bid = 0:(num_batch-1)
@@ -65,9 +66,8 @@ function Adam(net::SequentialNet, train_set, validation_set;
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            # println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
-
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
         for i = 1:batch_size:v_size
@@ -80,7 +80,8 @@ function Adam(net::SequentialNet, train_set, validation_set;
         end
         append!(val_losses, mean(v_loss))
         append!(val_accu,   mean(v_accu))
-        println("Epo $(epo) has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
+      end
+      println("Epo $(epo) [$(epo_time_used)s] has loss :$(mean(v_loss))\t\taccuracy : $(mean(v_accu))")
     end
     return epo_losses,epo_accus, val_losses, val_accu,all_losses
 end

@@ -39,16 +39,22 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
   # benchmark for original SoftMaxCrossEntropy
   tic()
   l1, p1 = forward(smaxcross,x,label)
+  time = toq()
+  println("old forward uses:  ", time)
+  tic()
   d1 = backward(smaxcross,label)
   time = toq()
-  println("1 uses: ", time)
+  println("old backward uses: ", time)
 
   # benchmark for newly implemented softmax & CrossEntropyLoss
   tic()
   l2, p2 = forward(cross, forward(smax,x), label)
+  time = toq()
+  println("new forward uses:  ", time)
+  tic()
   d2 = backward(smax, backward(cross, label))
   time = toq()
-  println("2 uses: ", time)
+  println("new backward uses: ", time)
 
   @test_approx_eq l1 l2
   @test_approx_eq p1 p2
@@ -61,15 +67,15 @@ x = [1. 2. 3.; -1. -2. -3.]
 y = zeros(Int64, 2,1)
 y[:, 1] = [2      ;   1]
 testSoftMaxCrossEntropyOneVector(smaxcross, smax, cross, x, y; alpha = 1.)
-println("test 1 passed.\n")
+println("basic test passed.\n")
 
-for i=1:20
-  benchmmark(smaxcross, smax, cross, 10, 5; alpha = 1.)
-end
-
-for i=1:20
-  benchmmark(smaxcross, smax, cross, 100, 10; alpha = 1.)
-end
+# for i=1:20
+#   benchmmark(smaxcross, smax, cross, 10, 5; alpha = 1.)
+# end
+#
+# for i=1:20
+#   benchmmark(smaxcross, smax, cross, 100, 10; alpha = 1.)
+# end
 
 for i=1:20
   benchmmark(smaxcross, smax, cross, 1000, 100; alpha = 1.)
