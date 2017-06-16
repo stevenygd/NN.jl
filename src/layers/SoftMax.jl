@@ -2,6 +2,7 @@ type SoftMax <: Nonlinearity
     x  :: Array{Float64}
     y :: Array{Float64}
     has_init :: Bool
+    jacobian :: Array{Float64}
     # last_loss   :: Array{Float64}
 
     function SoftMax()
@@ -19,6 +20,8 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   l.x = Array{Float64}(out_size)
   l.y = Array{Float64}(out_size)
   l.has_init = true;
+  m,n = out_size
+  l.jacobian = zeros(n,n)
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
@@ -48,23 +51,28 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     # println(typeof(jacobian))
     result = zeros(m,n)
 
+    jacobian = zeros(n,n)
     for batch=1:m
-      jacobian = zeros(n,n)
-
       # diagonal
+      # for i=1:n
+      #   temp = l.y[batch,i]*(1.0-l.y[batch,i])
+      #   jacobian[i,i] = temp
+      # end
+      #
+      # # the rest; matrix is symmetric
+      # for i=1:n
+      #   for j=i+1:n
+      #     temp = -l.y[batch,i]*l.y[batch,j]
+      #     jacobian[i,j] = temp
+      #     jacobian[j,i] = temp
+      #   end
+      # end
       for i=1:n
-        jacobian[i,i] = l.y[batch,i]*(1.0-l.y[batch,i])
+        li = l.y[batch,i]
+        jacobian[:,i] = -li * l.y[batch,:]
+        jacobian[i,i] = li*(1-li)
       end
-
-      # the rest; matrix is symmetric
-      for i=1:n
-        for j=i+1:n
-          term = -l.y[batch,i]*l.y[batch,j]
-          jacobian[i,j] = term
-          jacobian[j,i] = term
-        end
-      end
-      # n x 1 = n x n * n x 1
+      # # n x 1 = n x n * n x 1
       result[batch,:] = jacobian * DLDY[batch,:]
     end
 

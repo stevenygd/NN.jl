@@ -346,8 +346,8 @@ function Adam(net::SequentialNet, train_set, validation_set;
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
+      # println("[$(bid)/$(num_batch)]($(epo_time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
         for i = 1:batch_size:v_size
