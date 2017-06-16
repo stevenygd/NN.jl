@@ -62,12 +62,12 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
 end
 
 # First Test
-println("Unit test 1...")
-x = [1. 2. 3.; -1. -2. -3.]
-y = zeros(Int64, 2,1)
-y[:, 1] = [2      ;   1]
-testSoftMaxCrossEntropyOneVector(smaxcross, smax, cross, x, y; alpha = 1.)
-println("basic test passed.\n")
+# println("Unit test 1...")
+# x = [1. 2. 3.; -1. -2. -3.]
+# y = zeros(Int64, 2,1)
+# y[:, 1] = [2      ;   1]
+# testSoftMaxCrossEntropyOneVector(smaxcross, smax, cross, x, y; alpha = 1.)
+# println("basic test passed.\n")
 
 # for i=1:20
 #   benchmmark(smaxcross, smax, cross, 10, 5; alpha = 1.)
