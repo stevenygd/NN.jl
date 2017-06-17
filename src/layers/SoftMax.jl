@@ -3,6 +3,7 @@ type SoftMax <: Nonlinearity
     y :: Array{Float64}
     has_init :: Bool
     jacobian :: Array{Float64}
+    dldx :: Array{Float64}
     # last_loss   :: Array{Float64}
 
     function SoftMax()
@@ -21,7 +22,8 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   l.y = Array{Float64}(out_size)
   l.has_init = true;
   m,n = out_size
-  l.jacobian = zeros(n,n)
+  l.jacobian = Array{Float64}(n,n)
+  l.dldx = Array{Float64}(out_size)
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
@@ -48,49 +50,27 @@ end
 function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     # credits: https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network?newreg=d1e89b443dd346ae8bccaf038a944221
     m,n =size(l.x)
-    # println(typeof(jacobian))
-    result = zeros(m,n)
 
-    jacobian = zeros(n,n)
-    for batch=1:m
-      # diagonal
-      # for i=1:n
-      #   temp = l.y[batch,i]*(1.0-l.y[batch,i])
-      #   jacobian[i,i] = temp
-      # end
-      #
-      # # the rest; matrix is symmetric
-      # for i=1:n
-      #   for j=i+1:n
-      #     temp = -l.y[batch,i]*l.y[batch,j]
-      #     jacobian[i,j] = temp
-      #     jacobian[j,i] = temp
-      #   end
-      # end
+    ly = Array{Float64}(n)
+    @time for batch=1:m
+      ly = l.y[batch,:]
+
       for i=1:n
-        li = l.y[batch,i]
-        jacobian[:,i] = -li * l.y[batch,:]
-        jacobian[i,i] = li*(1-li)
+        li = ly[i]
+        l.jacobian[:,i] = -li * ly
+        l.jacobian[i,i] = li*(1-li)
       end
+
+      # l.jacobian = ly'.*repmat(ly, 1, n)
+      # for i=1:n
+      #   li = l.y[batch,i]
+      #   l.jacobian[i,i] = li*(1.0-li)
+      # end
+
       # # n x 1 = n x n * n x 1
-      result[batch,:] = jacobian * DLDY[batch,:]
+      l.dldx[batch,:] = l.jacobian * DLDY[batch,:]
     end
 
-    return result
-    # sumX = sum(exp(X))
-    # u = zeros(ndims(X), ndims(X))
-    # z = zeros(ndims(X))
-    # for i = 1: ndims(X)
-    #     z[i] = (X[i]/sumX)
-    # end
-    #
-    # for i = 1: ndims(X)
-    #     t = z[i]
-    #     w = zeros(ndims(X))
-    #     w[i] = 1
-    #     w = w .- z
-    #     u[:,i] = t * w
-    # end
-    # l.last_loss = DLDY' * u
+    return l.dldx
 
 end

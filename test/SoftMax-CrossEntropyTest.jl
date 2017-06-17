@@ -38,21 +38,33 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
   label = rand(0:input_size-1, batch_size,1)
   # benchmark for original SoftMaxCrossEntropy
   tic()
+
+  # l1, p1 = @time forward(smaxcross,x,label)
   l1, p1 = forward(smaxcross,x,label)
+
   time = toq()
   println("old forward uses:  ", time)
   tic()
+
+  # d1 = @time backward(smaxcross,label)
   d1 = backward(smaxcross,label)
+
   time = toq()
   println("old backward uses: ", time)
 
   # benchmark for newly implemented softmax & CrossEntropyLoss
   tic()
+
+  # l2, p2 = @time forward(cross, forward(smax,x), label)
   l2, p2 = forward(cross, forward(smax,x), label)
+
   time = toq()
   println("new forward uses:  ", time)
   tic()
+
+  # d2 = @time backward(smax, backward(cross, label))
   d2 = backward(smax, backward(cross, label))
+
   time = toq()
   println("new backward uses: ", time)
 
