@@ -27,24 +27,14 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
-	  # X = broadcast(+, X, -maximum(X))
-    l.x=X
-    m,n = size(X)
-    Y = zeros(m,n)
+
+    l.x = X
     # iterating each row/picture
-    for i=1:m
-      exp_sum = 0
-      # find the exponential sum of output for each class for this row/picture
-      for j=1:n
-        exp_sum+=exp(X[i,j])
-      end
-      # softmaxly normalizing the score
-      for j=1:n
-        Y[i,j]=exp(X[i,j])/exp_sum
-      end
-    end
-    l.y = Y
-    return Y
+    lxexp = exp(l.x)
+    lxsum = sum(lxexp, 2)
+    l.y = lxexp./lxsum
+    return l.y
+    
 end
 
 function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
@@ -52,7 +42,7 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     m,n =size(l.x)
 
     ly = Array{Float64}(n)
-    @time for batch=1:m
+    for batch=1:m
       ly = l.y[batch,:]
 
       for i=1:n
