@@ -1,7 +1,9 @@
 type CrossEntropyLoss <: LossCriteria
   x :: Array{Float64}
-  y :: Array{Float64}
+  loss :: Array{Float64}
   classes :: Int
+  pred :: Array{Float64}
+  dldx :: Array{Float64}
 
   function CrossEntropyLoss()
     return new(Float64[], Float64[], 0)
@@ -17,12 +19,13 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
   end
   l.classes = out_size[2]
   l.x      = Array{Float64}(out_size)
-  l.y      = Array{Float64}(out_size)
+  l.loss   = Array{Float64}(out_size[1])
+  l.pred   = Array{Float64}(out_size[1])
+  l.dldx   = Array{Float64}(out_size)
 end
 
 function convert_to_one_hot(l::CrossEntropyLoss, old_label::Array{Int, 2})
   m,n = size(old_label)
-  local new_label::Array{Int,2}
   new_label=zeros(Int64, m, l.classes)
   for i=1:m
     new_label[i, old_label[i]+1] = 1
@@ -43,8 +46,7 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2};
   # from now on label is guaranteed to be of one-hot
   @assert size(Y) == size(label)
   m,n = size(Y)
-  loss = zeros(m)
-  m,n = size(Y)
+  l.loss = zeros(m)
   for i=1:m
     log_sum = 0
     for j=1:n
@@ -54,28 +56,16 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2};
         log_sum+=q*log(q/p)
       end
     end
-    loss[i]=log_sum
+    l.loss[i]=log_sum
   end
   l.x = Y
-  l.y = loss
   # generate prediction
-  pred = zeros(m)
   for i=1:m
-    pred[i] = findmax(Y[i,:])[2]-1
+    l.pred[i] = findmax(Y[i,:])[2]-1
   end
-  return loss, pred
+  return l.loss, l.pred
 end
 
-"""
-for each row x, let x_j be j^th element, loss(x)=q_j*log(q_j/x_j)+...(other elements)
-thus d(loss_j)/dx_j= q_j * x_j/q_j * - q_j*x_j^(-2) = x_j * - q_j*x_j^(-2) = - q_j/x_j
-where j is the num of classes,
-l.x: 500*10 - 500 sample, possibility for each of 10 classes
-label: 500*10 - 500 sample, one hot vectors of actual classes
-dldx:
-
-X*(500*10) = 500*1
-"""
 function backward(l::CrossEntropyLoss, label::Array{Int, 2};kwargs...)
   if size(label)[2] == 1
     # convert one-dim label to one hot vectors
@@ -84,12 +74,6 @@ function backward(l::CrossEntropyLoss, label::Array{Int, 2};kwargs...)
 
   @assert size(l.x) == size(label)
 
-  m,n=size(l.x)
-  dldx = zeros(m,n)
-  for i=1:m
-    for j=:1:n
-      dldx[i,j] = -label[i,j]/l.x[i,j]
-    end
-  end
-  return dldx
+  l.dldx = -label./l.x
+  return l.dldx
 end
