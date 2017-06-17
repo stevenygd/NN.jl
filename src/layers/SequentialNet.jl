@@ -16,7 +16,7 @@ end
  # TODO could remove the local
  # TODO inp could be updated in-places
  # TODO define inplace operator
-function forward(net::SequentialNet, x::Array{Float64}, label::Array{Int,2}; kwargs...)
+function forward(net::SequentialNet, x::Array{Float64}, label::Array{Int}; kwargs...)
     local inp = x
     for i = 1:length(net.layers)
         inp = forward(net.layers[i], inp; kwargs...)

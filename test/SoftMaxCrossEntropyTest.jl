@@ -25,9 +25,8 @@ end
 println("Unit test 1...")
 x = [1. 2. 3.; -1. -2. -3.]
 s = e^(-2) + e^(-1) + 1.
-y = zeros(Int64, 2,1)
+y = zeros(2,1)
 y[:, 1] = [2      ;   1]
-println(y)
 p = [2 ; 0]
 loss = -log([1./s   ;   e^(-1)/s])
 
