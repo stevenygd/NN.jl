@@ -1,12 +1,12 @@
 type CrossEntropyLoss <: LossCriteria
-  x :: Array{Float64}
-  loss :: Array{Float64}
-  classes :: Int
-  pred :: Array{Float64}
-  dldx :: Array{Float64}
+  x :: Array{Float64}       # input normalized matrix, expected to be free of zeros
+  loss :: Array{Float64}    # output of current layer; calculate loss of each instance
+  classes :: Int            # number of classes in the model
+  pred :: Array{Float64}    # cache for prediction result in forward
+  dldx :: Array{Float64}    # cache for derivative matrix in backward
 
   function CrossEntropyLoss()
-    return new(Float64[], Float64[], 0)
+    return new(Float64[], Float64[], 0, Float64[], Float64[])
   end
 end
 

@@ -3,7 +3,7 @@ type SoftMax <: Nonlinearity
     y :: Array{Float64}         # output m by n matrix which uses softmax to normalize the input matrix
     has_init :: Bool            # true if the layer has been initialized
     jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
-    dldx :: Array{Float64}      # cahced for the backward result
+    dldx :: Array{Float64}      # cahce for the backward result
 
     function SoftMax()
         return new(Float64[], Float64[], false, Float64[], Float64[])
