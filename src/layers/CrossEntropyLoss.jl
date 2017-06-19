@@ -24,11 +24,12 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
   l.dldx   = Array{Float64}(out_size)
 end
 
-function convert_to_one_hot(l::CrossEntropyLoss, old_label::Array{Int, 2})
+function convert_to_one_hot(l::CrossEntropyLoss, old_label::Array{Float64, 2})
   m,n = size(old_label)
-  new_label=zeros(Int64, m, l.classes)
+  old_label = round(Int64, old_label)
+  new_label=zeros(Float64, m, l.classes)
   for i=1:m
-    new_label[i, old_label[i]+1] = 1
+    new_label[i, old_label[i]+1] = 1.0
   end
   return new_label
 end
@@ -38,7 +39,7 @@ Invaraint for this to work:
   Label needs to be either a vector specifying each item's class or a matrix made up with multiple one hot vectors.
   In the former case, labels need to be in the range of 0:classes-1.
 """
-function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2}; kwargs...)
+function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
   if size(label)[2] == 1
     # convert one-dim label to one hot vectors
     label = convert_to_one_hot(l,label)
@@ -66,7 +67,7 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2};
   return l.loss, l.pred
 end
 
-function backward(l::CrossEntropyLoss, label::Array{Int, 2};kwargs...)
+function backward(l::CrossEntropyLoss, label::Array{Float64, 2};kwargs...)
   if size(label)[2] == 1
     # convert one-dim label to one hot vectors
     label = convert_to_one_hot(l,label)
