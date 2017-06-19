@@ -48,7 +48,7 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
   tic()
 
   # d2 = @time backward(smax, backward(cross, label))
-  d2 = backward(smax, backward(cross, label))
+  d2 = @time backward(smax, backward(cross, label))
 
   time = toq()
   println("new backward uses: ", time)

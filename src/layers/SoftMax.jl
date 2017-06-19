@@ -1,13 +1,12 @@
 type SoftMax <: Nonlinearity
-    x  :: Array{Float64}
-    y :: Array{Float64}
-    has_init :: Bool
-    jacobian :: Array{Float64}
-    dldx :: Array{Float64}
-    # last_loss   :: Array{Float64}
+    x  :: Array{Float64}        # input m by n matrix which represents m instances with scores for n classes
+    y :: Array{Float64}         # output m by n matrix which uses softmax to normalize the input matrix
+    has_init :: Bool            # true if the layer has been initialized
+    jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
+    dldx :: Array{Float64}      # cahced for the backward result
 
     function SoftMax()
-        return new(Float64[], Float64[])
+        return new(Float64[], Float64[], false, Float64[], Float64[])
     end
 end
 
@@ -34,7 +33,7 @@ function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
     lxsum = sum(lxexp, 2)
     l.y = lxexp./lxsum
     return l.y
-    
+
 end
 
 function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
@@ -45,17 +44,8 @@ function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
     for batch=1:m
       ly = l.y[batch,:]
 
-      for i=1:n
-        li = ly[i]
-        l.jacobian[:,i] = -li * ly
-        l.jacobian[i,i] = li*(1-li)
-      end
-
-      # l.jacobian = ly'.*repmat(ly, 1, n)
-      # for i=1:n
-      #   li = l.y[batch,i]
-      #   l.jacobian[i,i] = li*(1.0-li)
-      # end
+      l.jacobian .= -ly .* ly'
+      l.jacobian[diagind(l.jacobian)] .= ly.*(1.0.-ly)
 
       # # n x 1 = n x n * n x 1
       l.dldx[batch,:] = l.jacobian * DLDY[batch,:]
