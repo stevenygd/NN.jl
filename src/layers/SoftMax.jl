@@ -4,6 +4,7 @@ type SoftMax <: Nonlinearity
     has_init :: Bool            # true if the layer has been initialized
     jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
     dldx :: Array{Float64}      # cahce for the backward result
+    ly :: Array{Float64}        # cache for row matrix during backward
 
     function SoftMax()
         return new(Float64[], Float64[], false, Float64[], Float64[])
@@ -23,6 +24,7 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   m,n = out_size
   l.jacobian = Array{Float64}(n,n)
   l.dldx = Array{Float64}(out_size)
+  l.ly = Array{Float64}(n)
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
@@ -36,16 +38,14 @@ function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
 
 end
 
-function backward(l::SoftMax, DLDY::Array{Float64}; kwargs...)
+function backward(l::SoftMax, DLDY::Array{Float64, 2}; kwargs...)
     # credits: https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network?newreg=d1e89b443dd346ae8bccaf038a944221
     m,n =size(l.x)
 
-    ly = Array{Float64}(n)
     for batch=1:m
-      ly = l.y[batch,:]
-
-      l.jacobian .= -ly .* ly'
-      l.jacobian[diagind(l.jacobian)] .= ly.*(1.0.-ly)
+      l.ly = l.y[batch,:]
+      l.jacobian .= -l.ly .* l.ly'
+      l.jacobian[diagind(l.jacobian)] .= l.ly.*(1.0.-l.ly)
 
       # # n x 1 = n x n * n x 1
       l.dldx[batch,:] = l.jacobian * DLDY[batch,:]

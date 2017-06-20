@@ -1,39 +1,27 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/SoftMax.jl")
 using Base.Test
+using ForwardDiff
 
 l = SoftMax();
+s = x->x->exp(x)./sum(exp(x))
+g = x->ForwardDiff.gradient(s, x)
 
-function testSoftMax(x::Array{Float64}, y::Array{Float64}, dldy::Array{Float64}, dldx::Array{Float64}; err = 0.0001)
-  # Testing forwarding
-  bools::Array{Bool}
-  bools = (forward(l,x)) .- y .<= err
-  assertBools(bools)
-  bools = l.x .- x .<= err
-  assertBools(bools)
-  bools = l.y .- y .<= err
-  assertBools(bools)
-
-  #Testing back propagation
-  bools = backward(l,dldy) .- dldx .<= err
-  assertBools(bools)
-  # bools = l.dldy .- dldy .<= err
-  # assertBools(bools)
-  # bools = l.dldx .- dldx .<= err
-  # assertBools(bools)
+function before(l)
+    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [3]))
 end
 
-function assertBools(bools::Array{Bool})
-  for i=1:length(bools)
-    @test bools[i]
-  end
+function testSoftMax(x::Array{Float64}, y::Array{Float64}, dldy::Array{Float64}, dldx::Array{Float64}; alpha = .001)
+  # Testing forwarding
+  before(l)
+  @test_approx_eq forward(l,x) exp(x)./sum(exp(x))
+  @test_approx_eq backward(l,dldy) dldx
+
 end
 
 # First Test
 println("Unit test 1...")
-x = [1.0, 2.0, 3.0]
-y = [0.09003, 0.24473, 0.66524]
-dldy = [1., 1., 1.]
-dldx = [0.00784, 0.00001, 0.00001]
-testSoftMax(x, y, dldy, dldx)
+x = reshape([1.0, 2.0, 3.0;], 1,3)
+dldy = reshape([1. 1. 1.;], 1,3)
+testSoftMax(x, s(x), dldy, g(x))
 println("test 1 passed.\n")
