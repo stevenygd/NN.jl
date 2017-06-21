@@ -24,27 +24,14 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
   l.dldx   = Array{Float64}(out_size)
 end
 
-function convert_to_one_hot(l::CrossEntropyLoss, old_label::Array{Float64, 2})
-  m,n = size(old_label)
-  old_label = round(Int64, old_label)
-  new_label=zeros(Float64, m, l.classes)
-  for i=1:m
-    new_label[i, old_label[i]+1] = 1.0
-  end
-  return new_label
-end
-
 """
-Invaraint for this to work:
+<!-- Invaraint for this to work:
   Label needs to be either a vector specifying each item's class or a matrix made up with multiple one hot vectors.
-  In the former case, labels need to be in the range of 0:classes-1.
+  In the former case, labels need to be in the range of 0:classes-1. -->
+Requried: label needs to be a matrix that assigns a score for each class for each instance
 """
 function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
-  if size(label)[2] == 1
-    # convert one-dim label to one hot vectors
-    label = convert_to_one_hot(l,label)
-  end
-  # from now on label is guaranteed to be of one-hot
+
   @assert size(Y) == size(label)
   m,n = size(Y)
   l.loss = zeros(m)

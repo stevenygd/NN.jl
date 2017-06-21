@@ -135,5 +135,6 @@ function datasplit(trX, trY; ratio = 0.8)
                  trY[size_training + 1 : size_training + size_testing, :])
     validation_set = (trX[size_training + size_testing + 1:N, :],
                       trY[size_training + size_testing + 1:N,:])
+    #TODO might need to ensure label to be matrix
     return train_set, test_set, validation_set
 end
