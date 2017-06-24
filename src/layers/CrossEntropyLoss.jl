@@ -30,8 +30,12 @@ Requried: label needs to be a matrix that assigns a score for each class for eac
 function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; smoof = 0.000000000001, kwargs...)
 
   @assert size(Y) == size(label)
+  @assert size(l.x) == size(Y)
 
-  l.loss = sum(-label.*(log(Y)),2)
+  l.x = log(Y)
+  l.x = -label.*l.x
+  l.loss = sum(l.x,2)
+  println()
   l.x = Y
 
   # generate prediction

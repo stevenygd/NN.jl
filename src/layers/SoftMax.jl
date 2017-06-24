@@ -5,7 +5,8 @@ type SoftMax <: Nonlinearity
     jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
     dldx :: Array{Float64}      # cahce for the backward result
     ly :: Array{Float64}        # cache for row matrix during backward
-    lexp :: Array{Float64}      # cache for exponential of l.x
+    lexp :: Array{Float64}      # cache for exponential of l.x in forward
+    lsum :: Array{Float64}      # cache for calculating exponential sum in forward
 
     function SoftMax()
         return new(Float64[], Float64[], false, Float64[], Float64[])
@@ -34,7 +35,8 @@ function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
     l.x = X
     # iterating each row/picture
     l.lexp = exp(l.x)
-    l.y = l.lexp./sum(l.lexp, 2)
+    l.lsum = sum(l.lexp, 2)
+    l.y = l.lexp./l.lsum
     return l.y
 
 end
