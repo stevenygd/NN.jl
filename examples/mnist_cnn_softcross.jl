@@ -1,5 +1,5 @@
-include("src/NN.jl")
-include("util/datasets.jl")
+include("../src/NN.jl")
+include("../util/datasets.jl")
 
 using NN
 using PyPlot
@@ -64,6 +64,8 @@ function Adam(net::SequentialNet, train_set, validation_set;
             local batch_Y = Y[sidx:eidx,:]
             loss, pred = optimize(optimizer, batch_X, batch_Y)
             append!(all_losses, mean(loss))
+            println(size(pred))
+            println(size(batch_Y))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
             # println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
@@ -87,7 +89,15 @@ function Adam(net::SequentialNet, train_set, validation_set;
 end
 
 X,Y = mnistData(ttl=55000) # 0-1
-println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+# println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+
+function convert_to_one_hot(x::Array{Int64}, classes)
+  m = zeros(size(x,1), classes)
+  for i=1:size(x,1)
+    m[i,x[i]+1]=1
+  end
+  m
+end
 
 Y = round(Int, Y)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
@@ -98,6 +108,9 @@ teX, teY = test_set[1], test_set[2]
 trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
 valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
 teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
+
+trY = convert_to_one_hot(trY,10)
+valY = convert_to_one_hot(valY,10)
 
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")

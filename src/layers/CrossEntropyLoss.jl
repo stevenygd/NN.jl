@@ -25,41 +25,24 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
 end
 
 """
-<!-- Invaraint for this to work:
-  Label needs to be either a vector specifying each item's class or a matrix made up with multiple one hot vectors.
-  In the former case, labels need to be in the range of 0:classes-1. -->
 Requried: label needs to be a matrix that assigns a score for each class for each instance
 """
-function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
+function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; smoof = 0.000000000001, kwargs...)
 
   @assert size(Y) == size(label)
-  m,n = size(Y)
-  l.loss = zeros(m)
-  for i=1:m
-    log_sum = 0
-    for j=1:n
-      p = Y[i,j]
-      q = label[i,j]
-      if q!=0
-        log_sum+=q*log(q/p)
-      end
-    end
-    l.loss[i]=log_sum
-  end
+
+  l.loss = sum(-label.*(log(Y)),2)
   l.x = Y
+
   # generate prediction
-  for i=1:m
+  for i=1:size(Y,1)
     l.pred[i] = findmax(Y[i,:])[2]-1
   end
+
   return l.loss, l.pred
 end
 
 function backward(l::CrossEntropyLoss, label::Array{Float64, 2};kwargs...)
-  if size(label)[2] == 1
-    # convert one-dim label to one hot vectors
-    label = convert_to_one_hot(l,label)
-  end
-
   @assert size(l.x) == size(label)
 
   l.dldx = -label./l.x
