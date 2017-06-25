@@ -5,28 +5,42 @@ using Base.Test
 
 l = CrossEntropyLoss()
 
-function beforeTest(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 2, "input_size" => [3]))
+function beforeTest(l, x)
+  m,n = size(x)
+  init(l, nothing, Dict{String, Any}("batch_size" => m, "input_size" => [n]))
 end
 
-function basicTest(l, x, label, predict, loss, dldx; alpha = 1.)
-    beforeTest(l)
+function test(l, x, label; alpha = 1.)
+    beforeTest(l,x)
 
-    # Testing forwarding
-    fl, fp = forward(l,x,label)
-    @test_approx_eq fl loss
-    @test_approx_eq fp predict
+    # Testing forward
+    @test_approx_eq forward(l,x,label) sum(-label.*log(x),2)
 
-    # Testing back propagation
-    @test_approx_eq backward(l,label) dldx
+    # Testing backward
+    @test_approx_eq backward(l,label) -label./x
 end
 
+println("Test 1...")
 x = [.7 .2 .1 ; .03 .29 .68]
-pred = zeros(2,1)
-pred[:,1] = [0;2]
-loss = zeros(2,1)
-loss[:,1] = [-log(.7);-log(0.68)]
-label=[1 0 0; 0 0 1]
-
-basicTest(l,x,pred,pred, loss, -label./x)
+label = rand(2,3)
+# loss = sum(-label.*log(x),2)
+test(l,x,label)
 println("Basic test passed")
+
+println("Test 2...")
+x = rand(2,10)
+label = rand(2,10)
+test(l,x,label)
+println("Multi test passed")
+
+println("Test 3...")
+x = rand(500,100)
+label = rand(500,100)
+test(l,x,label)
+println("Multi test 2 passed")
+
+println("Test 4...")
+x = rand(10000,1000)
+label = rand(10000,1000)
+test(l,x,label)
+println("Final insane passed")
