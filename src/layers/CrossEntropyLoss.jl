@@ -34,8 +34,8 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
 
   l.x = log(Y)
   l.x = -label.*l.x
+  # broadcast!(*, -l.x, label)
   l.loss = sum(l.x,2)
-  println()
   l.x = Y
 
   # generate prediction
