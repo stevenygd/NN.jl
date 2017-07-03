@@ -23,7 +23,7 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
-function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
+function benchmmark(smaxcross, smax, cross, batch_size, input_size)
   # batch_size = 10
   # input_size = 5
   before(smaxcross, smax, cross, Dict{String, Any}("batch_size" => batch_size, "input_size" => [input_size]))
@@ -66,5 +66,5 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size; alpha = 1.)
 end
 
 for i=1:20
-  benchmmark(smaxcross, smax, cross, 1000, 100; alpha = 1.)
+  benchmmark(smaxcross, smax, cross, 1000, 100)
 end
