@@ -36,7 +36,7 @@ function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64,
   l.loss = sum(l.x,2)
   l.x = Y
 
-  return l.loss
+  return l.loss, l.x
 end
 
 function backward(l::CrossEntropyLoss, label::Array{Float64, 2};kwargs...)

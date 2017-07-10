@@ -34,7 +34,26 @@ function build_cnn()
 end
 
 function get_corr(pred, answ)
-    return length(filter(e -> abs(e) < 1e-5, pred-answ))
+  m = size(pred)[1]
+  p = zeros(m)
+  l = zeros(m)
+  for i = 1:m
+      p[i] = findmax(pred[i,:])[2] - 1
+      l[i] = findmax(answ[i,:])[2] - 1
+  end
+  println("hi")
+  println(pred[1,:])
+  println(answ[1,:])
+  # println()
+  # println(pred[2,:])
+  # println(answ[2,:])
+  # println()
+  # println(pred[3,:])
+  # println(answ[3,:])
+  println()
+  println(p)
+  println(l)
+  return length(filter(e -> abs(e) < 1e-5, p-l))
 end
 
 function Adam(net::SequentialNet, train_set, validation_set;
@@ -64,11 +83,9 @@ function Adam(net::SequentialNet, train_set, validation_set;
             local batch_Y = Y[sidx:eidx,:]
             loss, pred = optimize(optimizer, batch_X, batch_Y)
             append!(all_losses, mean(loss))
-            println(size(pred))
-            println(size(batch_Y))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            # println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
@@ -101,16 +118,13 @@ end
 
 Y = round(Int, Y)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
-trX, trY = train_set[1], train_set[2]
-valX, valY = validation_set[1], validation_set[2]
-teX, teY = test_set[1], test_set[2]
+trX, trY = train_set[1], covertToMatrix(train_set[2],10)
+valX, valY = validation_set[1], covertToMatrix(validation_set[2],10)
+teX, teY = test_set[1], covertToMatrix(test_set[2],10)
 
 trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
 valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
 teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
-
-trY = convert_to_one_hot(trY,10)
-valY = convert_to_one_hot(valY,10)
 
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
@@ -118,6 +132,8 @@ println("TestSet : $(size(teX)) $(size(teY))")
 
 net = build_cnn()
 
+println(size(trY))
+println(size(valY))
 epo_losses, epo_accu, val_losses, val_accu, all_losses = Adam(
     net, (trX, trY), (valX, valY);
     ttl_epo = 10, batch_size = batch_size,
