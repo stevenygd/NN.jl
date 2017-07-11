@@ -41,18 +41,6 @@ function get_corr(pred, answ)
       p[i] = findmax(pred[i,:])[2] - 1
       l[i] = findmax(answ[i,:])[2] - 1
   end
-  println("hi")
-  println(pred[1,:])
-  println(answ[1,:])
-  # println()
-  # println(pred[2,:])
-  # println(answ[2,:])
-  # println()
-  # println(pred[3,:])
-  # println(answ[3,:])
-  println()
-  println(p)
-  println(l)
   return length(filter(e -> abs(e) < 1e-5, p-l))
 end
 

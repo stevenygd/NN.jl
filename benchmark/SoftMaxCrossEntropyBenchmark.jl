@@ -30,41 +30,50 @@ function benchmmark(smaxcross, smax, cross, batch_size, input_size)
   x = rand(batch_size, input_size)
   label = rand(0:input_size-1, batch_size,1)
   onehot_label = convert_to_one_hot(label,input_size)
+
+  times = zeros(4)
+  bytes = zeros(4)
+
   # benchmark for original SoftMaxCrossEntropy
-  tic()
 
-  # l1, p1 = @time forward(smaxcross,x,label)
-  l1, p1 = forward(smaxcross,x,label)
+  times[1] = @elapsed forward(smaxcross,x,label)
+  bytes[1] = @allocated forward(smaxcross,x,label)
 
-  time = toq()
-  println("old forward uses:  ", time)
-  tic()
+  times[2] = @elapsed backward(smaxcross,label)
+  bytes[2] = @allocated backward(smaxcross,label)
 
-  # d1 = @time backward(smaxcross,label)
-  d1 = backward(smaxcross,label)
-
-  time = toq()
-  println("old backward uses: ", time)
 
   # benchmark for newly implemented softmax & CrossEntropyLoss
-  tic()
 
-  # l2, p2 = @time forward(cross, forward(smax,x), label)
-  l2, p2 = forward(cross, forward(smax,x), onehot_label)
+  times[3] = @elapsed forward(cross, forward(smax,x), onehot_label)
+  bytes[3] = @allocated forward(cross, forward(smax,x), onehot_label)
 
-  time = toq()
-  println("new forward uses:  ", time)
-  tic()
+  times[4] = @elapsed forward(cross, forward(smax,x), onehot_label)
+  bytes[4] = @allocated forward(cross, forward(smax,x), onehot_label)
 
-  # d2 = @time backward(smax, backward(cross, label))
-  d2 = backward(smax, backward(cross, onehot_label))
-
-  time = toq()
-  println("new backward uses: ", time)
-
-  println("Done")
+  return times, bytes
 end
 
-for i=1:20
-  benchmmark(smaxcross, smax, cross, 1000, 100)
+t = zeros(4)
+b = zeros(4)
+
+num_iter = 50
+
+for i=1:num_iter
+  t_, b_ = benchmmark(smaxcross, smax, cross, 1000, 100)
+  t.+= t_
+  b.+= b_
 end
+t/=num_iter
+b/=num_iter
+
+println("Old forward uses on average ", t[1], " seconds")
+println("New forward uses on average ", t[3], " seconds")
+println("Old backward uses on average ", t[2], " seconds")
+println("New backward uses on average ", t[4], " seconds")
+
+
+println("Old forward allocates on average ", b[1], " bytes")
+println("New forward allocates on average ", b[3], " bytes")
+println("Old backward allocates on average ", b[2], " bytes")
+println("New backward allocates on average ", b[4], " bytes")
