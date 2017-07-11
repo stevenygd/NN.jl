@@ -52,6 +52,7 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
 end
 
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Int, 2}; kwargs...)
+    # TODO this is a questionable invariant; [label] ranges from 0 to 9 instead of being one hot
     """
     [label]  label[i] == 1 iff the data is classified to class i
     [y]      final input to the loss layer
@@ -108,36 +109,3 @@ function backward(l::SoftMaxCrossEntropyLoss, label::Array{Int, 2};kwargs...)
     # return Y .- TAR
     return l.dldx
 end
-
-# l = SoftMaxCrossEntropyLoss()
-# @time init(l, nothing, Dict{String, Any}("batch_size" => 500, "input_size" => [10]))
-# X = rand(500, 10) #input size 784, batch size 500
-# L = map(x -> ceil(x), rand(500, 1))
-#
-# println("First time (compiling...)")
-# @time forward(l,X,L)
-# @time backward(l,L)
-#
-# println("Second time ...")
-# @time begin
-#   for i = 1:10
-#     forward(l,X,L)
-#   end
-# end
-# @time begin
-#   for i = 1:10
-#     backward(l,L)
-#   end
-# end
-#
-# println("Third time (profiling...)")
-# @time begin
-#   for i = 1:1000
-#     forward(l,X,L)
-#   end
-# end
-# @time begin
-#   for i = 1:1000
-#     backward(l,L)
-#   end
-# end

@@ -135,5 +135,15 @@ function datasplit(trX, trY; ratio = 0.8)
                  trY[size_training + 1 : size_training + size_testing, :])
     validation_set = (trX[size_training + size_testing + 1:N, :],
                       trY[size_training + size_testing + 1:N,:])
+
     return train_set, test_set, validation_set
+end
+
+function covertToMatrix(x::Array{Int,2}, c::Int64)
+  m = size(x)[1]
+  matrix = zeros(m,c)
+  for i=1:m
+    matrix[i,x[i]+1] = 1.0
+  end
+  matrix
 end

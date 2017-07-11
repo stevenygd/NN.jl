@@ -432,7 +432,7 @@ epo_losses, epo_accu, val_losses, val_accu, all_losses = Adam(
 figure(figsize=(12,6))
 # subplot(221)
 plot(1:length(all_losses), all_losses)
-title("Nestorove Momemtum : Training losses")
+title("Adam: Training losses")
 
 
 # subplot(223)
