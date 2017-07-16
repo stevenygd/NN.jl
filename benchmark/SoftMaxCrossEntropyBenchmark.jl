@@ -60,7 +60,7 @@ b = zeros(4)
 num_iter = 500
 
 for i=1:num_iter
-  t_, b_ = benchmmark(smaxcross, smax, cross, 10, 1000)
+  t_, b_ = benchmmark(smaxcross, smax, cross, 1000, 10)
   t.+= t_
   b.+= b_
 end
