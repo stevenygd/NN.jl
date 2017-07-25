@@ -1,4 +1,3 @@
-include("../src/NN.jl")
 include("../src/layers/LayerBase.jl")
 include("../src/layers/DenseLayer.jl")
 include("../src/layers/Sigmoid.jl")
@@ -7,8 +6,7 @@ include("../src/layers/SquareLossLayer.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
 include("../src/layers/SequentialNet.jl")
 include("../src/layers/InputLayer.jl")
-
-using NN
+include("../src/optimizers/SGD.jl")
 
 function OptimizerTest(net::SequentialNet, train_set, optimizer;
     batch_size::Int64 = 4, ttl_epo::Int64 = 1000)
