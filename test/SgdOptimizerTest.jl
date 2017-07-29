@@ -1,57 +1,61 @@
 include("../src/NN.jl")
-include("../src/layers/LayerBase.jl")
-include("../src/layers/DenseLayer.jl")
-include("../src/layers/Sigmoid.jl")
-include("../src/layers/ReLu.jl")
-include("../src/layers/SquareLossLayer.jl")
-include("../src/layers/SoftMaxCrossEntropy.jl")
-include("../src/layers/SequentialNet.jl")
-include("../src/layers/InputLayer.jl")
-
 using NN
+using PyPlot
+using IProfile
 
 function OptimizerTest(net::SequentialNet, train_set, optimizer;
-    batch_size::Int64 = 4, ttl_epo::Int64 = 1000)
-
+    batch_size::Int64 = 1, ttl_epo::Int64 = 1000)
     batch_X, batch_Y = train_set
-    batch_X = reshape(batch_X, 4, 2)
-
+    epo_losses = []
     for epo = 1:ttl_epo
-          loss, pred = optimize(optimizer, batch_X, batch_Y)
-          println("Epo $(epo) has loss :$(loss)\t prediction is $(net.lossfn.x)")
-          println("         layer1: W = $(net.layers[2].W)")
-          println("         layer2: W = $(net.layers[4].W)")
-          #println("         layer2: y = $(net.layers[2].y)")
+        all_losses = []
+        for i = 1:4
+            X = reshape(batch_X[i, :], 1, 2)
+            Y = reshape(batch_Y[i, :], 1, 1)
+            loss, pred = optimize(optimizer, X, Y)
+            append!(all_losses, loss)
+        end
+        epo_loss = mean(all_losses)
+        append!(epo_losses, epo_loss)
+        println("Epo $(epo) has loss:$(epo_loss)")
+        println("           layer1: W = $(net.layers[2].W)")
+        println("           layer2: W = $(net.layers[4].W)")
     end
-    return
+    return epo_losses
 end
+
+# build the net
+layers = Layer[InputLayer((1,2)), DenseLayer(2), Sigmoid(), DenseLayer(1), Sigmoid()]
+criteria = SquareLossLayer()
+net = SequentialNet(layers, criteria)
 # build the layer
-l1 = DenseLayer(2)
-init(l1, nothing, Dict{String, Any}("batch_size" => 4, "input_size" => [2]))
 w = [0.5 0.5;
      0.5 0.5;]
 b = [0. 0;]
 W = [w; b;]
-setParam!(l1, Array[W])
+setParam!(net.layers[2], Array[W])
 
-l2 = DenseLayer(1)
-init(l2, l1, Dict{String, Any}("batch_size" => 4, "input_size" => [2]))
 w = [ 1.;
       1.;]
 b = [0.;]
 W = reshape([w; b;], 3, 1)
-print(size(l2.W))
-setParam!(l2, Array[W])
+setParam!(net.layers[4], Array[W])
 # training set
 trX = [0. 0.;
        0. 1.;
        1. 0.;
        1. 1.;]
-trY = [0., 1., 0., 1.]
-# build the net
-layers = Layer[InputLayer((4,2)), l1, ReLu(), l2, ReLu()]
-criteria = SquareLossLayer()
-net = SequentialNet(layers, criteria)
+trY = [0.; 1.; 0.; 1.]
+
 # test SGD
-optimizer = SgdOptimizer(net, 1 , base_lr=(x->0.01))
-OptimizerTest(net, (trX, trY), optimizer, batch_size = 4)
+optimizer = SgdOptimizer(net, 1 , base_lr=(x->0.1))
+epo_losses = OptimizerTest(net, (trX, trY), optimizer, batch_size = 1)
+correct_losses = [0.152832914456, 0.150989386415, 0.149178045047, 0.147403697728, 0.145670837496]
+for i=1:5
+      @assert abs(epo_losses[i] - correct_losses[i]) < 1e-5
+end
+
+figure(figsize=(12,6))
+plot(1:length(epo_losses), epo_losses)
+title("Training losses (epoch)")
+show()
