@@ -1,7 +1,9 @@
+
 include("../src/NN.jl")
 using NN
 using PyPlot
 using IProfile
+
 
 function OptimizerTest(net::SequentialNet, train_set, optimizer;
     batch_size::Int64 = 1, ttl_epo::Int64 = 1000)
