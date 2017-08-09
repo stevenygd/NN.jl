@@ -31,7 +31,7 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{Str
     l.loss   = Array{Float64}(N)
     l.exp    = Array{Float64}(out_size)
     l.pred   = Array{Int64}(N)
-    l.lsum   = zeros(size(l.x))
+    l.lsum   = Array{Float64}(N)
 end
 
 function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
@@ -44,13 +44,13 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     l.y      = Array{Float64}(input_size)
     l.loss   = Array{Float64}(N)
     l.pred   = Array{Int64}(N)
-    l.lsum = zeros(size(l.x))
+    l.lsum = Array{Float64}(N)
 end
 
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
     @assert size(Y, 2) == size(l.x, 2)
-    local N = size(Y, 1)
-    if N != size(l.x, 1)
+    m,n = size(Y)
+    if m != size(l.x, 1)
       update(l, size(Y))
     end
     l.x = Y
@@ -58,7 +58,20 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     l.lsum = sum(l.exp,2)
     l.y = l.exp ./ l.lsum
 
-    l.loss = - sum(log(l.y) .* label,2)
+    for i=1:m
+      for j=1:n
+        l.exp[i,j] = exp(l.x[i,j])
+      end
+      l.lsum[i] = sum(l.exp[i,:])
+      for j=1:n
+        l.y[i,j] = l.exp[i,j]/l.lsum[i]
+        l.exp[i,j] = log(l.y[i,j])*label[i,j]
+      end
+      l.loss[i] = -sum(l.exp[i,:])
+    end
+
+
+    # l.loss = - sum(log(l.y) .* label,2)
 
     return l.loss, l.x
 end

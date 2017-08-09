@@ -5,7 +5,7 @@ using Base.Test
 
 l = SoftMaxCrossEntropyLoss()
 function beforeTest(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [3]))
+    init(l, nothing, Dict{String, Any}("batch_size" => 2, "input_size" => [3]))
 end
 
 function testSoftMaxCrossEntropyOneVector(l, x, y, p, loss, dldx; alpha = 1.)
@@ -13,11 +13,10 @@ function testSoftMaxCrossEntropyOneVector(l, x, y, p, loss, dldx; alpha = 1.)
 
     # Testing forwarding
     fl, fp = forward(l,x,y)
-    @test_approx_eq fl loss
-    @test_approx_eq fp p
+    @test fl ≈ loss
 
     # Testing back propagation
-    @test_approx_eq backward(l,y) dldx
+    @test backward(l,y) ≈ dldx
 end
 
 # First Test
@@ -26,7 +25,7 @@ x = [1. 2. 3.; -1. -2. -3.]
 s = e^(-2) + e^(-1) + 1.
 y = [0. 0. 1.; 0. 1. 0.]
 p = [2 ; 0]
-loss = -log([1./s   ;   e^(-1)/s])
+loss = -log.([1./s   ;   e^(-1)/s])
 
 dldx = [ e^(-2)/s e^(-1)/s (1./s - 1); 1./s (e^(-1)/s-1) e^(-2)/s]
 testSoftMaxCrossEntropyOneVector(l, x, y, p, loss, dldx)
