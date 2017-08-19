@@ -1,6 +1,9 @@
 # include("LayerBase.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     dldx   :: Array{Float64} # backprop
     x      :: Array{Float64} # input vector
     y      :: Array{Float64} # output of softmax
@@ -10,11 +13,22 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     pred   :: Array{Int64}   # output for prediction
 
     function SoftMaxCrossEntropyLoss()
-        return new(Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        return new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+    end
+
+    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Dict{String, Any})
+        layer = new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        init(layer,prev, config)
+        layer
     end
 end
 
 function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
+
     # TODO: currently I only accept Single dimensional dropout
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size

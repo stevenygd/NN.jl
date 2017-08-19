@@ -1,6 +1,9 @@
 # include("LayerBase.jl")
 
 type MaxPoolingLayer <: RegularizationLayer
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init :: Bool
 
     # Parameters
@@ -19,8 +22,15 @@ type MaxPoolingLayer <: RegularizationLayer
 
     function MaxPoolingLayer(size::Tuple{Int,Int};stride = 1)
         @assert stride == 1 # TODO: doesn't allow other stride yet
-        return new(false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+        return new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
+    end
+
+    function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Dict{String, Any}; stride = 1)
+        layer = new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
+        init(layer, prev, config)
+        layer
     end
 end
 
@@ -35,6 +45,11 @@ function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
+    
     if p == nothing
         @assert length(config["input_size"]) == 3
         batch_size = config["batch_size"]

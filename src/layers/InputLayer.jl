@@ -1,6 +1,9 @@
 # Dummy Layer to create the input shape for initilization
 # include("LayerBase.jl")
 type InputLayer <: DataLayer
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init :: Bool
     shape    :: Tuple
     x        :: Array{Float64}
@@ -9,12 +12,20 @@ type InputLayer <: DataLayer
     dldx     :: Array{Float64}
     function InputLayer(shape)
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
+        return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
+    end
+    function InputLayer(prev::Union{Layer,Void}, shape, config::Dict{String,Any})
+        layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
+        init(layer, prev, config)
+        layer
     end
 end
 
 function init(l::InputLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-    nothing
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
 end
 
 function update(l::InputLayer, input_size::Tuple;)

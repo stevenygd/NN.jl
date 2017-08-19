@@ -5,6 +5,9 @@
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
 type CaffeConvLayer <: LearnableLayer
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init :: Bool
 
     # Parameters
@@ -40,7 +43,7 @@ type CaffeConvLayer <: LearnableLayer
     function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(false, init,
+        return new(Layer[], Layer[], false, init,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -48,6 +51,19 @@ type CaffeConvLayer <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
+    end
+
+    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}; padding = 0, stride = 1, init="Normal")
+        layer = new(Layer[], Layer[], false, init,
+                   padding, stride, filters, kernel, (0,0,0),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1), zeros(1), zeros(1),
+                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
+                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
+                   (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
+        init(layer, prev, config)
+        layer
     end
 end
 
@@ -62,6 +78,11 @@ function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any};
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
+    p.parents.append(l)
+    if !isa(p,Void)
+        l.children = [p]
+    end
+
     if p == nothing
         @assert length(config["input_size"]) == 3
         batch_size = config["batch_size"]

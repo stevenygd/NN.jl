@@ -1,6 +1,9 @@
 # Abtract out DropOut
 # include("LayerBase.jl")
 type FlattenLayer <: UtilityLayer
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init    :: Bool
     x           :: Array{Float64,4}
     y           :: Array{Float64,2}
@@ -11,9 +14,21 @@ type FlattenLayer <: UtilityLayer
         return new(false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
     end
+
+    function FlattenLayer(prev::Union{Layer,Void}, config::Dict{String, Any})
+        layer = new(false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
+                   Array{Float64}(1,1,1,1), Array{Float64}(1,1))
+        init(layer, prev, config)
+        layer
+    end
 end
 
 function init(l::FlattenLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
+
     if p != nothing
         input_size = getOutputSize(p)
     else

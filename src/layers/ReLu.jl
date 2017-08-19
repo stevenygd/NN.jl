@@ -2,6 +2,9 @@
 # include("LayerBase.jl")
 
 type ReLu <: Nonlinearity
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init :: Bool
     alpha    :: Float64
     x        :: Array{Float64}
@@ -11,12 +14,24 @@ type ReLu <: Nonlinearity
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(false, alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
+    end
+
+    function ReLu(prev::Union{Layer,Void}, (alpha::Float64 = 1.0, config::Dict{String, Any})
+        @assert alpha >= 0.
+        layer = new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
+        init(layer, prev, config)
+        layer
     end
 end
 
 function init(l::ReLu, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
     # TODO: currently I only accept Single dimensional dropout
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
+
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size
         # and input_size should be single dimensional (i.e. vector)

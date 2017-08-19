@@ -1,6 +1,9 @@
 # Define the Fully Connected layers
 # include("LayerBase.jl")
 type DenseLayer <: Layer
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+
     has_init  :: Bool
     init_type :: String
     i         :: Int
@@ -16,8 +19,16 @@ type DenseLayer <: Layer
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
-        return new(false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
+        return new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+    end
+
+    function DenseLayer(prev::Layer, num_units::Int, config::Dict{String,Any}; init_type="Uniform")
+        i, o = 1, num_units
+        layer = new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
+                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+        init(layer, prev, config)
+        layer
     end
 end
 
@@ -29,6 +40,11 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     [p]         the input layer (previous layer), assumed initialized
     [config]    the configuration of the whole network (i.e. batch, etc)
     """
+    p.parents.append(l)
+    if !isa(p,Void)
+      l.children = [p]
+    end
+
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size
         # and input_size should be single dimensional (i.e. vector)
