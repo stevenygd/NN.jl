@@ -1,5 +1,5 @@
 module NN
-    export SequentialNet, forward, backward, getGradient,
+    export SequentialNet, Graph, forward, backward, getGradient,
            getParam, setParam!, getVelocity, getNumParams
     export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
            SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh, InputLayer,
@@ -17,6 +17,7 @@ module NN
     include("layers/SquareLossLayer.jl")
     include("layers/Tanh.jl")
     include("layers/SequentialNet.jl")
+    include("layers/Graph.jl")
     include("layers/ConvLayer.jl")
     include("layers/MaxPoolingLayer.jl")
     include("layers/FlattenLayer.jl")
