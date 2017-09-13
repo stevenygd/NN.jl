@@ -1,29 +1,27 @@
 include("src/NN.jl")
 include("util/datasets.jl")
 
+batch_size = 500
+
 function build_graph()
-    layers = Layer[
-        InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
+    l = InputLayer(l, (28,28,1,batch_size)),
 
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
+    l = CaffeConvLayer(l, 32,(5,5)),
+    l = ReLu(),
+    l = MaxPoolingLayer(l, (2,2)),
 
-        FlattenLayer(),
+    l = CaffeConvLayer(l, 32,(5,5)),
+    l = ReLu(l),
+    l = MaxPoolingLayer(l, (2,2)),
 
-        DenseLayer(256),
-        ReLu(),
+    l = FlattenLayer(l),
 
-        DropoutLayer(0.5),
-        DenseLayer(10)
-    ]
+    l = DenseLayer(l, 256),
+    l = ReLu(l),
 
-    layer = 
+    l = DropoutLayer(l, 0.5),
+    l = DenseLayer(l, 10)
 
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
+    graph = Graph(l)
+    return graph
 end

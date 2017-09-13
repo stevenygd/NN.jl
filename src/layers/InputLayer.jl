@@ -14,6 +14,7 @@ type InputLayer <: DataLayer
         # TODO: could allocate less memory by having only two arrays to pass around
         return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
     end
+
     function InputLayer(prev::Union{Layer,Void}, shape, config::Dict{String,Any})
         layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
         init(layer, prev, config)
