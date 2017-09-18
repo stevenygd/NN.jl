@@ -1,4 +1,3 @@
-
 type SgdOptimizer
     net     :: SequentialNet
     base_lr :: Any
