@@ -4,22 +4,22 @@ include("util/datasets.jl")
 batch_size = 500
 
 function build_graph()
-    l0 = InputLayer(Void, (28,28,1,batch_size)),
+    l0 = InputLayer(Void, (28,28,1,batch_size))
 
-    l1 = CaffeConvLayer(l0, 32,(5,5)),
-    l2 = ReLu(l1),
-    l3 = MaxPoolingLayer(l2, (2,2)),
+    l1 = CaffeConvLayer(l0, 32,(5,5))
+    l2 = ReLu(l1)
+    l3 = MaxPoolingLayer(l2, (2,2))
 
-    l4 = CaffeConvLayer(l3, 32,(5,5)),
-    l5 = ReLu(l4),
-    l6 = MaxPoolingLayer(l5, (2,2)),
+    l4 = CaffeConvLayer(l3, 32,(5,5))
+    l5 = ReLu(l4)
+    l6 = MaxPoolingLayer(l5, (2,2))
 
-    l7 = FlattenLayer(l6),
+    l7 = FlattenLayer(l6)
 
-    l8 = DenseLayer(l7, 256),
-    l9 = ReLu(l8),
+    l8 = DenseLayer(l7, 256)
+    l9 = ReLu(l8)
 
-    l10 = DropoutLayer(l9, 0.5),
+    l10 = DropoutLayer(l9, 0.5)
     l11 = DenseLayer(l10, 10)
 
     l12 = SoftMaxCrossEntropyLoss(l11)
