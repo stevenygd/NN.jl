@@ -15,4 +15,4 @@ l3 = MaxPoolingLayer(l2,(2,2))
 l4 = SoftMaxCrossEntropyLoss(l3)
 graph1 = Graph(l4)
 
-GraphTopsortTest(graph1, [l0, l1, l2, l3, l4])
+GraphTopsortTest(graph1.forward_sort, [l0, l1, l2, l3, l4])
