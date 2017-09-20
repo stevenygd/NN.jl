@@ -1,6 +1,7 @@
 include("../src/NN.jl")
+using Base.Test
 
-function test GraphTopsortTest(graph, order)
+function GraphTopsortTest(graph, order)
 
     # compare(l::layer, l2::layer)?
     @test graph.forward_order == order
@@ -14,4 +15,4 @@ l3 = MaxPoolingLayer(l2,(2,2))
 l4 = SoftMaxCrossEntropyLoss(l3)
 graph1 = Graph(l4)
 
-test(GraphTopsortTest(graph1, [l0, l1, l2, l3, l4])) 
+GraphTopsortTest(graph1, [l0, l1, l2, l3, l4])
