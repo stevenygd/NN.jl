@@ -23,9 +23,9 @@ type InputLayer <: DataLayer
 end
 
 function init(l::InputLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-    p.parents.append(l)
+	l.parents.append(p)
     if !isa(p,Void)
-      l.children = [p]
+      p.children = [l]
     end
 end
 

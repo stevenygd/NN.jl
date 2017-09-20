@@ -9,6 +9,11 @@ abstract type UtilityLayer <: Layer end
 
 StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
+function top_sort(layer::Layer)
+    l = layer
+    dict = Dict{Layer, Integer}()
+    return Layer[] # return an array of layer
+end
 
 function getGradient(l::StaticLayer)
     return nothing

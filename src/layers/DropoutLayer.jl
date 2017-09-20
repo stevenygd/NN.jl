@@ -26,11 +26,11 @@ type DropoutLayer <: RegularizationLayer
 end
 
 function init(l::DropoutLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-    p.parents.append(l)
+	l.parents.append(p)
     if !isa(p,Void)
-      l.children = [p]
-  end
-    
+      p.children = [l]
+    end
+
     # TODO: currently I only accept Single dimensional dropout
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size

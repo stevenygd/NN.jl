@@ -45,11 +45,11 @@ function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
-    p.parents.append(l)
+	l.parents.append(p)
     if !isa(p,Void)
-      l.children = [p]
+      p.children = [l]
     end
-    
+
     if p == nothing
         @assert length(config["input_size"]) == 3
         batch_size = config["batch_size"]
