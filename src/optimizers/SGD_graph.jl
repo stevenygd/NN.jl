@@ -4,7 +4,7 @@ type SgdOptimizerGraph
     iter    :: Int
     batch_size  ::  Int
 
-    function SgdOptimizer(graph::Graph, batch_size;  base_lr=(x->0.01))
+    function SgdOptimizerGraph(graph::Graph, batch_size;  base_lr=(x->0.01))
          return new(net, base_lr, 1, batch_size)
     end
  end
