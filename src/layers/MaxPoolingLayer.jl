@@ -45,9 +45,9 @@ function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
-	l.parents.append(p)
-    if !isa(p,Void)
-      p.children = [l]
+	if !isa(p,Void)
+        l.parents = [p]
+        push!(p.children, l)
     end
 
     if p == nothing

@@ -40,9 +40,9 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
     [p]         the input layer (previous layer), assumed initialized
     [config]    the configuration of the whole network (i.e. batch, etc)
     """
-	l.parents.append(p)
-    if !isa(p,Void)
-      p.children = [l]
+	if !isa(p,Void)
+        l.parents = [p]
+        push!(p.children, l)
     end
 
     if p == nothing

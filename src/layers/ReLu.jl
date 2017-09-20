@@ -27,9 +27,9 @@ end
 
 function init(l::ReLu, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
     # TODO: currently I only accept Single dimensional dropout
-	l.parents.append(p)
     if !isa(p,Void)
-      p.children = [l]
+        l.parents = [p]
+        push!(p.children, l)
     end
 
     if p == nothing

@@ -1,5 +1,5 @@
 # Dummy Layer to create the input shape for initilization
-# include("LayerBase.jl")
+include("LayerBase.jl")
 type InputLayer <: DataLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
@@ -23,9 +23,9 @@ type InputLayer <: DataLayer
 end
 
 function init(l::InputLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-	l.parents.append(p)
     if !isa(p,Void)
-      p.children = [l]
+        l.parents = [p]
+        push!(p.children, l)
     end
 end
 

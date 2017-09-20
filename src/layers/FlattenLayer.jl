@@ -24,9 +24,9 @@ type FlattenLayer <: UtilityLayer
 end
 
 function init(l::FlattenLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-	l.parents.append(p)
-    if !isa(p,Void)
-      p.children = [l]
+	if !isa(p,Void)
+        l.parents = [p]
+        push!(p.children, l)
     end
 
     if p != nothing

@@ -26,9 +26,9 @@ type DropoutLayer <: RegularizationLayer
 end
 
 function init(l::DropoutLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-	l.parents.append(p)
-    if !isa(p,Void)
-      p.children = [l]
+	if !isa(p,Void)
+        l.parents = [p]
+        push!(p.children, l)
     end
 
     # TODO: currently I only accept Single dimensional dropout
