@@ -1,22 +1,17 @@
-include("src/NN.jl")
-
-function build_graph()
-    l0 = InputLayer(Void, (28,28,1,batch_size))
-
-    l1 = CaffeConvLayer(l0, 32,(5,5))
-    l2 = ReLu(l1)
-    l3 = MaxPoolingLayer(l2, (2,2))
-
-    l4 = SoftMaxCrossEntropyLoss(l3)
-
-    graph = Graph(l4)
-    return graph
-end
+include("../src/NN.jl")
 
 function test GraphTopsortTest(graph, order)
+
+    # compare(l::layer, l2::layer)?
     @test graph.forward_order == order
 end
 
-graph = build_graph()
-println(graph.forward_order)
+l0 = InputLayer(Void, (28,28,1,batch_size))
 
+l1 = CaffeConvLayer(l0, 32,(5,5))
+l2 = ReLu(l1)
+l3 = MaxPoolingLayer(l2,(2,2))
+l4 = SoftMaxCrossEntropyLoss(l3)
+graph1 = Graph(l4)
+
+test(GraphTopsortTest(graph1, [l0, l1, l2, l3, l4])) 
