@@ -2,8 +2,8 @@ include("../src/NN.jl")
 include("../util/datasets.jl")
 
 using NN
-using PyPlot
-using IProfile
+using Plots
+plotly()
 
 batch_size = 500
 
@@ -135,13 +135,7 @@ adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses 
 )
 
 
-figure(figsize=(12,6))
-plot(1:length(bdam_losses), bdam_losses,  label="Bdam")
-plot(1:length(adam_losses), adam_losses, label="ADAM")
-ylim([0, 1.5])
-xlabel("batches (size=500,total 1 epoches)")
-ylabel("loss")
-title("Training losses with different optimizers")
-legend(loc="upper right",fancybox="true")
-savefig("optimizers.png")
-show()
+plot!(1:length(bdam_losses), bdam_losses,  label="Bdam")
+plot!(1:length(adam_losses), adam_losses, label="ADAM")
+xlabel!("batches (size=500,total 1 epoches)")
+ylabel!("loss")
