@@ -56,13 +56,13 @@ function optimize(this::BdamOptimizer, batch_X, batch_Y)
                 m = g
                 v = g.^2
             else
-                m = m * beta_1 + g    * (1 - beta_1)
-                v = v * beta_2 + g.^2 * (1 - beta_2)
+                m = m * this.beta_1 + g    * (1 - this.beta_1)
+                v = v * this.beta_2 + g.^2 * (1 - this.beta_2)
             end
 
             # Compute the counter biased version of [m] and [v]
-            m_hat = m / (1. - this.beta_1^this.iter)
-            v_hat = v / (1. - this.beta_2^this.iter)
+            # m_hat = m / (1. - this.beta_1^this.iter)
+            # v_hat = v / (1. - this.beta_2^this.iter)
 
             # Update gradients
             p = p - this.base_lr * m_hat ./ (sqrt(v_hat) + 1e-4)
