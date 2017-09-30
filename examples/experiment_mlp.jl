@@ -2,8 +2,8 @@ include("../src/NN.jl")
 include("../util/datasets.jl")
 
 using NN
-using PyPlot
-using IProfile
+using Plots
+plotly()
 
 batch_size = 500
 
@@ -68,8 +68,8 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
         for i = 1:batch_size:v_size
-            batch_X = valX[:,:,:,i:i+batch_size-1]
-            batch_Y = valY[i:i+batch_size-1,:]
+            batch_Y = valY[i:min(i+batch_size-1, v_size),:]
+            batch_X = valX[i:min(i+batch_size-1, v_size),:]
             curr_v_loss, curr_v_pred = forward(net, batch_X, batch_Y;deterministics=true)
             curr_v_accu = get_corr(curr_v_pred, batch_Y) / batch_size
             append!(v_loss, curr_v_loss)
@@ -121,14 +121,7 @@ adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses 
     lrSchedule = x -> 0.001, verbose=1
 )
 
-
-figure(figsize=(12,6))
-plot(1:length(bdam_losses), bdam_losses,  label="Bdam")
-plot(1:length(adam_losses), adam_losses, label="ADAM")
-ylim([0, 1.5])
-xlabel("batches (size=500,total 1 epoches)")
-ylabel("loss")
-title("Training losses with different optimizers")
-legend(loc="upper right",fancybox="true")
-savefig("optimizers.png")
-show()
+plot!(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
+plot!(1:length(adam_all_losses), adam_all_losses, label="ADAM")
+xlabel!("batches (size=500,total 1 epoches)")
+ylabel!("loss")
