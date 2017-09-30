@@ -63,7 +63,7 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            # println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
         end
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
@@ -103,12 +103,13 @@ println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
+ttl_epo = 10
 net = build_mlp()
 bdam_optimizer  = BdamOptimizer(net)
 
 bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
     net, bdam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = 3, batch_size = batch_size,
+    ttl_epo = ttl_epo, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
 
@@ -117,7 +118,7 @@ adam_optimizer  = AdamOptimizer(net)
 
 adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses = training(
     net, adam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = 3, batch_size = batch_size,
+    ttl_epo = ttl_epo, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
 

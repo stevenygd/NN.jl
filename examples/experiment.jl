@@ -1,6 +1,8 @@
 include("../src/NN.jl")
 include("../util/datasets.jl")
 
+ENV["PLOTS_USE_ATOM_PLOTPANE"] = true
+
 using NN
 using Plots
 plotly()
