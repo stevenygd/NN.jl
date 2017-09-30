@@ -56,7 +56,6 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
     local val_losses = []
     local val_accu   = []
 
-    # optimizer  = AdamOptimizer(net)
     all_losses = []
     for epo = 1:ttl_epo
       epo_time_used = @elapsed begin
@@ -118,11 +117,12 @@ println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
 net = build_cnn()
+optimizer  = AdamOptimizer(net)
 
 println(size(trY))
 println(size(valY))
-epo_losses, epo_accu, val_losses, val_accu, all_losses = Adam(
-    net, (trX, trY), (valX, valY);
+epo_losses, epo_accu, val_losses, val_accu, all_losses = training(
+    net, optimizer, (trX, trY), (valX, valY);
     ttl_epo = 10, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
