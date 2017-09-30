@@ -10,13 +10,13 @@ batch_size = 500
 function build_mlp()
     layers = Layer[
         InputLayer((batch_size,784)),
-        DropoutLayer(0.2),
-        DenseLayer(800),
-        ReLu(),
-        DropoutLayer(0.5),
-        DenseLayer(800),
-        ReLu(),
-        DropoutLayer(0.5),
+        # DropoutLayer(0.2),
+        # DenseLayer(800),
+        # ReLu(),
+        # DropoutLayer(0.5),
+        # DenseLayer(800),
+        # ReLu(),
+        # DropoutLayer(0.5),
         DenseLayer(10)
     ]
     criteria = SoftMaxCrossEntropyLoss()
@@ -108,7 +108,7 @@ bdam_optimizer  = BdamOptimizer(net)
 
 bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
     net, bdam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = 1, batch_size = batch_size,
+    ttl_epo = 3, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
 
@@ -117,11 +117,12 @@ adam_optimizer  = AdamOptimizer(net)
 
 adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses = training(
     net, adam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = 1, batch_size = batch_size,
+    ttl_epo = 3, batch_size = batch_size,
     lrSchedule = x -> 0.001, verbose=1
 )
 
-plot!(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
-plot!(1:length(adam_all_losses), adam_all_losses, label="ADAM")
+p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
+plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
 xlabel!("batches (size=500,total 1 epoches)")
 ylabel!("loss")
+display(p)

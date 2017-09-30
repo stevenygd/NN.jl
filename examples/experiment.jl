@@ -135,7 +135,8 @@ adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses 
 )
 
 
-plot!(1:length(bdam_losses), bdam_losses,  label="Bdam")
-plot!(1:length(adam_losses), adam_losses, label="ADAM")
+p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
+plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
 xlabel!("batches (size=500,total 1 epoches)")
 ylabel!("loss")
+display(p)
