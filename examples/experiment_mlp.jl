@@ -2,22 +2,22 @@ include("../src/NN.jl")
 include("../util/datasets.jl")
 
 using NN
+ENV["PLOTS_USE_ATOM_PLOTPANE"] = true
 using Plots
 plotly()
 
-batch_size = 500
+batch_size = 128
 
 function build_mlp()
     layers = Layer[
         InputLayer((batch_size,784)),
-        # DropoutLayer(0.2),
-        # DenseLayer(800),
-        # ReLu(),
-        # DropoutLayer(0.5),
-        # DenseLayer(800),
-        # ReLu(),
-        # DropoutLayer(0.5),
-        DenseLayer(10)
+        DenseLayer(1000; init_type = "Normal"),
+        ReLu(),
+        DropoutLayer(0.5),
+        DenseLayer(1000; init_type = "Normal" ),
+        ReLu(),
+        DropoutLayer(0.5),
+        DenseLayer(10; init_type = "Normal")
     ]
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
@@ -103,7 +103,7 @@ println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
-ttl_epo = 10
+ttl_epo = 2
 net = build_mlp()
 bdam_optimizer  = BdamOptimizer(net)
 
@@ -122,8 +122,19 @@ adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses 
     lrSchedule = x -> 0.001, verbose=1
 )
 
+net = build_mlp()
+rms_optimizer  = RMSPropOptimizer(net)
+
+rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = training(
+    net, rms_optimizer, (trX, trY), (valX, valY);
+    ttl_epo = ttl_epo, batch_size = batch_size,
+    lrSchedule = x -> 0.001, verbose=1
+)
+
 p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
 plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
-xlabel!("batches (size=500,total 1 epoches)")
-ylabel!("loss")
+plot!(p, 1:length(rms_all_losses), rms_all_losses, label="RMSprop")
+xlabel!(p, "batches (size=500,total $(ttl_epo) epoches)")
+ylabel!(p, "loss")
+title!(p, "MLP(2x1000HiddenLayer) 10 Epoches")
 display(p)

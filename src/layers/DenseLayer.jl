@@ -57,7 +57,7 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwa
         l.W = rand(i+1,o)* 2 * a - a
     elseif l.init_type == "Normal"
         local sigma = sqrt(2. / (i + o))
-        l.W  = randn(i+1,o) * sqrt(sigma)
+        l.W  = randn(i+1,o) * sigma
     elseif l.init_type == "Random"
         l.W = rand(i+1,o) - 0.5
     end

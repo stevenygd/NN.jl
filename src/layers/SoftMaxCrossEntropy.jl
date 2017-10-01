@@ -54,7 +54,7 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
       update(l, size(Y))
     end
     l.x = Y
-    l.exp = exp(l.x)
+    l.exp = exp.(l.x)
     l.lsum = sum(l.exp,2)
     l.y = l.exp ./ l.lsum
 

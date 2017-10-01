@@ -1,34 +1,18 @@
 include("../src/NN.jl")
 include("../util/datasets.jl")
 
-ENV["PLOTS_USE_ATOM_PLOTPANE"] = true
-
 using NN
+ENV["PLOTS_USE_ATOM_PLOTPANE"] = true
 using Plots
 plotly()
 
 batch_size = 500
 
-function build_cnn()
+function build_mlp()
     layers = Layer[
-        InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
-
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
-
-        FlattenLayer(),
-
-        DenseLayer(256),
-        ReLu(),
-
-        DropoutLayer(0.5),
-        DenseLayer(10)
+        InputLayer((batch_size,784)),
+        DenseLayer(10; init_type = "Normal")
     ]
-
     criteria = SoftMaxCrossEntropyLoss()
     net = SequentialNet(layers, criteria)
     return net
@@ -67,8 +51,8 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
             batch += 1
             local sidx::Int = convert(Int64, bid*batch_size+1)
             local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
-            local batch_X = X[:,:,:,sidx:eidx]
-            local batch_Y = Y[sidx:eidx,:]
+            local batch_X = X[sidx:eidx, :]
+            local batch_Y = Y[sidx:eidx, :]
             loss, pred = optimize(optimizer, batch_X, batch_Y)
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
@@ -78,8 +62,8 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
         for i = 1:batch_size:v_size
-            batch_X = valX[:,:,:,i:min(i+batch_size-1, v_size)]
             batch_Y = valY[i:min(i+batch_size-1, v_size),:]
+            batch_X = valX[i:min(i+batch_size-1, v_size),:]
             curr_v_loss, curr_v_pred = forward(net, batch_X, batch_Y;deterministics=true)
             curr_v_accu = get_corr(curr_v_pred, batch_Y) / batch_size
             append!(v_loss, curr_v_loss)
@@ -104,22 +88,17 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
-Y = round(Int, Y)
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
-trX, trY = train_set[1], covertToMatrix(train_set[2],10)
-valX, valY = validation_set[1], covertToMatrix(validation_set[2],10)
-teX, teY = test_set[1], covertToMatrix(test_set[2],10)
-
-trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
-valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
-teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
+trX, trY = train_set[1], train_set[2]
+valX, valY = validation_set[1], validation_set[2]
+teX, teY = test_set[1], test_set[2]
 
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
-ttl_epo = 3
-net = build_cnn()
+ttl_epo = 5
+net = build_mlp()
 bdam_optimizer  = BdamOptimizer(net)
 
 bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
@@ -128,7 +107,7 @@ bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses 
     lrSchedule = x -> 0.001, verbose=1
 )
 
-net = build_cnn()
+net = build_mlp()
 adam_optimizer  = AdamOptimizer(net)
 
 adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses = training(
@@ -137,7 +116,7 @@ adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses 
     lrSchedule = x -> 0.001, verbose=1
 )
 
-net = build_cnn()
+net = build_mlp()
 rms_optimizer  = RMSPropOptimizer(net)
 
 rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = training(
@@ -149,6 +128,7 @@ rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = tra
 p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
 plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
 plot!(p, 1:length(rms_all_losses), rms_all_losses, label="RMSprop")
-xlabel!("batches (size=500,total $(ttl_epo) epoches)")
-ylabel!("loss")
+xlabel!(p, "batches (size=500,total $(ttl_epo) epoches)")
+ylabel!(p, "loss")
+title!(p, "MLP(2x1000HiddenLayer) 10 Epoches")
 display(p)
