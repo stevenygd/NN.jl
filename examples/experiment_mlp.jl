@@ -63,7 +63,9 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            # println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            if (bid - 1) % 50 == 0
+                println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            end
         end
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
@@ -103,9 +105,9 @@ println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
-ttl_epo = 2
+ttl_epo = 1
 net = build_mlp()
-bdam_optimizer  = BdamOptimizer(net)
+bdam_optimizer  = DdamOptimizer(net)
 
 bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
     net, bdam_optimizer, (trX, trY), (valX, valY);
@@ -131,10 +133,10 @@ rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = tra
     lrSchedule = x -> 0.001, verbose=1
 )
 
-p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Bdam")
+p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Ddam")
 plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
 plot!(p, 1:length(rms_all_losses), rms_all_losses, label="RMSprop")
 xlabel!(p, "batches (size=500,total $(ttl_epo) epoches)")
 ylabel!(p, "loss")
-title!(p, "MLP(2x1000HiddenLayer) 10 Epoches")
+title!(p, "MLP(2x1000HiddenLayer) $(ttl_epo) Epoches")
 display(p)

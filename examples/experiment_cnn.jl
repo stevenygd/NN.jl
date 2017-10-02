@@ -1,17 +1,15 @@
 include("../src/NN.jl")
-include("../util/datasets.jl")
 
-ENV["PLOTS_USE_ATOM_PLOTPANE"] = true
-
+using MLDatasets
 using NN
 using Plots
 plotly()
 
-batch_size = 500
+batch_size = 128
 
 function build_cnn()
     layers = Layer[
-        InputLayer((28,28,1,batch_size)),
+        InputLayer((32,32,3,batch_size)),
         CaffeConvLayer(32,(5,5)),
         ReLu(),
         MaxPoolingLayer((2,2)),
@@ -73,7 +71,9 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
             append!(all_losses, mean(loss))
             epo_cor  += get_corr(pred, batch_Y)
             local acc = get_corr(pred, batch_Y) / batch_size
-            println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            if (bid - 1) % 50 == 0
+                println("[$(bid)/$(num_batch)] Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            end
         end
         v_size = size(valX)[1]
         v_loss, v_accu = [],[]
@@ -93,8 +93,8 @@ function training(net::SequentialNet, optimizer, train_set, validation_set;
     return epo_losses,epo_accus, val_losses, val_accu,all_losses
 end
 
-X,Y = mnistData(ttl=55000) # 0-1
-# println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+X, Y = CIFAR10.traindata()
+println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
 
 function convert_to_one_hot(x::Array{Int64}, classes)
   m = zeros(size(x,1), classes)
@@ -104,23 +104,37 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
-Y = round(Int, Y)
-train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
-trX, trY = train_set[1], covertToMatrix(train_set[2],10)
-valX, valY = validation_set[1], covertToMatrix(validation_set[2],10)
-teX, teY = test_set[1], covertToMatrix(test_set[2],10)
+Y = convert_to_one_hot(round(Int, Y), 10)
+function datasplit(trX, trY; ratio = 0.8)
+    N = size(trX)[end]
+    size_training = convert(Int, ceil(N * ratio))
+    size_testing  = convert(Int, ceil(N * (1-ratio) * 0.5))
+    train_set = (trX[:,:,:, 1:size_training],trY[1:size_training,:])
+    test_set  = (trX[:,:,:, size_training + 1:size_training + size_testing],
+                 trY[size_training + 1 : size_training + size_testing,:])
+    validation_set = (trX[:,:,:, size_training + size_testing + 1:N],
+                      trY[size_training + size_testing + 1:N,:])
 
-trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
-valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
-teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
+    return train_set, test_set, validation_set
+end
+
+train_set, test_set, validation_set = datasplit(X,Y)
+trX, trY = train_set[1], train_set[2]
+valX, valY = validation_set[1], validation_set[2]
+teX, teY = test_set[1], test_set[2]
+
+# 32x32x3x50000
+# trX  = permutedims(reshape(trX,  (size(trX,1),  3, 32, 32)), [3,4,2,1])
+# valX = permutedims(reshape(valX, (size(valX,1), 3, 32, 32)), [3,4,2,1])
+# teX  = permutedims(reshape(teX,  (size(teX,1),  3, 32, 32)), [3,4,2,1])
 
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
-ttl_epo = 3
+ttl_epo = 1
 net = build_cnn()
-bdam_optimizer  = BdamOptimizer(net)
+bdam_optimizer  = DdamOptimizer(net)
 
 bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
     net, bdam_optimizer, (trX, trY), (valX, valY);
