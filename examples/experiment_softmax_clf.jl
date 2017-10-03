@@ -98,38 +98,49 @@ println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
 ttl_epo = 5
-net = build_mlp()
-bdam_optimizer  = DdamOptimizer(net)
 
-bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
-    net, bdam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = ttl_epo, batch_size = batch_size,
-    lrSchedule = x -> 0.001, verbose=1
-)
+for title in ["AdamPrim", "Bdam", "Cdam", "Ddam"]
+    net = build_mlp()
+    if title == "AdamPrim"
+        my_optimizer  = AdamPrimOptimizer(net)
+    elseif title == "Bdam"
+        my_optimizer = BdamOptimizer(net)
+    elseif title == "Cdam"
+        my_optimizer = CdamOptimizer(net)
+    elseif title == "Ddam"
+        my_optimizer = DdamOptimizer(net)
+    end
 
-net = build_mlp()
-adam_optimizer  = AdamOptimizer(net)
+    bdam_epo_losses, bdam_epo_accu, bdam_val_losses, bdam_val_accu, bdam_all_losses = training(
+        net, my_optimizer, (trX, trY), (valX, valY);
+        ttl_epo = ttl_epo, batch_size = batch_size,
+        lrSchedule = x -> 0.001, verbose=1
+    )
 
-adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses = training(
-    net, adam_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = ttl_epo, batch_size = batch_size,
-    lrSchedule = x -> 0.001, verbose=1
-)
+    net = build_mlp()
+    adam_optimizer  = AdamOptimizer(net)
 
-net = build_mlp()
-rms_optimizer  = RMSPropOptimizer(net)
+    adam_epo_losses, adam_epo_accu, adam_val_losses, adam_val_accu, adam_all_losses = training(
+        net, adam_optimizer, (trX, trY), (valX, valY);
+        ttl_epo = ttl_epo, batch_size = batch_size,
+        lrSchedule = x -> 0.001, verbose=1
+    )
 
-rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = training(
-    net, rms_optimizer, (trX, trY), (valX, valY);
-    ttl_epo = ttl_epo, batch_size = batch_size,
-    lrSchedule = x -> 0.001, verbose=1
-)
+    net = build_mlp()
+    rms_optimizer  = RMSPropOptimizer(net)
 
-p = plot(1:length(bdam_all_losses), bdam_all_losses,  label="Ddam")
-plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
-plot!(p, 1:length(rms_all_losses), rms_all_losses, label="RMSprop")
-xlabel!(p, "batches (size=500,total $(ttl_epo) epoches)")
-ylabel!(p, "loss")
-title!(p, "Softmax Classifier $(ttl_epo) Epoches")
-# display(p)
-gui(p)
+    rms_epo_losses, rms_epo_accu, rms_val_losses, rms_val_accu, rms_all_losses = training(
+        net, rms_optimizer, (trX, trY), (valX, valY);
+        ttl_epo = ttl_epo, batch_size = batch_size,
+        lrSchedule = x -> 0.001, verbose=1
+    )
+
+    p = plot(1:length(bdam_all_losses), bdam_all_losses,  label=title)
+    plot!(p, 1:length(adam_all_losses), adam_all_losses, label="ADAM")
+    plot!(p, 1:length(rms_all_losses), rms_all_losses, label="RMSprop")
+    xlabel!(p, "batches (size=500,total $(ttl_epo) epoches)")
+    ylabel!(p, "loss")
+    title!(p, "Softmax Classifier $(ttl_epo) Epoches")
+    # display(p)
+    gui(p)
+end

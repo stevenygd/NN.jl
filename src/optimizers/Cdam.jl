@@ -78,7 +78,7 @@ function optimize(this::CdamOptimizer, batch_X, batch_Y)
             this.w_v[end][i][j] = v
 
             # Prepare gradients update
-            p = p - this.base_lr * m ./ sqrt.(v + 1e-8)
+            p = p - this.base_lr * m ./ (sqrt.(v) + 1e-8)
             param[j] = p
         end
         setParam!(layer, param)
