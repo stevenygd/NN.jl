@@ -9,7 +9,7 @@ g(x::Vector) = ForwardDiff.jacobian(s,x)
 
 function before(l,x)
     m,n = size(x)
-    init(l, nothing, Dict{String, Any}("batch_size" => m, "input_size" => [n]))
+    init(l, nothing, Dict{String, Any}("batch_size" => 0, "input_size" => [n]))
 end
 
 function testSoftMaxOneVector(x::Array{Float64}, y::Array{Float64}, dldy::Array{Float64}, dldx::Array{Float64}; alpha = 1.)

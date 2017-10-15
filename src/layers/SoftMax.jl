@@ -30,7 +30,7 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   l.lexp = Array{Float64}(out_size)
 end
 
-function update(l::SoftMax, output_size::Tuple)
+function update(l::SoftMax, out_size::Tuple)
     l.x = Array{Float64}(out_size)
     l.y = Array{Float64}(out_size)
     l.has_init = true;
@@ -42,8 +42,10 @@ function update(l::SoftMax, output_size::Tuple)
 end
 
 function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
-    if size(l.x) != size(X)
-        update(l, size(X))
+  @assert size(X, 2) == size(l.x, 2)
+    m,n = size(X)
+    if m != size(l.x, 1)
+      update(l, size(X))
     end
     l.x = X
     # iterating each row/picture

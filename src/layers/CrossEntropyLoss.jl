@@ -22,13 +22,22 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
   l.dldx   = Array{Float64}(out_size)
 end
 
+function update(l::CrossEntropyLoss, out_size::Tuple)
+    l.x = Array{Float64}(out_size)
+    l.loss   = Array{Float64}(out_size[1])
+    l.dldx = Array{Float64}(out_size)
+end
+
 """
 Requried: label needs to be a matrix that assigns a score for each class for each instance
 """
 function forward(l::CrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
 
-  @assert size(Y) == size(label)
-  @assert size(l.x) == size(Y)
+  @assert size(Y, 2) == size(l.x, 2)
+    m,n = size(Y)
+    if m != size(l.x, 1)
+      update(l, size(Y))
+    end
 
   l.x = log.(Y)
   l.x = -label.*l.x
