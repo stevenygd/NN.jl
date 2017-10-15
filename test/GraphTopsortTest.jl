@@ -22,7 +22,8 @@ l2 = ReLu(l1, config)
 l3 = MaxPoolingLayer(l2,(2,2), config)
 l4 = SoftMaxCrossEntropyLoss(l3,config)
 graph1 = Graph(l4)
-expected = [l0, l1, l2, l3, l4]
+expected = [l1, l2, l3, l4]
 # println(typeof(expected[1]))
 # println(typeof(graph1[1]))
 GraphTopsortTest(graph1.forward_order, expected)
+println("Basic test passed")

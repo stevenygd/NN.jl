@@ -5,13 +5,13 @@ type Graph <: ANN
     visited :: Set{Layer}
     input_layers :: Array{Layer}
 
-    function Graph(layer::Layer, lossfn::LossCriteria)
+    function Graph(layer::Layer)
         graph = new(layer, Layer[], Set{Layer}(), Layer[])
         graph.visited = Set{Layer}([graph.layer])
         top_sort(graph, graph.layer)
-        for i=1:length(layer.forward_order)
-            if isa(layer.forward_order[i], DataLayer)
-                push!(graph.input_layers, layer.forward_order[i])
+        for i=1:length(graph.forward_order)
+            if isa(graph.forward_order[i], DataLayer)
+                push!(graph.input_layers, graph.forward_order[i])
             end
         end
         return graph
@@ -26,7 +26,9 @@ function top_sort(graph::Graph, layer::Layer)
             top_sort(graph, l)
         end
     end
-    push!(graph.forward_order, layer)
+	if !isa(layer, DataLayer)
+        push!(graph.forward_order, layer)
+    end
 end
 
 function forward(graph::Graph, x::Array{Float64}, label::Array; kwargs...)
