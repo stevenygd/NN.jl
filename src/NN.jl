@@ -27,7 +27,8 @@ module NN
     include("layers/CrossEntropyLoss.jl")
     # optimizers
     include("optimizers/Adam.jl")
+    include("optimizers/Bdam.jl")
     include("optimizers/RMSprop.jl")
     include("optimizers/SGD.jl")
-    export AdamOptimizer, RMSPropOptimizer, SgdOptimizer, optimize
+    export AdamOptimizer, BdamOptimizer, RMSPropOptimizer, SgdOptimizer, optimize
 end

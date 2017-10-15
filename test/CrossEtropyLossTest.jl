@@ -7,17 +7,17 @@ l = CrossEntropyLoss()
 
 function beforeTest(l, x)
   m,n = size(x)
-  init(l, nothing, Dict{String, Any}("batch_size" => m, "input_size" => [n]))
+  init(l, nothing, Dict{String, Any}("batch_size" => 0, "input_size" => [n]))
 end
 
 function test(l, x, label; alpha = 1.)
     beforeTest(l,x)
 
     # Testing forward
-    @test_approx_eq forward(l,x,label) sum(-label.*log(x),2)
+    @test forward(l,x,label)[1]== sum(-label.*log(x),2)
 
     # Testing backward
-    @test_approx_eq backward(l,label) -label./x
+    @test backward(l,label)==-label./x
 end
 
 println("Test 1...")

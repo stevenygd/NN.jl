@@ -308,7 +308,7 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
         A_mul_B!(m_conved, m_img, m_ker)
         # println("$(size(m_conved)) $(size(bias)) $(f) ")
         # println("$(size(reshape(bias,1,f)))")
-        broadcast!(.+, m_conved, m_conved, reshape(bias,1,f))
+        broadcast!(+, m_conved, m_conved, reshape(bias,1,f))
 
         m_transp = reshape(m_conved, o_w, o_h, f)
         output[:,:,:,nb] = m_transp

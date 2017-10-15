@@ -30,8 +30,23 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   l.lexp = Array{Float64}(out_size)
 end
 
-function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
+function update(l::SoftMax, out_size::Tuple)
+    l.x = Array{Float64}(out_size)
+    l.y = Array{Float64}(out_size)
+    l.has_init = true;
+    m,n = out_size
+    l.jacobian = Array{Float64}(n,n)
+    l.dldx = Array{Float64}(out_size)
+    l.ly = Array{Float64}(n)
+    l.lexp = Array{Float64}(out_size)
+end
 
+function forward(l::SoftMax, X::Array{Float64,2}; kwargs...)
+  @assert size(X, 2) == size(l.x, 2)
+    m,n = size(X)
+    if m != size(l.x, 1)
+      update(l, size(X))
+    end
     l.x = X
     # iterating each row/picture
     l.x = l.x .- maximum(l.x, 2)
@@ -45,6 +60,7 @@ end
 
 function backward(l::SoftMax, DLDY::Array{Float64, 2}; kwargs...)
     # credits: https://stats.stackexchange.com/questions/79454/softmax-layer-in-a-neural-network?newreg=d1e89b443dd346ae8bccaf038a944221
+    @assert size(l.y) == size(DLDY)
     m,n =size(l.x)
     for batch=1:m
       l.ly = l.y[batch,:]
