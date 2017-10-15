@@ -55,6 +55,10 @@ function update(l::ReLu, input_size::Tuple;)
     l.dldy = Array{Float64}(input_size)
 end
 
+function forward(l::ReLu; kwargs...)
+    l.y = forward(l, l.children[1].y)
+end
+
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
     if size(l.x) != size(X)
         update(l, size(X))

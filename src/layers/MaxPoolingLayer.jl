@@ -90,6 +90,10 @@ function update(l::MaxPoolingLayer, input_size::Tuple;)
     # println("MaxPooling Layer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
+function forward(l::MaxPoolingLayer; kwargs...)
+    l.y = forward(l, l.children[1].y)
+end
+
 function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))

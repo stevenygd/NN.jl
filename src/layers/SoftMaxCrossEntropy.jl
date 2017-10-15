@@ -61,6 +61,10 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     l.lsum = Array{Float64}(N)
 end
 
+function forward(l::SoftMaxCrossEntropyLoss, label::Array{Float64,2}; kwargs...)
+	forward(l,l.children[1].x, label; kwargs...)
+end
+
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
     @assert size(Y, 2) == size(l.x, 2)
     m,n = size(Y)
