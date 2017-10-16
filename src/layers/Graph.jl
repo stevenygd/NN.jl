@@ -1,7 +1,8 @@
 type Graph <: ANN
-    layer :: Layer #topmost layer in the grpah, the child of all other layers
     forward_order :: Array{Layer} # list of pointers to layers in order of calling forward
     input_layers :: Array{Layer} # list of points to input layers in the graph
+	loss :: Array{Layer} # cache for losses
+    pred :: Array{Layer} # cache for predictions
 
     function Graph(layer::Layer)
         graph = new(layer, Layer[], Layer[])
@@ -32,7 +33,7 @@ function forward(graph::Graph, x::Array{Float64}, label::Array; kwargs...)
     for i=1:length(graph.input_layers)
         forward(graph.input_layers[i], x)
     end
-    forward_the_rest(graph, label)
+    return forward_the_rest(graph, label)
 end
 
 function forward(graph::Graph, xs::Dict{String, Array{Float64}}, label::Array; kwargs...)
@@ -50,13 +51,8 @@ end
 function forward_the_rest(graph::Graph, label::Array; kwargs...)
     for i=1:length(graph.forward_order)
         layer = graph.forward_order[i]
-        if isa(layer, LossCriteria)
-            loss, pred = forward(layer, label)
-        else
-            forward(layer)
-        end
+        forward(layer)
     end
-    return loss, pred
 end
 
 function backward(graph::Graph)
