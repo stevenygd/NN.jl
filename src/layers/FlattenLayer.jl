@@ -11,12 +11,12 @@ type FlattenLayer <: UtilityLayer
     dldy        :: Array{Float64,2}
 
     function FlattenLayer()
-        return new(false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
+        return new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
     end
 
     function FlattenLayer(prev::Union{Layer,Void}, config::Dict{String, Any})
-        layer = new(false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
+        layer = new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
         init(layer, prev, config)
         layer
@@ -57,6 +57,10 @@ function update(l::FlattenLayer, input_size::Tuple;)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
     # println("FlattenLayer update:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+end
+
+function forward(l::FlattenLayer; deterministics=false)
+    l.y = forward(l, l.parents[1].y; deterministics=deterministics)
 end
 
 function forward(l::FlattenLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; deterministics=false)

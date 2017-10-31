@@ -91,7 +91,7 @@ function update(l::MaxPoolingLayer, input_size::Tuple;)
 end
 
 function forward(l::MaxPoolingLayer; kwargs...)
-    l.y = forward(l, l.children[1].y)
+    l.y = forward(l, l.parents[1].y)
 end
 
 function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)

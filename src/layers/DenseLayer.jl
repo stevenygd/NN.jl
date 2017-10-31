@@ -96,6 +96,10 @@ function update(l::DenseLayer, input_size::Tuple;)
     # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
+function forward(l::DenseLayer; kwargs...)
+    l.y = forward(l, l.parents[1].y; kwargs...)
+end
+
 
 function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
