@@ -55,14 +55,12 @@ x = rand(28,28,1,10)
 labels = rand(10,10)
 forward(net, x, labels)
 xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
+l1.kern = l1_n.kern
+l5.W = l5_n.W
 forward(graph1, xs)
 
-@test l1.parents[1].y == l0_n.y
-@test l1.x == l1_n.x
-@test l1.y == l1_n.y
-# for i=1:6
-#     println(typeof(expected[i]))
-#     println(typeof(layers[i]))
-#     @test expected[i].y==layers[i].y
-# end
+
+for i=1:6
+    @test expected[i].y==layers[i].y
+end
 # GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))
