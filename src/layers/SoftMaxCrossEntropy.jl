@@ -4,7 +4,6 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     parents  :: Array{Layer}
     children :: Array{Layer}
 
-    label  :: DataLayer      # input layer to grap label from
     dldx   :: Array{Float64} # backprop
     x      :: Array{Float64} # input vector
     y      :: Array{Float64} # output of softmax
@@ -13,22 +12,18 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     loss   :: Array{Float64} # output of cross entropy loss
     pred   :: Array{Int64}   # output for prediction
 
-    function SoftMaxCrossEntropyLoss(label::DataLayer)
-        return new(Layer[], Layer[], label, Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+    function SoftMaxCrossEntropyLoss()
+        return new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
     end
 
-    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, label::DataLayer, config::Dict{String, Any})
+    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Dict{String, Any})
         layer = new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
-        init(layer,prev, label, config)
+        init(layer,prev, config)
         layer
     end
 end
 
 function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
-	if !isa(p,Void)
-        l.parents = [p]
-        push!(p.children, l)
-    end
 
     # TODO: currently I only accept Single dimensional dropout
     if p == nothing
@@ -40,6 +35,14 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{Str
         out_size = getOutputSize(p)
     end
     N, D     = out_size
+
+    # loss layer's parents[1] would be an input layer providing label
+    push!(l.parents, InputLayer(nothing, (out_size), config; tag="labels"))
+	if !isa(p,Void)
+        push!(l.parents, p)
+        push!(p.children, l)
+    end
+
     l.dldx   = Array{Float64}(out_size)
     l.x      = Array{Float64}(out_size)
     l.y      = Array{Float64}(out_size)
@@ -60,10 +63,11 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     l.loss   = Array{Float64}(N)
     l.pred   = Array{Int64}(N)
     l.lsum = Array{Float64}(N)
+    update(l.parents[1], input_size)
 end
 
 function forward(l::SoftMaxCrossEntropyLoss; kwargs...)
-	return forward(l,l.parents[1].y, l.label.y; kwargs...)
+    forward(l,l.parents[2].y, l.parents[1].y; kwargs...)
 end
 
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
@@ -73,7 +77,7 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
       update(l, size(Y))
     end
     l.x = Y
-    l.exp = exp(l.x)
+    l.exp = exp.(l.x)
     l.lsum = sum(l.exp,2)
     l.y = l.exp ./ l.lsum
 

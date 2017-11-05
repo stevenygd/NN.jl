@@ -318,7 +318,7 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
 end
 
 function forward(l::CaffeConvLayer; kwargs...)
-    l.y = forward(l, l.parents[1].y)
+	forward(l, l.parents[1].y)
 end
 
 function forward(l::CaffeConvLayer, x::tensor4; kwargs...)

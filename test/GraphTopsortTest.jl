@@ -28,30 +28,41 @@ l5 = DenseLayer(l4, 10, config)
 l6 = SoftMaxCrossEntropyLoss(l5,config)
 graph1 = Graph(l6)
 expected = [l1, l2, l3, l4, l5, l6]
-# println(typeof(expected[1]))
-# println(typeof(graph1[1]))
+
 GraphTopsortTest(graph1.forward_order, expected)
 println("Basic topsort test passed")
 
-function GraphForwardTest(graph::Graph, layer::Layer, net::SequentialNet, x::Array{Float64}, label::Array{Float64})
-    forward(net, x, label)
-    actual = forward(graph, x, label)
-    @test layer.y == actual[1]
+function GraphForwardTest(graph::Graph, layer::Layer, net::SequentialNet, x::Array{Float64}, labels::Array{Float64})
+    forward(net, x, labels)
+	xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
+    forward(graph, xs)
+    @test layer.y == net.lossfn.y
 end
 
-function build_cnn()
-    layers = Layer[
-        InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(32,(5,5)),
-        ReLu(),
-        MaxPoolingLayer((2,2)),
-        FlattenLayer(),
-        DenseLayer(10)
-    ]
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return net
-end
+l0_n = InputLayer((28,28,1,batch_size))
+l1_n = CaffeConvLayer(32,(5,5))
+l2_n = ReLu()
+l3_n = MaxPoolingLayer((2,2))
+l4_n = FlattenLayer()
+l5_n = DenseLayer(10)
 
-net1 = build_cnn()
-GraphForwardTest(graph1, l6, net1, rand(28,28,1,10), rand(10,10))
+layers = Layer[l0_n,l1_n,l2_n,l3_n,l4_n,l5_n]
+l6_n = SoftMaxCrossEntropyLoss()
+net = SequentialNet(layers, l6_n)
+layers = Layer[l1_n,l2_n,l3_n,l4_n,l5_n,l6_n]
+
+x = rand(28,28,1,10)
+labels = rand(10,10)
+forward(net, x, labels)
+xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
+forward(graph1, xs)
+
+@test l1.parents[1].y == l0_n.y
+@test l1.x == l1_n.x
+@test l1.y == l1_n.y
+# for i=1:6
+#     println(typeof(expected[i]))
+#     println(typeof(layers[i]))
+#     @test expected[i].y==layers[i].y
+# end
+# GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))

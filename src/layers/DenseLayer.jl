@@ -97,7 +97,7 @@ function update(l::DenseLayer, input_size::Tuple;)
 end
 
 function forward(l::DenseLayer; kwargs...)
-    l.y = forward(l, l.parents[1].y; kwargs...)
+	forward(l, l.parents[1].y; kwargs...)
 end
 
 

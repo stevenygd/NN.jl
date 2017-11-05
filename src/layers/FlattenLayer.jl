@@ -60,7 +60,7 @@ function update(l::FlattenLayer, input_size::Tuple;)
 end
 
 function forward(l::FlattenLayer; deterministics=false)
-    l.y = forward(l, l.parents[1].y; deterministics=deterministics)
+	forward(l, l.parents[1].y; deterministics=deterministics)
 end
 
 function forward(l::FlattenLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; deterministics=false)

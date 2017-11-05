@@ -10,15 +10,14 @@ type InputLayer <: DataLayer
     y        :: Array{Float64}
     dldy     :: Array{Float64}
     dldx     :: Array{Float64}
-
     tag :: String
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
+        return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
     end
 
     function InputLayer(prev::Union{Layer,Void}, shape, config::Dict{String,Any};tag="default")
-        layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape))
+        layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
         init(layer, prev, config)
         layer
     end

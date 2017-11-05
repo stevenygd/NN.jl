@@ -56,7 +56,7 @@ function update(l::ReLu, input_size::Tuple;)
 end
 
 function forward(l::ReLu; kwargs...)
-    l.y = forward(l, l.parents[1].y; kwargs...)
+    forward(l, l.parents[1].y; kwargs...)
 end
 
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
