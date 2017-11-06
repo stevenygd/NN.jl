@@ -41,7 +41,7 @@ function optimize(this::RMSPropOptimizer, batch_X, batch_Y)
             g = grad[j]
             @assert size(c) == size(p) && size(c) == size(g)
             c = c * this.alpha + g.^2 * (1 - this.alpha)
-            p = p - this.lr_base * g ./ (sqrt(c) + 1e-8)
+            p = p - this.lr_base * g ./ (sqrt.(c) + 1e-8)
             this.cache[i][j] = c
             param[j] =    p
         end
