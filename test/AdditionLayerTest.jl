@@ -13,8 +13,8 @@ function Test(xs, y, dldy)
     forward(input2, xs[2])
 
     @test forward(l) == y
-    @test backward(l, dldy)[1] == dldx1
-    @test backward(l, dldy)[2] == dldx2
+    @test backward(l, dldy) == dldx1
+    @test backward(l, dldy) == dldx2
 end
 
 xs = Array{Float64}[]
