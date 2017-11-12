@@ -60,7 +60,7 @@ function optimize(this::AdamOptimizer, batch_X, batch_Y)
             v_hat = v / (1. - this.beta_2^this.iter)
 
             # Update gradients
-            p = p - this.base_lr * m_hat ./ (sqrt(v_hat) + 1e-4)
+            p = p - this.base_lr * m_hat ./ (sqrt.(v_hat) + 1e-4)
 
             # store the things back
             param[j] = p

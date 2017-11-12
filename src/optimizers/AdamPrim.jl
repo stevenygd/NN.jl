@@ -1,4 +1,4 @@
-type BdamOptimizer
+type AdamPrimOptimizer
     net     :: SequentialNet
     m_t     :: Any
     v_t     :: Any
@@ -6,10 +6,9 @@ type BdamOptimizer
     beta_1  :: Float64
     beta_2  :: Float64
     iter    :: Int
-    re_iter :: Int
 
-    function BdamOptimizer(net::SequentialNet;  base_lr::Float64=0.001,
-                           beta_1::Float64=0.9, beta_2::Float64=0.999, re_iter::Int=50)
+    function AdamPrimOptimizer(net::SequentialNet;  base_lr::Float64=0.001,
+                           beta_1::Float64=0.9, beta_2::Float64=0.999)
         m_t, v_t = [], []
         for i = 1:length(net.layers)
            layer = net.layers[i]
@@ -27,11 +26,11 @@ type BdamOptimizer
                push!(v_t, c_2)
            end;
         end;
-        return new(net, m_t, v_t, base_lr, beta_1, beta_2, 1, re_iter)
+        return new(net, m_t, v_t, base_lr, beta_1, beta_2, 1)
     end
 end
 
-function optimize(this::BdamOptimizer, batch_X, batch_Y)
+function optimize(this::AdamPrimOptimizer, batch_X, batch_Y)
 
     loss, pred = forward(this.net, batch_X, batch_Y)
     backward(this.net, batch_Y)
@@ -53,7 +52,7 @@ function optimize(this::BdamOptimizer, batch_X, batch_Y)
             @assert size(m) == size(p) && size(m) == size(g) && size(m) == size(v)
 
             # Moving average to approximate gradient with velocity
-            if (this.iter - 1) % this.re_iter == 0
+            if this.iter == 1
                 m = g
                 v = g .^ 2
             else
