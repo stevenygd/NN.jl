@@ -58,9 +58,8 @@ xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
 l1.kern = l1_n.kern
 l5.W = l5_n.W
 forward(graph1, xs)
-
-
 for i=1:6
     @test expected[i].y==layers[i].y
 end
-# GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))
+GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))
+println("Basic forward test passed")
