@@ -37,7 +37,7 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Dict{Str
     N, D     = out_size
 
     # loss layer's parents[1] would be an input layer providing label
-    push!(l.parents, InputLayer(nothing, (out_size), config; tag="labels"))
+    push!(l.parents, InputLayer((out_size), config; tag="labels"))
 	if !isa(p,Void)
         push!(l.parents, p)
         push!(p.children, l)

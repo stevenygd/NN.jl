@@ -20,7 +20,7 @@ end
 
 batch_size = 10
 config = Dict{String, Any}()
-l0 = InputLayer(nothing, (28,28,1,batch_size), config)
+l0 = InputLayer((28,28,1,batch_size), config)
 l1 = CaffeConvLayer(l0, 32,(5,5), config)
 l2 = ReLu(l1, config)
 l3 = MaxPoolingLayer(l2,(2,2), config)
@@ -32,7 +32,7 @@ expected = [l1, l2, l3, l4, l5, l6]
 GraphTopsortTest(graph1.forward_order, expected)
 println("Basic topsort test passed")
 
-l0_2 = InputLayer(nothing, (500, 784), config)
+l0_2 = InputLayer((500, 784), config)
 l1_2 = DenseLayer(l0_2, 10, config)
 l2_2 = DenseLayer(l1_2, 10, config)
 l3_2 = DenseLayer(l1_2, 10, config)
@@ -45,7 +45,7 @@ graph2 = Graph(l4_2)
 @test findfirst(graph2.forward_order, l3_2) < findfirst(graph2.forward_order, l4_2)
 println("Basic asequential topology test passed")
 
-l0_3 = InputLayer(nothing, (500, 784), config)
+l0_3 = InputLayer((500, 784), config)
 l1_3 = DenseLayer(l0_3, 10, config)
 l2_3 = DenseLayer(l1_3, 10, config)
 l3_3 = DenseLayer(l1_3, 10, config)
