@@ -17,7 +17,7 @@ type DropoutLayer <: RegularizationLayer
         return new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
     end
 
-    function DropoutLayer(prev::Union{Layer,Void}, p, config::Dict{String,Any}=Dict{String, Any}())
+    function DropoutLayer(prev::Union{Layer,Void}, p, config::Union{Dict{String,Any},Void}=nothing)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
         layer = new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
         init(layer, prev, config)
@@ -25,7 +25,7 @@ type DropoutLayer <: RegularizationLayer
     end
 end
 
-function init(l::DropoutLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::DropoutLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
 	if !isa(p,Void)
         l.parents = [p]
         push!(p.children, l)

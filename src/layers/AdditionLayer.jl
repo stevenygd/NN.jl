@@ -11,14 +11,14 @@ type AdditionLayer <: Layer
         return new(Layer[], Layer[], false, Float64[], Float64[], Float64[], Float64[])
     end
 
-    function AdditionLayer(prevs::Array{<:Layer}, config::Dict{String, Any}=Dict{String, Any}())
+    function AdditionLayer(prevs::Array{<:Layer}, config::Union{Dict{String,Any},Void}=nothing)
         layer =  new(Layer[], Layer[], false, Float64[], Float64[])
         init(layer, prevs, config)
         layer
     end
 end
 
-function init(l::AdditionLayer, ps::Union{Array{<:Layer}}, config::Dict{String, Any}; kwargs...)
+function init(l::AdditionLayer, ps::Union{Array{<:Layer}}, config::Union{Dict{String,Any},Void}; kwargs...)
     out_size = getOutputSize(ps[1])
     for p in ps
         @assert getOutputSize(p) == out_size
