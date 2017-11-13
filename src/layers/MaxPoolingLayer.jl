@@ -26,7 +26,7 @@ type MaxPoolingLayer <: RegularizationLayer
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
     end
 
-    function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); stride = 1)
+    function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Union{Dict{String,Any},Void}=nothing; stride = 1)
         layer = new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         init(layer, prev, config)
@@ -41,7 +41,7 @@ function computeOutputSize(l::MaxPoolingLayer, input_size::Tuple)
     return (Int(ceil(w/x)), Int(ceil(h/y)), c, b)
 end
 
-function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::MaxPoolingLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """

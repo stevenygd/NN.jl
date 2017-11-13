@@ -16,14 +16,14 @@ type InputLayer <: DataLayer
         return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
     end
 
-    function InputLayer(shape, config::Dict{String,Any}=Dict{String, Any}();tag="default")
+    function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
         layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
         init(layer, nothing, config)
         layer
     end
 end
 
-function init(l::InputLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::InputLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
 end
 
 function update(l::InputLayer, input_size::Tuple;)

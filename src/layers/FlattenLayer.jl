@@ -15,7 +15,7 @@ type FlattenLayer <: UtilityLayer
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
     end
 
-    function FlattenLayer(prev::Union{Layer,Void}, config::Dict{String, Any}=Dict{String, Any}())
+    function FlattenLayer(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
         layer = new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
         init(layer, prev, config)
@@ -23,7 +23,7 @@ type FlattenLayer <: UtilityLayer
     end
 end
 
-function init(l::FlattenLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::FlattenLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
 	if !isa(p,Void)
         l.parents = [p]
         push!(p.children, l)
