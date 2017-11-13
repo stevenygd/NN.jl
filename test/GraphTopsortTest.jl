@@ -93,27 +93,34 @@ end
 GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))
 println("Basic forward test passed")
 
+batch_size = 10
+
 l0_n1 = InputLayer((28,28,1,batch_size))
 l1_n1 = CaffeConvLayer(32,(5,5))
 l2_n1 = ReLu()
 l3_n1 = MaxPoolingLayer((2,2))
 l4_n1 = FlattenLayer()
 l5_n1 = DenseLayer(10)
-
 layers = Layer[l0_n1,l1_n1,l2_n1,l3_n1,l4_n1,l5_n1]
 l6_n1 = SoftMaxCrossEntropyLoss()
 net1 = SequentialNet(layers, l6_n1)
 
 l0_n2 = InputLayer((28,28,1,batch_size))
-l2_n2 = CaffeConvLayer(32,(5,5))
+l1_n2 = CaffeConvLayer(32,(5,5))
 l2_n2 = ReLu()
 l3_n2 = MaxPoolingLayer((2,2))
 l4_n2 = FlattenLayer()
 l5_n2 = DenseLayer(10)
-
-layers = Layer[l0_n2,l2_n2,l2_n2,l3_n2,l4_n2,l5_n2]
+layers_2 = Layer[l0_n2,l2_n2,l2_n2,l3_n2,l4_n2,l5_n2]
 l6_n2 = SoftMaxCrossEntropyLoss()
-net2 = SequentialNet(layers, l6_n2)
+net2 = SequentialNet(layers_2, l6_n2)
+
+x = rand(28,28,1,10)
+labels = rand(10,10)
+forward(net1, x, labels)
+forward(net2, x, labels)
+print(size(l1_n1.kern))
+print(size(l1_n2.kern))
 
 l0 = InputLayer((28,28,1,batch_size))
 l1 = CaffeConvLayer(l0, 32, (5,5))
@@ -121,11 +128,19 @@ l2 = ReLu(l1)
 l3 = MaxPoolingLayer(l2, (2, 2))
 l4 = FlattenLayer(l3)
 l5 = DenseLayer(l4, 10)
-l1' = CaffeConvLayer(l0, 32, (5,5))
-l2' = ReLu(l1')
-l3' = MaxPoolingLayer(l2', (2, 2))
-l4' = FlattenLayer(l3')
-l5' = DenseLayer(l4', 10)
-la = AdditionLayer(l5, l5')
-l6' = SoftMaxCrossEntropyLoss(la,config)
-graph1 = Graph(l6)
+l1_2 = CaffeConvLayer(l0, 32, (5,5))
+l2_2 = ReLu(l1_2)
+l3_2 = MaxPoolingLayer(l2_2, (2, 2))
+l4_2 = FlattenLayer(l3_2)
+l5_2 = DenseLayer(l4_2, 10)
+la = AdditionLayer([l5, l5_2])
+l6 = SoftMaxCrossEntropyLoss(la)
+graph3 = Graph(l6)
+
+xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
+l1.kern = l1_n1.kern
+l1_2.kern = l1_n2.kern
+l5.W = l5_n1.W
+l5_2.W = l5_n2.W
+forward(graph3, xs)
+@test l5_n1.y[1] + l5_n2.y[1] == la.y[1]
