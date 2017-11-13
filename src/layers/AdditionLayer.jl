@@ -7,10 +7,6 @@ type AdditionLayer <: Layer
     y     :: Array{Float64}
     dldx  :: Array{Float64}
 
-    function AdditionLayer()
-        return new(Layer[], Layer[], false, Float64[], Float64[], Float64[], Float64[])
-    end
-
     function AdditionLayer(prevs::Array{<:Layer}, config::Union{Dict{String,Any},Void}=nothing)
         layer =  new(Layer[], Layer[], false, Float64[], Float64[])
         init(layer, prevs, config)
