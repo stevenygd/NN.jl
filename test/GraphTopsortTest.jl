@@ -92,3 +92,40 @@ for i=1:6
 end
 GraphForwardTest(graph1, l6, net, rand(28,28,1,10), rand(10,10))
 println("Basic forward test passed")
+
+l0_n1 = InputLayer((28,28,1,batch_size))
+l1_n1 = CaffeConvLayer(32,(5,5))
+l2_n1 = ReLu()
+l3_n1 = MaxPoolingLayer((2,2))
+l4_n1 = FlattenLayer()
+l5_n1 = DenseLayer(10)
+
+layers = Layer[l0_n1,l1_n1,l2_n1,l3_n1,l4_n1,l5_n1]
+l6_n1 = SoftMaxCrossEntropyLoss()
+net1 = SequentialNet(layers, l6_n1)
+
+l0_n2 = InputLayer((28,28,1,batch_size))
+l2_n2 = CaffeConvLayer(32,(5,5))
+l2_n2 = ReLu()
+l3_n2 = MaxPoolingLayer((2,2))
+l4_n2 = FlattenLayer()
+l5_n2 = DenseLayer(10)
+
+layers = Layer[l0_n2,l2_n2,l2_n2,l3_n2,l4_n2,l5_n2]
+l6_n2 = SoftMaxCrossEntropyLoss()
+net2 = SequentialNet(layers, l6_n2)
+
+l0 = InputLayer((28,28,1,batch_size))
+l1 = CaffeConvLayer(l0, 32, (5,5))
+l2 = ReLu(l1)
+l3 = MaxPoolingLayer(l2, (2, 2))
+l4 = FlattenLayer(l3)
+l5 = DenseLayer(l4, 10)
+l1' = CaffeConvLayer(l0, 32, (5,5))
+l2' = ReLu(l1')
+l3' = MaxPoolingLayer(l2', (2, 2))
+l4' = FlattenLayer(l3')
+l5' = DenseLayer(l4', 10)
+la = AdditionLayer(l5, l5')
+l6' = SoftMaxCrossEntropyLoss(la,config)
+graph1 = Graph(l6)
