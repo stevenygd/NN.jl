@@ -26,7 +26,7 @@ type MaxPoolingLayer <: RegularizationLayer
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
     end
 
-    function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Dict{String, Any}; stride = 1)
+    function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); stride = 1)
         layer = new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         init(layer, prev, config)

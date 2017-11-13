@@ -16,7 +16,7 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
         return new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
     end
 
-    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Dict{String, Any})
+    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Dict{String, Any}=Dict{String, Any}())
         layer = new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
         init(layer,prev, config)
         layer

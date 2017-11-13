@@ -15,7 +15,7 @@ type FlattenLayer <: UtilityLayer
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
     end
 
-    function FlattenLayer(prev::Union{Layer,Void}, config::Dict{String, Any})
+    function FlattenLayer(prev::Union{Layer,Void}, config::Dict{String, Any}=Dict{String, Any}())
         layer = new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
         init(layer, prev, config)
