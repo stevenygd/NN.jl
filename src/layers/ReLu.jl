@@ -17,7 +17,7 @@ type ReLu <: Nonlinearity
         return new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
     end
 
-    function ReLu(prev::Union{Layer,Void}, config::Dict{String, Any}, alpha::Float64 = 1.0)
+    function ReLu(prev::Union{Layer,Void}, config::Dict{String, Any}=Dict{String, Any}(), alpha::Float64 = 1.0)
         @assert alpha >= 0.
         layer = new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
         init(layer, prev, config)

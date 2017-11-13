@@ -53,7 +53,7 @@ type CaffeConvLayer <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
     end
 
-    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}; padding = 0, stride = 1, init_type="Normal")
+    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); padding = 0, stride = 1, init_type="Normal")
         layer = new(Layer[], Layer[], false, init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),

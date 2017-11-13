@@ -16,7 +16,7 @@ type InputLayer <: DataLayer
         return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
     end
 
-    function InputLayer(shape, config::Dict{String,Any};tag="default")
+    function InputLayer(shape, config::Dict{String,Any}=Dict{String, Any}();tag="default")
         layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
         init(layer, nothing, config)
         layer

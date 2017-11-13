@@ -17,7 +17,7 @@ type DropoutLayer <: RegularizationLayer
         return new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
     end
 
-    function DropoutLayer(prev::Union{Layer,Void}, p, config::Dict{String,Any})
+    function DropoutLayer(prev::Union{Layer,Void}, p, config::Dict{String,Any}=Dict{String, Any}())
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
         layer = new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
         init(layer, prev, config)

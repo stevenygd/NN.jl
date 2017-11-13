@@ -23,7 +23,7 @@ type DenseLayer <: Layer
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
     end
 
-    function DenseLayer(prev::Layer, num_units::Int, config::Dict{String,Any}; init_type="Uniform")
+    function DenseLayer(prev::Layer, num_units::Int, config::Dict{String,Any}=Dict{String, Any}(); init_type="Uniform")
         i, o = 1, num_units
         layer = new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))

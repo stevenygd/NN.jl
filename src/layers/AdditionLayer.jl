@@ -11,7 +11,7 @@ type AdditionLayer <: Layer
         return new(Layer[], Layer[], false, Float64[], Float64[], Float64[], Float64[])
     end
 
-    function AdditionLayer(prevs::Array{<:Layer}, config::Dict{String, Any})
+    function AdditionLayer(prevs::Array{<:Layer}, config::Dict{String, Any}=Dict{String, Any}())
         layer =  new(Layer[], Layer[], false, Float64[], Float64[])
         init(layer, prevs, config)
         layer
