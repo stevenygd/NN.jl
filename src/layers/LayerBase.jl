@@ -7,6 +7,23 @@ abstract type DataLayer      <: Layer end
 abstract type RegularizationLayer <: Layer end
 abstract type UtilityLayer <: Layer end
 
+type LayerBase
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+    has_init :: Bool
+    id  :: Base.Random.UUID
+
+    x        :: Array{Float64}
+    y        :: Array{Float64}
+    dldy     :: Array{Float64}
+    dldx     :: Dict{Base.Random.UUID, Array{Float64}}
+
+    function LayerBase()
+        return new(Layer[], Layer[], false, Base.Random.uuid4(),
+            Float64[], Float64[], Float64[], Dict{Base.Random.UUID,Array{Float64}}())
+    end
+end
+
 StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
 function getGradient(l::StaticLayer)

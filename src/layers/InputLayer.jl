@@ -1,31 +1,28 @@
 # Dummy Layer to create the input shape for initilization
 include("LayerBase.jl")
 type InputLayer <: DataLayer
-    parents  :: Array{Layer}
-    children :: Array{Layer}
-    has_init :: Bool
-    id  :: Base.Random.UUID
-
-    shape    :: Tuple
-    x        :: Array{Float64}
-    y        :: Array{Float64}
-    dldy     :: Array{Float64}
-    dldx     :: Dict{Base.Random.UUID, Array{Float64}}
-    tag :: String
+    base    :: LayerBase
+    shape   :: Tuple
+    tag     :: String
 
 
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(Layer[], Layer[], true, Base.Random.uuid4(), shape, Array{Float64}(shape),
-                Array{Float64}(shape), Array{Float64}(shape),
-                Dict(), tag)
+        layer = new(Layer(), shape, tag)
+        layer.base.has_init = true
+        # are below necessary?
+        # layer.base.x = Array{Float64}(shape)
+        # layer.base.y = Array{Float64}(shape)
+        # layer.base.dldy = Array{Float64}(shape)
+        layer
     end
 
     function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
-        layer = new(Layer[], Layer[], true, Base.Random.uuid4(), shape,
-                    Array{Float64}(shape), Array{Float64}(shape),
-                    Array{Float64}(shape), Dict(), tag)
-        init(layer, nothing, config)
+        layer = new(LayerBase(), shape, tag)
+        layer.base.has_init = true
+        # layer.base.x = Array{Float64}(shape)
+        # layer.base.y = Array{Float64}(shape)
+        # layer.base.dldy = Array{Float64}(shape)
         layer
     end
 end
@@ -43,16 +40,16 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
     if size(X) != l.shape
         update(l, size(X))
     end
-    l.x = X
-    l.y = X
-    return l.y
+    l.base.x = X
+    l.base.y = X
+    return l.base.y
 end
 
 function backward(l::InputLayer; kwargs...)
-    DLDY = sum(map(x -> x.dldx[l.id], l.children))
-    l.dldy = DLDY
-    parent_id = l.parents[1].id
-    l.dldx[parent_id] = DLDY
+    l.base.dldy = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    # l.base.dldy = DLDY
+    parent_id = l.base.parents[1].id
+    l.base.dldx[parent_id] = l.base.dldy
 end
 
 function getInputSize(l::InputLayer)
