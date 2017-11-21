@@ -1,12 +1,28 @@
 type CrossEntropyLoss <: LossCriteria
+
+  parents  :: Array{Layer}
+  children :: Array{Layer}
+  has_init :: Bool
+  id :: Int64
+
   x :: Array{Float64}       # input normalized matrix, expected to be free of zeros
   loss :: Array{Float64}    # output of current layer; calculate loss of each instance
   classes :: Int            # number of classes in the model
   dldx :: Array{Float64}    # cache for derivative matrix in backward
 
   function CrossEntropyLoss()
-    return new(Float64[], Float64[], 0,  Float64[])
+    return new(
+      Layer[], Layer[], false, -1,
+      Float64[], Float64[], 0,  Float64[])
   end
+
+  function CrossEntropyLoss(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
+        layer = new(
+          Layer[], Layer[], false, -1,
+          Float64[], Float64[], 0,  Float64[])
+        init(layer,prev,config)
+        layer
+    end
 end
 
 function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
@@ -20,6 +36,7 @@ function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any
   l.x      = Array{Float64}(out_size)
   l.loss   = Array{Float64}(out_size[1])
   l.dldx   = Array{Float64}(out_size)
+  l.has_init = true
 end
 
 function update(l::CrossEntropyLoss, out_size::Tuple)

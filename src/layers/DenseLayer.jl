@@ -3,9 +3,9 @@
 type DenseLayer <: Layer
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init  :: Bool
-    id        :: int64
+    id        :: Int64
+    
     init_type :: String
     i         :: Int
     num_units :: Int
@@ -24,7 +24,7 @@ type DenseLayer <: Layer
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
     end
 
-    function DenseLayer(prev::Layer, num_units::Int, config::Union{Dict{String,Any},Void}=nothing; init_type="Uniform")
+    function DenseLayer(prev::Union{Layer,Void}, num_units::Int, config::Union{Dict{String,Any},Void}=nothing; init_type="Uniform")
         i, o = 1, num_units
         layer = new(Layer[], Layer[], false, -1, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))

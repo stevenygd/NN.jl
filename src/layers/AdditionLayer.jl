@@ -4,7 +4,7 @@ type AdditionLayer <: Layer
     children :: Array{Layer}
     has_init :: Bool
 
-    id :: int64
+    id :: Int64
 
     y     :: Array{Float64}
     dldx  :: Array{Float64}

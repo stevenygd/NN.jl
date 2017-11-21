@@ -9,7 +9,7 @@ type CaffeConvLayer <: LearnableLayer
     children :: Array{Layer}
 
     has_init :: Bool
-    id :: int64
+    id :: Int64
 
     # Parameters
     init_type:: String                  # Type of initialization
