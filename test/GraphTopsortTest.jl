@@ -111,7 +111,7 @@ l2_n2 = ReLu()
 l3_n2 = MaxPoolingLayer((2,2))
 l4_n2 = FlattenLayer()
 l5_n2 = DenseLayer(10)
-layers_2 = Layer[l0_n2,l2_n2,l2_n2,l3_n2,l4_n2,l5_n2]
+layers_2 = Layer[l0_n2,l1_n2,l2_n2,l3_n2,l4_n2,l5_n2]
 l6_n2 = SoftMaxCrossEntropyLoss()
 net2 = SequentialNet(layers_2, l6_n2)
 
@@ -119,8 +119,6 @@ x = rand(28,28,1,10)
 labels = rand(10,10)
 forward(net1, x, labels)
 forward(net2, x, labels)
-print(size(l1_n1.kern))
-print(size(l1_n2.kern))
 
 l0 = InputLayer((28,28,1,batch_size))
 l1 = CaffeConvLayer(l0, 32, (5,5))
@@ -144,3 +142,4 @@ l5.W = l5_n1.W
 l5_2.W = l5_n2.W
 forward(graph3, xs)
 @test l5_n1.y[1] + l5_n2.y[1] == la.y[1]
+print("Graph Addition Layer Forward passed")
