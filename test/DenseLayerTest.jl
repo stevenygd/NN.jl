@@ -82,9 +82,9 @@ function f_w1(w)
     return sum(forward(l,X))
 end
 anl_g, err = gradient_check(f_w1, g, w)
-println("Relative error: $(err) $(mean(abs(anl_g))) $(mean(abs(g)))")
-@test_approx_eq_eps anl_g g 1e-4
-@test_approx_eq_eps err 0. 1e-4
+println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
+@test anl_g ≈ g atol=1e-4
+@test err ≈ 0. atol=1e-4
 println("[PASS] gradient check test 1.")
 
 include("../src/layers/InputLayer.jl")
@@ -104,7 +104,7 @@ function build_mlp()
 end
 l, net = build_mlp()
 X = rand(batch_size, inp_size)
-Y = zeros(Int, batch_size, out_size)
+Y = zeros(batch_size, out_size)
 Y[1:batch_size, rand(1:10, batch_size)] = 1
 function f_w2(w)
     setParam!(l, Array[w])
@@ -116,7 +116,7 @@ forward(net, X, Y)
 backward(net, Y)
 g = getGradient(l)[1]
 anl_g, err = gradient_check(f_w2, g, w)
-println("Relative error: $(err) $(mean(abs(anl_g))) $(mean(abs(g)))")
-@test_approx_eq_eps anl_g g 1e-4
-@test_approx_eq_eps err 0. 1e-4
+println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
+@test anl_g ≈ g atol=1e-4
+@test err ≈ 0. atol=1e-4
 println("[PASS] gradient check test 2.")
