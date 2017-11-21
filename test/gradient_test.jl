@@ -27,7 +27,7 @@ function gradient_check(f, g, w, d=1e-5, tol=0.01, nsamples=1)
         @inbounds w_neg[i] = w[i]
         @inbounds anl_g[i] = tmp_anl_g
     end;
-    err_r = abs(anl_g .- g) ./ (max(abs(anl_g), abs(g)) + 1e-10)
+    err_r = abs.(anl_g .- g) ./ (max.(abs.(anl_g), abs.(g)) + 1e-10)
     return anl_g, mean(err_r)
 end;
 
@@ -38,8 +38,8 @@ end
 w1 = [3. 4.]
 g1 = [-2. 2.] # [2(w1[1] - w[2]), -2(w1[1] - w[2])]
 anl_g1, err_r1 = gradient_check(f1,g1,w1)
-@test_approx_eq_eps anl_g1 g1 1e-8
-@test_approx_eq_eps err_r1 0. 1e-7
+@test anl_g1 ≈ g1 atol=1e-8
+@test err_r1 ≈ 0. atol=1e-7
 println("[PASS] Gradient check test 1 pass.")
 
 function f2(w)
@@ -49,6 +49,6 @@ w2 = randn(100,2)
 g2 = [(w2[:,1] + w2[:,2]) (w2[:,1] + w2[:,2])] ./ 50.
 println(size(w2), size(g2))
 anl_g2, err_r2 = gradient_check(f2,g2,w2)
-@test_approx_eq_eps anl_g2 g2 1e-8
-@test_approx_eq_eps err_r2 0. 1e-7
+@test anl_g2 ≈ g2 atol=1e-8
+@test err_r2 ≈ 0. atol=1e-7
 println("[PASS] Gradient check test 2 pass.")
