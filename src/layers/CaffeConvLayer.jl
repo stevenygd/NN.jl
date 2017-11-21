@@ -9,6 +9,7 @@ type CaffeConvLayer <: LearnableLayer
     children :: Array{Layer}
 
     has_init :: Bool
+    id :: int64
 
     # Parameters
     init_type:: String                  # Type of initialization
@@ -43,7 +44,7 @@ type CaffeConvLayer <: LearnableLayer
     function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(Layer[], Layer[], false, init,
+        return new(Layer[], Layer[], false, -1, init,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -54,7 +55,7 @@ type CaffeConvLayer <: LearnableLayer
     end
 
     function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); padding = 0, stride = 1, init_type="Normal")
-        layer = new(Layer[], Layer[], false, init_type,
+        layer = new(Layer[], Layer[], false, -1, init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -337,6 +338,16 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
     f, c = size(flipped,3), size(flipped, 4)
     caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
     # println("Backward:\nx:$(mean(l.dldy))\t$(mean(l.dldx))")
+    return l.dldx
+end
+
+function backward(l::CaffeConvLayer; kwargs...)
+    flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
+    f, c = size(flipped,3), size(flipped, 4)
+    caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    for i=1:length(l.parents)
+        l.dldy
+    end
     return l.dldx
 end
 

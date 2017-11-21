@@ -5,6 +5,7 @@ type MaxPoolingLayer <: RegularizationLayer
     children :: Array{Layer}
 
     has_init :: Bool
+    id :: int64
 
     # Parameters
     size     :: Tuple{Int, Int}     # (pool_width, pool_height)
@@ -22,12 +23,12 @@ type MaxPoolingLayer <: RegularizationLayer
 
     function MaxPoolingLayer(size::Tuple{Int,Int};stride = 1)
         @assert stride == 1 # TODO: doesn't allow other stride yet
-        return new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+        return new(Layer[], Layer[], false, -1, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
     end
 
     function MaxPoolingLayer(prev::Union{Layer,Void}, size::Tuple{Int,Int}, config::Union{Dict{String,Any},Void}=nothing; stride = 1)
-        layer = new(Layer[], Layer[], false, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+        layer = new(Layer[], Layer[], false, -1, size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         init(layer, prev, config)
         layer

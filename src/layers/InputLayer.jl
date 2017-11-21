@@ -47,6 +47,10 @@ function backward(l::InputLayer, DLDY::Union{SubArray{Float64},Array{Float64}}; 
     return l.dldx
 end
 
+function backward(l::InputLayer; kwargs...)
+    l.dldx = l.dldy
+end
+
 function getInputSize(l::InputLayer)
     return l.shape
 end

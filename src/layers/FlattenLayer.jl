@@ -5,18 +5,19 @@ type FlattenLayer <: UtilityLayer
     children :: Array{Layer}
 
     has_init    :: Bool
+    id          :: int64
     x           :: Array{Float64,4}
     y           :: Array{Float64,2}
     dldx        :: Array{Float64,4}
     dldy        :: Array{Float64,2}
 
     function FlattenLayer()
-        return new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
+        return new(Layer[],Layer[], false, -1, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
     end
 
     function FlattenLayer(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
-        layer = new(Layer[],Layer[], false, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
+        layer = new(Layer[],Layer[], false, -1, Array{Float64}(1,1,1,1), Array{Float64}(1,1),
                    Array{Float64}(1,1,1,1), Array{Float64}(1,1))
         init(layer, prev, config)
         layer

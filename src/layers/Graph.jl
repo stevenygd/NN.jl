@@ -20,6 +20,7 @@ function top_sort(graph::Graph, layer::Layer, visited::Set{Layer})
 	if isa(layer, DataLayer)
         graph.input_layers[layer.tag] = layer
     else
+        layer.id = length(graph.forward_order)
         push!(graph.forward_order, layer)
     end
 end
@@ -38,8 +39,11 @@ function forward_the_rest(graph::Graph; kwargs...)
     end
 end
 
-function backward(graph::Graph)
-    return Float64[]
+function backward(graph::Graph;kwargs...)
+    for i=length(graph.forward_order):1
+        layer = graph.forward_order[i]
+        backward(layer;kwarg...)
+    end
 end
 
 function inference(graph::Graph, layer::Layer, xs::Dict{String,Array{Float64}})

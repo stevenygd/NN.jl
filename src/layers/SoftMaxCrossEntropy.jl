@@ -4,6 +4,8 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     parents  :: Array{Layer}
     children :: Array{Layer}
 
+    id :: int64
+
     dldx   :: Array{Float64} # backprop
     x      :: Array{Float64} # input vector
     y      :: Array{Float64} # output of softmax
@@ -13,11 +15,11 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     pred   :: Array{Int64}   # output for prediction
 
     function SoftMaxCrossEntropyLoss()
-        return new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        return new(Layer[], Layer[], -1, Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
     end
 
     function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
-        layer = new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        layer = new(Layer[], Layer[], -1, Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
         init(layer,prev, config)
         layer
     end
