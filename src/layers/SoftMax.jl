@@ -7,9 +7,11 @@ type SoftMax <: Nonlinearity
     ly :: Array{Float64}        # cache for row matrix during backward
     lexp :: Array{Float64}      # cache for exponential of l.x in forward
     lsum :: Array{Float64}      # cache for calculating exponential sum in forward
+    id   :: Base.Random.UUID
 
     function SoftMax()
-        return new(Float64[], Float64[], false, Float64[], Float64[])
+        return new(Float64[], Float64[], false, Float64[],
+                    Float64[], Base.Random.uuid4())
     end
 end
 

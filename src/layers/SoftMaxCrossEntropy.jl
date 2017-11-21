@@ -1,4 +1,4 @@
-# include("LayerBase.jl")
+include("LayerBase.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
     parents  :: Array{Layer}
@@ -12,12 +12,17 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     loss   :: Array{Float64} # output of cross entropy loss
     pred   :: Array{Int64}   # output for prediction
 
+    id     :: Base.Random.UUID
+
     function SoftMaxCrossEntropyLoss()
-        return new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        return new(Layer[], Layer[], Float64[], Float64[], Float64[],
+                Float64[], Float64[], Int64[], 1:1, Base.Random.uuid4())
     end
 
     function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
-        layer = new(Layer[], Layer[], Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        layer = new(Layer[], Layer[], Float64[], Float64[],
+                    Float64[], Float64[], Float64[], Int64[],
+                    1:1, Base.Random.uuid4())
         init(layer,prev, config)
         layer
     end

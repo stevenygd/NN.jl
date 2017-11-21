@@ -15,18 +15,20 @@ type DenseLayer <: Layer
     dldx      :: Array{Float64}
     velc      :: Array{Float64}
     grad      :: Array{Float64}
+    id        :: Base.Random.UUID
 
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
         return new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o), Base.Random.uuid4())
     end
 
     function DenseLayer(prev::Layer, num_units::Int, config::Union{Dict{String,Any},Void}=nothing; init_type="Uniform")
         i, o = 1, num_units
-        layer = new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+        layer = new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o),
+                    zeros(i), zeros(o), zeros(o), zeros(i), zeros(i+1, o),
+                    zeros(i+1, o), Base.Random.uuid4())
         init(layer, prev, config)
         layer
     end

@@ -11,13 +11,20 @@ type InputLayer <: DataLayer
     dldy     :: Array{Float64}
     dldx     :: Array{Float64}
     tag :: String
+    id  :: Base.Random.UUID
+
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
+        return new(Layer[], Layer[], true, shape, Array{Float64}(shape),
+                Array{Float64}(shape), Array{Float64}(shape),
+                Array{Float64}(shape), tag, Bse.Random.uuid4())
     end
 
     function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
-        layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
+        layer = new(Layer[], Layer[], true, shape,
+                    Array{Float64}(shape), Array{Float64}(shape),
+                    Array{Float64}(shape), Array{Float64}(shape),
+                    tag, Base.Random.uuid4())
         init(layer, nothing, config)
         layer
     end

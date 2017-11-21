@@ -12,14 +12,18 @@ type ReLu <: Nonlinearity
     dldx     :: Array{Float64}
     dldy     :: Array{Float64}
 
+    id       :: Base.Random.UUID
+
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, alpha, Float64[], Float64[],
+                   Float64[], Float64[], Base.Random.uuid4())
     end
 
     function ReLu(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing, alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        layer = new(Layer[], Layer[], false, alpha, Float64[], Float64[], Float64[], Float64[])
+        layer = new(Layer[], Layer[], false, alpha, Float64[], Float64[],
+                    Float64[], Float64[], Base.random.uuid4())
         init(layer, prev, config)
         layer
     end

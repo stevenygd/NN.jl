@@ -40,6 +40,8 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
+    id       :: Base.Random.UUID
+
     function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -50,7 +52,8 @@ type CaffeConvLayer <: LearnableLayer
                    zeros(1), zeros(1), zeros(1),
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
-                   (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
+                   (zeros(1,1), zeros(1,1), zeros(1,1)),
+                   Base.Random.uuid4()) # tmps_gradient
     end
 
     function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); padding = 0, stride = 1, init_type="Normal")
