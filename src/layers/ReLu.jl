@@ -9,7 +9,7 @@ type ReLu <: Nonlinearity
     alpha    :: Float64
     x        :: Array{Float64}
     y        :: Array{Float64}
-    dldx     :: Array{Float64}
+    dldx     :: Dict{Base.Random.UUID, Array{Float64}}
     dldy     :: Array{Float64}
 
     id       :: Base.Random.UUID
@@ -73,15 +73,17 @@ function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
     return l.y
 end
 
-function backward(l::ReLu, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs...)
+function backward(l::ReLu; kwargs...)
+    DLDY = sum(map(x -> x.dldx[l.id], l.children))
     @assert size(l.x) == size(DLDY)
     # if size(l.dldx, 1) != size(DLDY, 1)
     #     l.dldx = Array{Float64}(size(DLDY))
     # end
     l.dldy = DLDY
-    broadcast!(>, l.dldx, l.x, 0.)        # l.dldx = l.x .> 0.
-    broadcast!(*, l.dldx, l.dldx, l.alpha)    # l.dldx = l.dldx * alpha
-    broadcast!(*, l.dldx, l.dldx, DLDY)
+    parent_id = l.parents[1]
+    broadcast!(>, l.dldx[parent_id], l.x, 0.)        # l.dldx = l.x .> 0.
+    broadcast!(*, l.dldx[parent_id], l.dldx[parent_id], l.alpha)    # l.dldx = l.dldx * alpha
+    broadcast!(*, l.dldx[parent_id], l.dldx[parent_id], DLDY)
     return l.dldx
 end
 

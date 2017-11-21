@@ -106,7 +106,8 @@ end
 
 function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...)
 
-    l.dldx = l.y .* sum(label,2) - label
+    parent_id = l.parents[1].id
+    l.dldx[parent_id] = l.y .* sum(label,2) - label
 
     return l.dldx
 end

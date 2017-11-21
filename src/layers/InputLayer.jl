@@ -9,7 +9,7 @@ type InputLayer <: DataLayer
     x        :: Array{Float64}
     y        :: Array{Float64}
     dldy     :: Array{Float64}
-    dldx     :: Array{Float64}
+    dldx     :: Dict{Base.Random.UUID, Array{Float64}}
     tag :: String
     id  :: Base.Random.UUID
 
@@ -49,8 +49,10 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
 end
 
 function backward(l::InputLayer, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs...)
+    DLDY = sum(map(x -> x.dldx[l.id], l.children))
     l.dldy = DLDY
-    l.dldx = DLDY
+    parent_id = l.parents[1].id
+    l.dldx[parent_id] = DLDY
     return l.dldx
 end
 

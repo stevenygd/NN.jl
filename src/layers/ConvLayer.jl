@@ -19,7 +19,7 @@ type ConvLayer <: LearnableLayer
     x        :: Array{Float64, 4}       # (batch_size,  channel,    width,     height)
     y        :: Array{Float64, 4}       # (batch_size,  #filter,    out_width, out_height)
     dldy     :: Array{Float64, 4}       # (batch_size,  #filter,    out_width, out_height)
-    dldx     :: Array{Float64, 4}       # (batch_size,  channel,    width,     height)
+    dldx     :: Dict{Base.Random.UUID, Array{Float64, 4}}
 
     # Kernel and it's gradient & velocity
     kern     :: Array{Float64, 4}       # (#filter,     channel,    k_width,   k_height)
@@ -153,16 +153,18 @@ function forward(l::ConvLayer, x::tensor4; kwargs...)
     return l.y
 end
 
-function backward(l::ConvLayer, dldy::tensor4; kwargs...)
-    l.dldy = dldy
-    scale!(l.dldx, 0.)
+function backward(l::ConvLayer; kwargs...)
+    DLDY = sum(map(x -> x.dldx[l.id], l.children))
+    l.dldy = DLDY
+    dldx = zeros(size(l.dldx))
     flipped = flip(l.kern)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     for b=1:batch_size
     for f=1:l.filter
     for c=1:depth
-        l.dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
+        dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
     end; end; end
+    l.dldx[parent_id] = dldx
     return l.dldx
 end
 

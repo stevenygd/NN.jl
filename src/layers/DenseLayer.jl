@@ -12,7 +12,7 @@ type DenseLayer <: Layer
     x         :: Array{Float64}
     y         :: Array{Float64}
     dldy      :: Array{Float64}
-    dldx      :: Array{Float64}
+    dldx      :: Dict{Base.Random.UUID, Array{Float64}}
     velc      :: Array{Float64}
     grad      :: Array{Float64}
     id        :: Base.Random.UUID
@@ -21,7 +21,7 @@ type DenseLayer <: Layer
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
         return new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o), Base.Random.uuid4())
+                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o), Base.Random.uuid4)
     end
 
     function DenseLayer(prev::Layer, num_units::Int, config::Union{Dict{String,Any},Void}=nothing; init_type="Uniform")
@@ -122,10 +122,12 @@ function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; 
     return l.y
 end
 
-function backward(l::DenseLayer, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
+function backward(l::DenseLayer; kwargs...)
+    DLDY = sum(map(x -> x.dldx[l.id], l.children))
     @assert size(DLDY,2) == size(l.W,2)
     l.dldy = DLDY
-    A_mul_Bt!(l.dldx, DLDY, l.W)
+    parent_id = l.parents[1].id
+    A_mul_Bt!(l.dldx[parent_id], DLDY, l.W)
     At_mul_B!(l.grad, l.x, l.dldy) # Also compute the gradient
     return view(l.dldx, :, 1:l.i)
 end

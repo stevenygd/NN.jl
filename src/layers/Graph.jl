@@ -39,7 +39,9 @@ function forward_the_rest(graph::Graph; kwargs...)
 end
 
 function backward(graph::Graph)
-    return Float64[]
+    for l ∈ graph.forward_order
+        backward(l)
+    end
 end
 
 function inference(graph::Graph, layer::Layer, xs::Dict{String,Array{Float64}})

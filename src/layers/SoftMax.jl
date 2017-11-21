@@ -3,7 +3,7 @@ type SoftMax <: Nonlinearity
     y :: Array{Float64}         # output m by n matrix which uses softmax to normalize the input matrix
     has_init :: Bool            # true if the layer has been initialized
     jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
-    dldx :: Array{Float64}      # cahce for the backward result
+    dldx :: Dict{Base.Random.UUID, Array{Float64}}     # cahce for the backward result
     ly :: Array{Float64}        # cache for row matrix during backward
     lexp :: Array{Float64}      # cache for exponential of l.x in forward
     lsum :: Array{Float64}      # cache for calculating exponential sum in forward
