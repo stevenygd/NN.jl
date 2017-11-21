@@ -24,8 +24,7 @@ type InputLayer <: DataLayer
     function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
         layer = new(Layer[], Layer[], true, Base.Random.uuid4(), shape,
                     Array{Float64}(shape), Array{Float64}(shape),
-                    Array{Float64}(shape), Dict(),
-                    tag)
+                    Array{Float64}(shape), Dict(), tag)
         init(layer, nothing, config)
         layer
     end

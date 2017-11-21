@@ -41,7 +41,8 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
+    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int};
+         padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
         return new(Layer[], Layer[], false, Base.Random.uuid4(), init,
@@ -54,7 +55,8 @@ type CaffeConvLayer <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
     end
 
-    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal", kwargs...)
+    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
+         config::Union{Dict{String, Any}, Void}=nothing, padding = 0, stride = 1, init_type="Normal", kwargs...)
         layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -75,7 +77,7 @@ function computeOutputSize(l::CaffeConvLayer, input_size::Tuple)
     return (convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1), f, b)
 end
 
-function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any}, Void}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """

@@ -15,12 +15,12 @@ type ReLu <: Nonlinearity
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Dict(), Float64[])
     end
 
     function ReLu(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, alpha::Float64 = 1.0, kwargs...)
         @assert alpha >= 0.
-        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Float64[], Float64[])
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Dict(), Float64[])
         init(layer, prev, config; kwargs...)
         layer
     end
@@ -43,7 +43,7 @@ function init(l::ReLu, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void
     end
     l.x = Array{Float64}(out_size)
     l.y = Array{Float64}(out_size)
-    l.dldx = Array{Float64}(out_size)
+    l.dldx[l.parents[1].id] = Array{Float64}(out_size)
     l.dldy = Array{Float64}(out_size)
 
     l.has_init = true
