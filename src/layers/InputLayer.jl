@@ -51,8 +51,6 @@ end
 function backward(l::InputLayer; kwargs...)
     DLDY = sum(map(x -> x.dldx[l.id], l.children))
     l.dldy = DLDY
-    parent_id = l.parents[1].id
-    l.dldx[parent_id] = DLDY
 end
 
 function getInputSize(l::InputLayer)
