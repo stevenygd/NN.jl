@@ -1,10 +1,11 @@
 # include("LayerBase.jl")
+include("InputLayer.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
     parents  :: Array{Layer}
     children :: Array{Layer}
 
-    id :: int64
+    id :: Int64
 
     dldx   :: Array{Float64} # backprop
     x      :: Array{Float64} # input vector
