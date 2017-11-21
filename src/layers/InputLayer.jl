@@ -13,17 +13,19 @@ type InputLayer <: DataLayer
     dldx     :: Dict{Base.Random.UUID, Array{Float64}}
     tag :: String
 
+
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
         return new(Layer[], Layer[], true, Base.Random.uuid4(), shape, Array{Float64}(shape),
                 Array{Float64}(shape), Array{Float64}(shape),
-                Array{Float64}(shape), tag)
+                Dict(), tag)
     end
 
-    function InputLayer(shape; config::Union{Dict{String,Any},Void}=nothing, tag="default")
+    function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
         layer = new(Layer[], Layer[], true, Base.Random.uuid4(), shape,
                     Array{Float64}(shape), Array{Float64}(shape),
-                    Array{Float64}(shape), Array{Float64}(shape), tag)
+                    Array{Float64}(shape), Dict(),
+                    tag)
         init(layer, nothing, config)
         layer
     end
@@ -47,16 +49,11 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
     return l.y
 end
 
-function backward(l::InputLayer, DLDY::Union{SubArray{Float64},Array{Float64}}; kwargs...)
+function backward(l::InputLayer; kwargs...)
     DLDY = sum(map(x -> x.dldx[l.id], l.children))
     l.dldy = DLDY
     parent_id = l.parents[1].id
     l.dldx[parent_id] = DLDY
-    return l.dldx
-end
-
-function backward(l::InputLayer; kwargs...)
-    l.dldx = l.dldy
 end
 
 function getInputSize(l::InputLayer)

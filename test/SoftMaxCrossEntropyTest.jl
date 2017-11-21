@@ -1,22 +1,22 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
+include("../src/layers/Graph.jl")
 import Calculus: check_gradient
 using Base.Test
 
-l = SoftMaxCrossEntropyLoss()
-function beforeTest(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 2, "input_size" => [3]))
-end
 
-function testSoftMaxCrossEntropyOneVector(l, x, y, p, loss, dldx; alpha = 1.)
-    beforeTest(l)
-
+function testSoftMaxCrossEntropyOneVector(x, labels, p, loss, dldx; alpha = 1.)
+    xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
+    l1 = InputLayer(size(x))
+    l2 = SoftMaxCrossEntropyLoss(l1)
+    g  = Graph(l2)
     # Testing forwarding
-    fl, fp = forward(l,x,y)
-    @test fl ≈ loss
+    forward(g, xs)
+    @test l2.loss ≈ loss
 
     # Testing back propagation
-    @test backward(l,y) ≈ dldx
+    backward(g)
+    @test l2.dldx[l1.id] ≈ dldx
 end
 
 # First Test
@@ -28,5 +28,5 @@ p = [2 ; 0]
 loss = -log.([1./s   ;   e^(-1)/s])
 
 dldx = [ e^(-2)/s e^(-1)/s (1./s - 1); 1./s (e^(-1)/s-1) e^(-2)/s]
-testSoftMaxCrossEntropyOneVector(l, x, y, p, loss, dldx)
+testSoftMaxCrossEntropyOneVector(x, y, p, loss, dldx)
 println("test 1 passed.\n")

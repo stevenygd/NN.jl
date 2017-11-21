@@ -1,31 +1,35 @@
 include("../src/layers/LayerBase.jl")
+include("../src/layers/InputLayer.jl")
 include("../src/layers/DenseLayer.jl")
+include("../src/layers/SoftMaxCrossEntropy.jl")
+include("../src/layers/Graph.jl")
+
 import Calculus: check_gradient
 using Base.Test
 
-l = DenseLayer(2)
-function beforeTest(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [2]))
-end
-
-
 function testDenseLayerOneVector(w, b, x, y, dldy, dldx, gw, gb)
-    beforeTest(l)
-
+    out_size = size(w, 1)
+    xs = Dict{String,Array{Float64}}("default"=>x, "labels" => zeros(out_size, out_size))
+    l1 = InputLayer(size(x))
+    l2 = DenseLayer(l1, size(w, 2))
+    l3 = SoftMaxCrossEntropyLoss(l2)
+    g  = Graph(l3)
     # Testing forwarding
     W = [w; b;]
-    setParam!(l, Array[W])
+    setParam!(l2, Array[W])
     n = size(x,2) # x is two dimensional
-    @test forward(l,x) == y
-    @test l.x[1:n] == x[1,:]
-    @test l.y == y
+    forward(g, xs)
+    @test l2.x[1:n] == x[1,:]
+    @test l2.y == y
 
     #Testing back propagation
-    @test backward(l,dldy) == dldx
-    @test l.dldy == dldy
-    @test l.dldx[1:n] == dldx[1,:]
-    @test getGradient(l)[1][1:end-1, :]' == gw
-    @test getGradient(l)[1][end, :]' == gb
+    println(dldy)
+    l3.dldx[l2.id] = dldy
+    backward(l2)
+    @test l2.dldy == dldy
+    @test l2.dldx[l1.id][1:n] == dldx[1,:]
+    @test getGradient(l2)[1][1:end-1, :]' == gw
+    @test getGradient(l2)[1][end, :]' == gb
 end
 
 # First Test

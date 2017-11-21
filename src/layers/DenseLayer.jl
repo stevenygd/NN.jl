@@ -20,19 +20,14 @@ type DenseLayer <: Layer
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
-<<<<<<< HEAD
-        return new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o), Base.Random.uuid4)
-=======
         return new(Layer[], Layer[], false, Base.Random.uuid4(), init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
->>>>>>> 0e9a56f0d7923f8d75fc645aec7a8dd2ba2779e5
+                   zeros(o), Dict(), zeros(i+1, o), zeros(i+1, o))
     end
 
     function DenseLayer(prev::Union{Layer,Void}, num_units::Int; config::Union{Dict{String,Any},Void}=nothing, init_type="Uniform")
         i, o = 1, num_units
         layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
-                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+                   zeros(o), Dict(), zeros(i+1, o), zeros(i+1, o))
         init(layer, prev, config)
         layer
     end
@@ -61,6 +56,7 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any
         @assert length(out_size) == 2 # TODO: maybe a friendly error message?
     end
 
+    @assert length(l.parents) == 1
     batch_size, input_size = out_size
     l.i = input_size
 
@@ -68,7 +64,7 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any
     l.x     = Array{Float64}(batch_size, l.i + 1)
     l.y     = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
-    l.dldx  = Array{Float64}(batch_size, l.i + 1)
+    l.dldx[l.parents[1].id] = Array{Float64}(batch_size, l.i + 1)
     l.velc  = zeros(l.i + 1,    l.num_units)
     l.grad  = zeros(l.i + 1,    l.num_units)
 
@@ -98,7 +94,7 @@ function update(l::DenseLayer, input_size::Tuple;)
     l.x     = Array{Float64}(batch_size, l.i + 1)
     l.y     = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
-    l.dldx  = Array{Float64}(batch_size, l.i + 1)
+    l.dldx[l.parents[1].id]  = Array{Float64}(batch_size, l.i + 1)
     # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
@@ -132,8 +128,7 @@ function backward(l::DenseLayer; kwargs...)
     l.dldy = DLDY
     parent_id = l.parents[1].id
     A_mul_Bt!(l.dldx[parent_id], DLDY, l.W)
-    At_mul_B!(l.grad, l.x, l.dldy) # Also compute the gradient
-    return view(l.dldx, :, 1:l.i)
+    At_mul_B!(l.grad, l.x, l.dldy)
 end
 
 function getGradient(l::DenseLayer)
