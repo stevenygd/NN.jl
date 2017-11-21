@@ -14,7 +14,7 @@ function test(l, x, label; alpha = 1.)
     beforeTest(l,x)
 
     # Testing forward
-    @test forward(l,x,label)[1]== sum(-label.*log(x),2)
+    @test forward(l,x,label)[1]== sum(-label.*log.(x),2)
 
     # Testing backward
     @test backward(l,label)==-label./x
@@ -23,7 +23,7 @@ end
 println("Test 1...")
 x = [.7 .2 .1 ; .03 .29 .68]
 label = rand(2,3)
-# loss = sum(-label.*log(x),2)
+
 test(l,x,label)
 println("Basic test passed")
 

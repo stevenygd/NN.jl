@@ -3,8 +3,9 @@
 type DenseLayer <: Layer
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init  :: Bool
+    id        :: Base.Random.UUID
+
     init_type :: String
     i         :: Int
     num_units :: Int
@@ -15,20 +16,23 @@ type DenseLayer <: Layer
     dldx      :: Dict{Base.Random.UUID, Array{Float64}}
     velc      :: Array{Float64}
     grad      :: Array{Float64}
-    id        :: Base.Random.UUID
 
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
+<<<<<<< HEAD
         return new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
                    zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o), Base.Random.uuid4)
+=======
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
+                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
+>>>>>>> 0e9a56f0d7923f8d75fc645aec7a8dd2ba2779e5
     end
 
-    function DenseLayer(prev::Layer, num_units::Int, config::Union{Dict{String,Any},Void}=nothing; init_type="Uniform")
+    function DenseLayer(prev::Union{Layer,Void}, num_units::Int; config::Union{Dict{String,Any},Void}=nothing, init_type="Uniform")
         i, o = 1, num_units
-        layer = new(Layer[], Layer[], false, init_type, i, o, randn(i+1,o),
-                    zeros(i), zeros(o), zeros(o), zeros(i), zeros(i+1, o),
-                    zeros(i+1, o), Base.Random.uuid4())
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type, i, o, randn(i+1,o), zeros(i), zeros(o),
+                   zeros(o), zeros(i), zeros(i+1, o), zeros(i+1, o))
         init(layer, prev, config)
         layer
     end

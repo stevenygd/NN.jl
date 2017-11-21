@@ -1,8 +1,10 @@
-include("LayerBase.jl")
+include("InputLayer.jl")
 
 type SoftMaxCrossEntropyLoss <: LossCriteria
     parents  :: Array{Layer}
     children :: Array{Layer}
+    has_init  :: Bool
+    id        :: Base.Random.UUID
 
     dldx   :: Array{Float64} # backprop
     x      :: Array{Float64} # input vector
@@ -12,18 +14,13 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     loss   :: Array{Float64} # output of cross entropy loss
     pred   :: Array{Int64}   # output for prediction
 
-    id     :: Base.Random.UUID
-
     function SoftMaxCrossEntropyLoss()
-        return new(Layer[], Layer[], Float64[], Float64[], Float64[],
-                Float64[], Float64[], Int64[], 1:1, Base.Random.uuid4())
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
     end
 
-    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
-        layer = new(Layer[], Layer[], Float64[], Float64[],
-                    Float64[], Float64[], Float64[], Int64[],
-                    1:1, Base.Random.uuid4())
-        init(layer,prev, config)
+    function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), Float64[], Float64[], Float64[], Float64[], Float64[], Int64[], 1:1)
+        init(layer,prev, config;kwargs...)
         layer
     end
 end
@@ -42,7 +39,7 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Union{Di
     N, D     = out_size
 
     # loss layer's parents[1] would be an input layer providing label
-    push!(l.parents, InputLayer((out_size), config; tag="labels"))
+    push!(l.parents, InputLayer((out_size); tag="labels"))
 	if !isa(p,Void)
         push!(l.parents, p)
         push!(p.children, l)

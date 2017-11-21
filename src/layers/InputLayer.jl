@@ -3,28 +3,27 @@ include("LayerBase.jl")
 type InputLayer <: DataLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init :: Bool
+    id  :: Base.Random.UUID
+
     shape    :: Tuple
     x        :: Array{Float64}
     y        :: Array{Float64}
     dldy     :: Array{Float64}
     dldx     :: Dict{Base.Random.UUID, Array{Float64}}
     tag :: String
-    id  :: Base.Random.UUID
 
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(Layer[], Layer[], true, shape, Array{Float64}(shape),
+        return new(Layer[], Layer[], true, Base.Random.uuid4(), shape, Array{Float64}(shape),
                 Array{Float64}(shape), Array{Float64}(shape),
-                Array{Float64}(shape), tag, Bse.Random.uuid4())
+                Array{Float64}(shape), tag)
     end
 
-    function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
-        layer = new(Layer[], Layer[], true, shape,
+    function InputLayer(shape; config::Union{Dict{String,Any},Void}=nothing, tag="default")
+        layer = new(Layer[], Layer[], true, Base.Random.uuid4(), shape,
                     Array{Float64}(shape), Array{Float64}(shape),
-                    Array{Float64}(shape), Array{Float64}(shape),
-                    tag, Base.Random.uuid4())
+                    Array{Float64}(shape), Array{Float64}(shape), tag)
         init(layer, nothing, config)
         layer
     end
@@ -54,6 +53,10 @@ function backward(l::InputLayer, DLDY::Union{SubArray{Float64},Array{Float64}}; 
     parent_id = l.parents[1].id
     l.dldx[parent_id] = DLDY
     return l.dldx
+end
+
+function backward(l::InputLayer; kwargs...)
+    l.dldx = l.dldy
 end
 
 function getInputSize(l::InputLayer)

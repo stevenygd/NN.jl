@@ -1,21 +1,38 @@
 type SoftMax <: Nonlinearity
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+    has_init  :: Bool
+    id        :: Base.Random.UUID
+
     x  :: Array{Float64}        # input m by n matrix which represents m instances with scores for n classes
     y :: Array{Float64}         # output m by n matrix which uses softmax to normalize the input matrix
-    has_init :: Bool            # true if the layer has been initialized
     jacobian :: Array{Float64}  # cache for the jacobain matrices used in backward
     dldx :: Dict{Base.Random.UUID, Array{Float64}}     # cahce for the backward result
     ly :: Array{Float64}        # cache for row matrix during backward
     lexp :: Array{Float64}      # cache for exponential of l.x in forward
     lsum :: Array{Float64}      # cache for calculating exponential sum in forward
-    id   :: Base.Random.UUID
 
     function SoftMax()
-        return new(Float64[], Float64[], false, Float64[],
-                    Float64[], Base.Random.uuid4())
+        return new(
+            Layer[], Layer[], false, Base.Random.uuid4(),
+            Float64[], Float64[], Float64[], Float64[], Float64[], Float64[],Float64[])
+    end
+
+    function SoftMax(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
+        layer = new(
+            Layer[], Layer[], false, Base.Random.uuid4(),
+            Float64[], Float64[], Float64[], Float64[], Float64[], Float64[],Float64[])
+        init(layer, prev, config; kwargs...)
+        layer
     end
 end
 
 function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+  if !isa(p,Void)
+    l.parents = [p]
+    push!(p.children, l)
+  end
+
   if p == nothing
       @assert ndims(config["input_size"]) == 1 # TODO: maybe an error message?
       out_size = (config["batch_size"], config["input_size"][1])
@@ -30,6 +47,7 @@ function init(l::SoftMax, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs
   l.dldx = Array{Float64}(out_size)
   l.ly = Array{Float64}(n)
   l.lexp = Array{Float64}(out_size)
+  l.has_init = true
 end
 
 function update(l::SoftMax, out_size::Tuple)

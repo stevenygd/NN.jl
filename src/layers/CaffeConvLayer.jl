@@ -9,6 +9,7 @@ type CaffeConvLayer <: LearnableLayer
     children :: Array{Layer}
 
     has_init :: Bool
+    id       :: Base.Random.UUID
 
     # Parameters
     init_type:: String                  # Type of initialization
@@ -40,24 +41,10 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    id       :: Base.Random.UUID
-
     function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(Layer[], Layer[], false, init,
-                   padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
-                   zeros(1), zeros(1), zeros(1),
-                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
-                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
-                   (zeros(1,1), zeros(1,1), zeros(1,1)),
-                   Base.Random.uuid4()) # tmps_gradient
-    end
-
-    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}, config::Dict{String, Any}=Dict{String, Any}(); padding = 0, stride = 1, init_type="Normal")
-        layer = new(Layer[], Layer[], false, init_type,
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), init,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -65,7 +52,18 @@ type CaffeConvLayer <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
-        init(layer, prev, config)
+    end
+
+    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal", kwargs...)
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type,
+                   padding, stride, filters, kernel, (0,0,0),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1), zeros(1), zeros(1),
+                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
+                   (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
+                   (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
+        init(layer, prev, config;kwargs...)
         layer
     end
 end
@@ -340,6 +338,16 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
     f, c = size(flipped,3), size(flipped, 4)
     caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
     # println("Backward:\nx:$(mean(l.dldy))\t$(mean(l.dldx))")
+    return l.dldx
+end
+
+function backward(l::CaffeConvLayer; kwargs...)
+    flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
+    f, c = size(flipped,3), size(flipped, 4)
+    caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    for i=1:length(l.parents)
+        l.dldy
+    end
     return l.dldx
 end
 

@@ -3,8 +3,9 @@
 type DropoutLayer <: RegularizationLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init    :: Bool
+    id          :: Base.Random.UUID
+
     p           :: Float64
     last_drop   :: Array{Float64}
     x           :: Array{Float64}
@@ -14,12 +15,14 @@ type DropoutLayer <: RegularizationLayer
 
     function DropoutLayer(p::Float64)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
-        return new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, Base.Random.uuid4(),
+            p, Float64[], Float64[], Float64[], Float64[], Float64[])
     end
 
-    function DropoutLayer(prev::Union{Layer,Void}, p, config::Union{Dict{String,Any},Void}=nothing)
+    function DropoutLayer(prev::Union{Layer,Void}, p; config::Union{Dict{String,Any},Void}=nothing)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
-        layer = new(Layer[], Layer[], false, p, Float64[], Float64[], Float64[], Float64[], Float64[])
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(),
+            p, Float64[], Float64[], Float64[], Float64[], Float64[])
         init(layer, prev, config)
         layer
     end

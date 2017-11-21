@@ -2,14 +2,15 @@ include("LayerBase.jl")
 type AdditionLayer <: Layer
     parents  :: Array{Layer}
     children :: Array{Layer}
-    has_init :: Bool
+    has_init  :: Bool
+    id        :: Base.Random.UUID
 
     y     :: Array{Float64}
     dldx  :: Array{Float64}
 
-    function AdditionLayer(prevs::Array{<:Layer}, config::Union{Dict{String,Any},Void}=nothing)
-        layer =  new(Layer[], Layer[], false, Float64[], Float64[])
-        init(layer, prevs, config)
+    function AdditionLayer(prevs::Array{<:Layer}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
+        layer =  new(Layer[], Layer[], false, Base.Random.uuid4(), Float64[], Float64[])
+        init(layer, prevs, config; kwargs...)
         layer
     end
 end
