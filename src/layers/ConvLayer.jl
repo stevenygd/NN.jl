@@ -8,7 +8,7 @@ type ConvLayer <: LearnableLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
     has_init :: Bool
-    id :: Int64
+    id :: Base.Random.UUID
 
     # Parameters
     init_type:: String                  # Type of initialization
@@ -38,11 +38,23 @@ type ConvLayer <: LearnableLayer
         # @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(Layer[], Layer[], false, -1, init,
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), init,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1))
+    end
+
+    function ConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal")
+        @assert stride == 1
+        @assert padding == 0
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init,
+                   padding, stride, filters, kernel, (0,0,0),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1), zeros(1), zeros(1))
+        init(layer, prev, config; kwargs...)
+        layer
     end
 end
 

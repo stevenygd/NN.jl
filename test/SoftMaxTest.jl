@@ -4,7 +4,7 @@ using Base.Test
 using ForwardDiff
 
 l = SoftMax();
-s(x::Vector) = exp(x)./sum(exp(x))
+s(x::Vector) = exp.(x)./sum(exp.(x))
 g(x::Vector) = ForwardDiff.jacobian(s,x)
 
 function before(l,x)

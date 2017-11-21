@@ -3,21 +3,27 @@ include("LayerBase.jl")
 type InputLayer <: DataLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init :: Bool
+    id  :: Base.Random.UUID
+
     shape    :: Tuple
     x        :: Array{Float64}
     y        :: Array{Float64}
     dldy     :: Array{Float64}
     dldx     :: Array{Float64}
     tag :: String
+
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        return new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
+        return new(Layer[], Layer[], true, Base.Random.uuid4(), shape, Array{Float64}(shape),
+                Array{Float64}(shape), Array{Float64}(shape),
+                Array{Float64}(shape), tag)
     end
 
-    function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
-        layer = new(Layer[], Layer[], true, shape, Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), Array{Float64}(shape), tag)
+    function InputLayer(shape; config::Union{Dict{String,Any},Void}=nothing, tag="default")
+        layer = new(Layer[], Layer[], true, Base.Random.uuid4(), shape,
+                    Array{Float64}(shape), Array{Float64}(shape),
+                    Array{Float64}(shape), Array{Float64}(shape), tag)
         init(layer, nothing, config)
         layer
     end

@@ -5,10 +5,9 @@ include("../src/layers/InputLayer.jl")
 using Base.Test
 
 function Test(xs, y, dldy)
-    config = Dict{String, Any}()
-    input1 = InputLayer(nothing, (1, 2), config)
-    input2 = InputLayer(nothing, (1, 2), config)
-    l = AdditionLayer([input1, input2], config)
+    input1 = InputLayer((1, 2))
+    input2 = InputLayer((1, 2))
+    l = AdditionLayer([input1, input2])
     forward(input1, xs[1])
     forward(input2, xs[2])
 

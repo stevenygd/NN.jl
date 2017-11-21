@@ -1,17 +1,34 @@
 # include("LayerBase.jl")
 type Tanh <: Nonlinearity
-    has_init    :: Bool
+    parents  :: Array{Layer}
+    children :: Array{Layer}
+    has_init  :: Bool
+    id        :: Base.Random.UUID
+
     x           :: Array{Float64}
     y           :: Array{Float64}
     dldx        :: Array{Float64}
     dldy        :: Array{Float64}
 
     function Tanh()
-        return new(false, Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, Base.Random.uuid4())
+            Float64[], Float64[], Float64[], Float64[])
+    end
+
+    function Tanh(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4())
+            Float64[], Float64[], Float64[], Float64[])
+        init(layer, prev, config; kwargs...)
+        layer
     end
 end
 
 function init(l::Tanh, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+    if !isa(p,Void)
+        l.parents = [p]
+        push!(p.children, l)
+    end
+
     # TODO: currently I only accept Single dimensional dropout
     if p == nothing
         # [l] is the first layer, batch_size used default network batch_size

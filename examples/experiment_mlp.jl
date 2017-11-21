@@ -1,5 +1,4 @@
-include("../src/NN.jl")
-include("../util/datasets.jl")
+include("../src/NN.jl") include("../util/datasets.jl")
 
 using NN
 ENV["PLOTS_USE_ATOM_PLOTPANE"] = true

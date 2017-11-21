@@ -3,7 +3,7 @@ type CrossEntropyLoss <: LossCriteria
   parents  :: Array{Layer}
   children :: Array{Layer}
   has_init :: Bool
-  id :: Int64
+  id       :: Base.Random.UUID
 
   x :: Array{Float64}       # input normalized matrix, expected to be free of zeros
   loss :: Array{Float64}    # output of current layer; calculate loss of each instance
@@ -12,20 +12,25 @@ type CrossEntropyLoss <: LossCriteria
 
   function CrossEntropyLoss()
     return new(
-      Layer[], Layer[], false, -1,
+      Layer[], Layer[], false, Base.Random.uuid4(),
       Float64[], Float64[], 0,  Float64[])
   end
 
-  function CrossEntropyLoss(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing)
-        layer = new(
-          Layer[], Layer[], false, -1,
-          Float64[], Float64[], 0,  Float64[])
-        init(layer,prev,config)
-        layer
-    end
+  function CrossEntropyLoss(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
+    layer = new(
+      Layer[], Layer[], false, Base.Random.uuid4(),
+      Float64[], Float64[], 0,  Float64[])
+    init(layer,prev,config;kwargs...)
+    layer
+  end
 end
 
 function init(l::CrossEntropyLoss, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+  if !isa(p,Void)
+    l.parents = [p]
+    push!(p.children, l)
+  end
+
   if p == nothing
       @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
       out_size = (config["batch_size"], config["input_size"][1])

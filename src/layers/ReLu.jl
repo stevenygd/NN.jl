@@ -4,9 +4,9 @@ include("LayerBase.jl")
 type ReLu <: Nonlinearity
     parents  :: Array{Layer}
     children :: Array{Layer}
-
     has_init :: Bool
-    id       :: int64
+    id       :: Base.Random.UUID
+
     alpha    :: Float64
     x        :: Array{Float64}
     y        :: Array{Float64}
@@ -15,13 +15,13 @@ type ReLu <: Nonlinearity
 
     function ReLu(alpha::Float64 = 1.0)
         @assert alpha >= 0.
-        return new(Layer[], Layer[], false, -1, alpha, Float64[], Float64[], Float64[], Float64[])
+        return new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Float64[], Float64[])
     end
 
-    function ReLu(prev::Union{Layer,Void}, config::Union{Dict{String,Any},Void}=nothing, alpha::Float64 = 1.0)
+    function ReLu(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, alpha::Float64 = 1.0, kwargs...)
         @assert alpha >= 0.
-        layer = new(Layer[], Layer[], false, -1, alpha, Float64[], Float64[], Float64[], Float64[])
-        init(layer, prev, config)
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), alpha, Float64[], Float64[], Float64[], Float64[])
+        init(layer, prev, config; kwargs...)
         layer
     end
 end
