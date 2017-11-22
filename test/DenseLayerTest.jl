@@ -19,14 +19,13 @@ function testDenseLayerOneVector(w, b, x, y, dldy, dldx, gw, gb)
     setParam!(l2, Array[W])
     n = size(x,2) # x is two dimensional
     forward(g, xs)
-    @test l2.base.x[1:n] == x[1,:]
+    @test l2.x[1:n] == x[1,:]
     @test l2.base.y == y
 
     #Testing back propagation
-    println(dldy)
     l3.base.dldx[l2.base.id] = dldy
     backward(l2)
-    @test l2.base.dldy == dldy
+    @test l2.dldy == dldy
     @test l2.base.dldx[l1.base.id][1:n] == dldx[1,:]
     @test getGradient(l2)[1][1:end-1, :]' == gw
     @test getGradient(l2)[1][end, :]' == gb
@@ -73,17 +72,21 @@ println("test 3 passed.\n")
 include("gradient_test.jl")
 
 bsize= 1
-l = DenseLayer(30)
 in_size = 50
-init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (in_size)))
+out_size = 30
+l1 = InputLayer((bsize, in_size))
+l2 = DenseLayer(l1, out_size)
+l3 = SoftMaxCrossEntropyLoss(l2)
+graph  = Graph(l3)
 X = rand(bsize, in_size)
-Y = ones(size(forward(l, X)))
-backward(l,Y)
-g  = getGradient(l)[1]
-w = copy(l.W)
+Y = ones(l2.base.y)
+forward(graph, Dict("default"=>X, "labels"=>Y))
+backward(graph)
+g  = getGradient(l2)[1]
+w = copy(l2.W)
 function f_w1(w)
-    setParam!(l, Array[w])
-    return sum(forward(l,X))
+    setParam!(l2, Array[w])
+    return sum(forward(l2, X))
 end
 anl_g, err = gradient_check(f_w1, g, w)
 println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
@@ -91,34 +94,29 @@ println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
 @test err ≈ 0. atol=1e-4
 println("[PASS] gradient check test 1.")
 
-include("../src/layers/InputLayer.jl")
-include("../src/layers/SoftMaxCrossEntropy.jl")
-include("../src/layers/SequentialNet.jl")
-batch_size = 500
+batch_size  = 500
 inp_size    = 30
 out_size    = 10
 function build_mlp()
-    l = DenseLayer(out_size)
-    layers = Layer[
-        InputLayer((batch_size,inp_size)), l
-    ]
-    criteria = SoftMaxCrossEntropyLoss()
-    net = SequentialNet(layers, criteria)
-    return l, net
+    l1 = InputLayer((batch_size, inp_size))
+    l2 = DenseLayer(l1, out_size)
+    l3 = SoftMaxCrossEntropyLoss(l2)
+    graph = Graph(l3)
+    return l2, graph
 end
-l, net = build_mlp()
+l2, graph = build_mlp()
 X = rand(batch_size, inp_size)
 Y = zeros(batch_size, out_size)
 Y[1:batch_size, rand(1:10, batch_size)] = 1
 function f_w2(w)
-    setParam!(l, Array[w])
-    loss, _ = forward(net, X, Y)
+    setParam!(l2, Array[w])
+    loss, _ = forward(graph, Dict("default"=>X, "labels"=>Y))
     return sum(loss)
 end
-w = l.W
-forward(net, X, Y)
-backward(net, Y)
-g = getGradient(l)[1]
+w = l2.W
+forward(graph, X, Y)
+backward(graph, Y)
+g = getGradient(l2)[1]
 anl_g, err = gradient_check(f_w2, g, w)
 println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
 @test anl_g ≈ g atol=1e-4
