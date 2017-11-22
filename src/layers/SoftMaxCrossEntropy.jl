@@ -3,13 +3,14 @@ include("InputLayer.jl")
 type SoftMaxCrossEntropyLoss <: LossCriteria
     base    :: LayerBase
 
+    x
     exp    :: Array{Float64} # cache for exp(x)
     lsum   :: Array{Float64} # cache for sum(exp,2)
     loss   :: Array{Float64} # output of cross entropy loss
     pred   :: Array{Int64}   # output for prediction
 
     function SoftMaxCrossEntropyLoss()
-        return new(LayerBase(), Float64[], Float64[], Float64[], Int64[])
+        return new(LayerBase(), Float64[], Float64[], Float64[], Float64[], Int64[])
     end
 
     function SoftMaxCrossEntropyLoss(prev::Union{Layer,Void}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
@@ -42,8 +43,8 @@ function init(l::SoftMaxCrossEntropyLoss, p::Union{Layer,Void}, config::Union{Di
     connect(l, parents)
 
     foreach(x -> l.base.dldx[x.base.id] = Array{Float64}(out_size), l.base.parents)
-    l.base.x      = Array{Float64}(out_size)
-    l.base.y      = Array{Float64}(out_size)
+    l.x      = Array{Float64}(out_size)
+    l.base.y = Array{Float64}(out_size)
     l.loss   = Array{Float64}(N)
     l.exp    = Array{Float64}(out_size)
     l.pred   = Array{Int64}(N)
@@ -53,11 +54,11 @@ end
 function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     # We only allow to update the batch size
     @assert length(input_size) == 2
-    @assert input_size[2] == size(l.base.x, 2)
-    N, D = input_size[1], size(l.base.x, 2)
+    @assert input_size[2] == size(l.x, 2)
+    N, D = input_size[1], size(l.x, 2)
     foreach(x -> l.base.dldx[x.base.id] = Array{Float64}(input_size), l.base.parents)
-    l.base.x      = Array{Float64}(input_size)
-    l.base.y      = Array{Float64}(input_size)
+    l.x      = Array{Float64}(input_size)
+    l.base.y = Array{Float64}(input_size)
     l.loss   = Array{Float64}(N)
     l.pred   = Array{Int64}(N)
     l.lsum = Array{Float64}(N)
@@ -69,19 +70,19 @@ function forward(l::SoftMaxCrossEntropyLoss; kwargs...)
 end
 
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
-    @assert size(Y, 2) == size(l.base.x, 2)
+    @assert size(Y, 2) == size(l.x, 2)
     m,n = size(Y)
-    if m != size(l.base.x, 1)
+    if m != size(l.x, 1)
       update(l, size(Y))
     end
-    l.base.x = Y
-    l.exp = exp.(l.base.x)
+    l.x = Y
+    l.exp = exp.(l.x)
     l.lsum = sum(l.exp,2)
     l.base.y = l.exp ./ l.lsum
 
     for i=1:m
       for j=1:n
-        l.exp[i,j] = exp(l.base.x[i,j])
+        l.exp[i,j] = exp(l.x[i,j])
       end
       l.lsum[i] = sum(l.exp[i,:])
       for j=1:n

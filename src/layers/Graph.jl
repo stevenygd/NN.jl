@@ -24,11 +24,15 @@ function top_sort(graph::Graph, layer::Layer, visited::Set{Layer})
     end
 end
 
-function forward(graph::Graph, xs::Dict{String, Array{Float64}}; kwargs...)
-    for x in keys(xs)
-        forward(graph.input_layers[x], xs[x];kwargs...)
+function forward(graph::Graph, xs::Dict{String, <:Array{Float64}}; kwargs...)
+    for (tag, input) in xs
+        forward(graph.input_layers[tag], input;kwargs...)
     end
     forward_the_rest(graph; kwargs...)
+    # loss and prediction from the loss layer, which is assumed to be the last
+    # in the forward order
+    loss_layer = graph.forward_order[end]
+    return loss_layer.loss, loss_layer.base.y
 end
 
 function forward_the_rest(graph::Graph; kwargs...)

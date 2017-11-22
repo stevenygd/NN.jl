@@ -2,6 +2,8 @@
 # include("LayerBase.jl")
 type DenseLayer <: Layer
     base    :: LayerBase
+    x       :: Array{Float64}
+    dldy    :: Array{Float64}
 
     init_type :: String
     i         :: Int
@@ -13,12 +15,12 @@ type DenseLayer <: Layer
     # Minimal Initializer, needs to be initialized
     function DenseLayer(num_units::Int;init_type="Uniform")
         i, o = 1, num_units
-        return new(LayerBase(), init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        return new(LayerBase(), Float64[], Float64[], init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
     end
 
     function DenseLayer(prev::Union{Layer,Void}, num_units::Int; config::Union{Dict{String,Any},Void}=nothing, init_type="Uniform")
         i, o = 1, num_units
-        layer = new(LayerBase(), init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        layer = new(LayerBase(), Float64[], Float64[], init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
         init(layer, prev, config)
         layer
     end
@@ -48,9 +50,9 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any
     l.i = input_size
 
     # Get enough information, now preallocate the memory
-    l.base.x     = Array{Float64}(batch_size, l.i + 1)
+    l.x     = Array{Float64}(batch_size, l.i + 1)
     l.base.y     = Array{Float64}(batch_size, l.num_units)
-    l.base.dldy  = Array{Float64}(batch_size, l.num_units)
+    l.dldy  = Array{Float64}(batch_size, l.num_units)
     if length(l.base.parents)==1
         l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(batch_size, l.i + 1)
     end
@@ -70,7 +72,6 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any
     end
     l.W[i+1,:] = zeros(o)
 
-    l.base.has_init = true
 end
 
 function update(l::DenseLayer, input_size::Tuple;)
@@ -78,13 +79,13 @@ function update(l::DenseLayer, input_size::Tuple;)
     # Couldn't change the input and output size, only the bath size
     # the outter dimension must be the same, so that we don't need
     # to reinitialize the weights and bias
-    @assert length(input_size) == 2 && size(l.base.x, 2) == size(l.base.x, 2)
+    @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
     batch_size = input_size[1]
-    l.base.x     = Array{Float64}(batch_size, l.i + 1)
+    l.x     = Array{Float64}(batch_size, l.i + 1)
     l.base.y     = Array{Float64}(batch_size, l.num_units)
-    l.base.dldy  = Array{Float64}(batch_size, l.num_units)
+    l.dldy  = Array{Float64}(batch_size, l.num_units)
     l.base.dldx[l.base.parents[1].id]  = Array{Float64}(batch_size, l.i + 1)
-    # println("DenseLayer update:\n\tInput:$(size(l.base.x))\n\tOutput:$(size(l.y))")
+    # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
 function forward(l::DenseLayer; kwargs...)
@@ -98,25 +99,25 @@ function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; 
     @assert size(X)[2] == l.i
 
     # update the batch_size, need to re-allocate the memory
-    if size(X, 1) != size(l.base.x, 1)
+    if size(X, 1) != size(l.x, 1)
         update(l, size(X))
     end
 
     # Pad one at the end of the vector
-    l.base.x[:,1:l.i] = X
-    l.base.x[:,l.i+1] = 1
+    l.x[:,1:l.i] = X
+    l.x[:,l.i+1] = 1
 
     # Multiplication inplaces
-    A_mul_B!(l.base.y, l.base.x, l.W)
+    A_mul_B!(l.base.y, l.x, l.W)
     return l.base.y
 end
 
 function backward(l::DenseLayer, DLDY::Array; kwargs...)
     @assert size(DLDY,2) == size(l.W,2)
-    l.base.dldy = DLDY
+    l.dldy = DLDY
     parent_id = l.base.parents[1].base.id
     A_mul_Bt!(l.base.dldx[parent_id], DLDY, l.W)
-    At_mul_B!(l.grad, l.base.x, l.base.dldy)
+    At_mul_B!(l.grad, l.x, l.dldy)
 end
 
 function backward(l::DenseLayer; kwargs...)

@@ -10,6 +10,7 @@ type AdditionLayer <: Layer
 end
 
 function init(l::AdditionLayer, ps::Union{Array{<:Layer}}; kwargs...)
+    @assert length(ps) ≥ 1
     out_size = getOutputSize(ps[1])
     for p in ps
         @assert getOutputSize(p) == out_size
@@ -17,19 +18,14 @@ function init(l::AdditionLayer, ps::Union{Array{<:Layer}}; kwargs...)
         push!(l.base.parents, p)
     end
 
-    parents_size = length(ps)
-
     l.base.y = Array{Float64}(out_size)
-    l.base.dldx = Array{Float64}(out_size)
+    foreach(x -> l.base.dldx[x.base.id] = Array{Float64}(out_size), l.base.parents)
 
-    l.base.has_init = true
 end
 
 function update(l::AdditionLayer, input_size::Tuple;)
-    parents_size = length(l.base.parents)
-
     l.base.y = Array{Float64}(input_size)
-    l.base.dldx = Array{Float64}(input_size)
+    foreach(x -> l.base.dldx[x.base.id] = Array{Float64}(input_size), l.base.parents)
 end
 
 function forward(l::AdditionLayer;kwargs...)
@@ -40,8 +36,8 @@ function forward(l::AdditionLayer;kwargs...)
     end
 end
 
-function backward(l::AdditionLayer, DLDY::Union{Array{Float64}, SubArray{Float64}};)
-    @assert size(l.base.dldx) == size(DLDY)
-    l.base.dldx = DLDY
-    return l.dldx
+function backward(l::AdditionLayer;kwargs...)
+    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    println(DLDY)
+    foreach(x -> l.base.dldx[x.base.id] = DLDY, l.base.parents)
 end

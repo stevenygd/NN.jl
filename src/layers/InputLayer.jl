@@ -2,25 +2,22 @@
 include("LayerBase.jl")
 type InputLayer <: DataLayer
     base    :: LayerBase
+    dldy    :: Array{Float64}
     shape   :: Tuple
     tag     :: String
 
 
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        layer = new(LayerBase(), shape, tag)
-        layer.base.has_init = true
+        layer = new(LayerBase(), Float64[], shape, tag)
         # are below necessary?
-        # layer.base.x = Array{Float64}(shape)
         # layer.base.y = Array{Float64}(shape)
         # layer.base.dldy = Array{Float64}(shape)
         layer
     end
 
     function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
-        layer = new(LayerBase(), shape, tag)
-        layer.base.has_init = true
-        # layer.base.x = Array{Float64}(shape)
+        layer = new(LayerBase(), Float64[], shape, tag)
         # layer.base.y = Array{Float64}(shape)
         # layer.base.dldy = Array{Float64}(shape)
         layer
@@ -40,13 +37,12 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
     if size(X) != l.shape
         update(l, size(X))
     end
-    l.base.x = X
     l.base.y = X
     return l.base.y
 end
 
 function backward(l::InputLayer; kwargs...)
-    l.base.dldy = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    l.dldy = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
 end
 
 function getInputSize(l::InputLayer)

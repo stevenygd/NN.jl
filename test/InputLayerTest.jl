@@ -15,13 +15,12 @@ function testInputLayerOneVector(x, y, dldy, dldx)
 
     # Testing forwarding
     @test forward(l,x) == y
-    @test l.base.x == x
     @test l.base.y == y
 
     #Testing back propagation
     l2.base.dldx[l.base.id] = dldy
     @test backward(l) == dldx
-    @test l.base.dldy == dldy
+    @test l.dldy == dldy
 end
 
 # First Test
