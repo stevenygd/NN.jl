@@ -1,5 +1,6 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/InputLayer.jl")
+include("../src/layers/SoftMaxCrossEntropy.jl")
 import Calculus: check_gradient
 using Base.Test
 
@@ -10,6 +11,7 @@ end
 
 function testInputLayerOneVector(x, y, dldy, dldx)
     l = beforeTest()
+    l2 = SoftMaxCrossEntropyLoss(l)
 
     # Testing forwarding
     @test forward(l,x) == y
@@ -17,9 +19,9 @@ function testInputLayerOneVector(x, y, dldy, dldx)
     @test l.base.y == y
 
     #Testing back propagation
-    @test backward(l,dldy) == dldx
+    l2.base.dldx[l.base.id] = dldy
+    @test backward(l) == dldx
     @test l.base.dldy == dldy
-    @test l.base.dldx == dldx
 end
 
 # First Test

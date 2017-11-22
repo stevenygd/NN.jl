@@ -11,8 +11,8 @@ end
 
 function top_sort(graph::Graph, layer::Layer, visited::Set{Layer})
     push!(visited, layer)
-    for i=1:length(layer.parents)
-        l = layer.parents[i]
+    for i=1:length(layer.base.parents)
+        l = layer.base.parents[i]
         if !in(l, visited)
             top_sort(graph, l, visited)
         end

@@ -19,15 +19,15 @@ function testDenseLayerOneVector(w, b, x, y, dldy, dldx, gw, gb)
     setParam!(l2, Array[W])
     n = size(x,2) # x is two dimensional
     forward(g, xs)
-    @test l2.x[1:n] == x[1,:]
-    @test l2.y == y
+    @test l2.base.x[1:n] == x[1,:]
+    @test l2.base.y == y
 
     #Testing back propagation
     println(dldy)
-    l3.dldx[l2.id] = dldy
+    l3.base.dldx[l2.base.id] = dldy
     backward(l2)
-    @test l2.dldy == dldy
-    @test l2.dldx[l1.id][1:n] == dldx[1,:]
+    @test l2.base.dldy == dldy
+    @test l2.base.dldx[l1.base.id][1:n] == dldx[1,:]
     @test getGradient(l2)[1][1:end-1, :]' == gw
     @test getGradient(l2)[1][end, :]' == gb
 end

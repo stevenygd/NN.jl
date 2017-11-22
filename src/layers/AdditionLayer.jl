@@ -1,54 +1,47 @@
 include("LayerBase.jl")
 type AdditionLayer <: Layer
-    parents  :: Array{Layer}
-    children :: Array{Layer}
-    has_init  :: Bool
-    id        :: Base.Random.UUID
+    base    :: LayerBase
 
-    y     :: Array{Float64}
-    dldx  :: Array{Float64}
-
-    function AdditionLayer(prevs::Array{<:Layer}; config::Union{Dict{String,Any},Void}=nothing, kwargs...)
-        layer =  new(Layer[], Layer[], false, Base.Random.uuid4(), Float64[], Float64[])
-        init(layer, prevs, config; kwargs...)
+    function AdditionLayer(prevs::Array{<:Layer}; kwargs...)
+        layer =  new(LayerBase())
+        init(layer, prevs; kwargs...)
         layer
     end
 end
 
-function init(l::AdditionLayer, ps::Union{Array{<:Layer}}, config::Union{Dict{String,Any},Void}; kwargs...)
+function init(l::AdditionLayer, ps::Union{Array{<:Layer}}; kwargs...)
     out_size = getOutputSize(ps[1])
     for p in ps
         @assert getOutputSize(p) == out_size
-        push!(p.children, l)
-        push!(l.parents, p)
+        push!(p.base.children, l)
+        push!(l.base.parents, p)
     end
 
     parents_size = length(ps)
 
-    l.y = Array{Float64}(out_size)
-    l.dldx = Array{Float64}(out_size)
+    l.base.y = Array{Float64}(out_size)
+    l.base.dldx = Array{Float64}(out_size)
 
-    l.has_init = true
+    l.base.has_init = true
 end
 
 function update(l::AdditionLayer, input_size::Tuple;)
-    parents_size = length(l.parents)
+    parents_size = length(l.base.parents)
 
-    l.y = Array{Float64}(input_size)
-    l.dldx = Array{Float64}(input_size)
+    l.base.y = Array{Float64}(input_size)
+    l.base.dldx = Array{Float64}(input_size)
 end
 
 function forward(l::AdditionLayer;kwargs...)
-    xs = [l.y for l in l.parents]
-    l.y = zeros(l.y)
+    xs = [l.base.y for l in l.base.parents]
+    l.base.y = zeros(l.base.y)
     for i=1:size(xs)[1]
-        broadcast!(+, l.y, l.y, xs[i])
+        broadcast!(+, l.base.y, l.base.y, xs[i])
     end
-    return l.y
 end
 
 function backward(l::AdditionLayer, DLDY::Union{Array{Float64}, SubArray{Float64}};)
-    @assert size(l.dldx) == size(DLDY)
-    l.dldx = DLDY
+    @assert size(l.base.dldx) == size(DLDY)
+    l.base.dldx = DLDY
     return l.dldx
 end

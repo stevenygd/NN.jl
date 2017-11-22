@@ -16,7 +16,7 @@ function testSoftMaxCrossEntropyOneVector(x, labels, p, loss, dldx; alpha = 1.)
 
     # Testing back propagation
     backward(g)
-    @test l2.dldx[l1.id] ≈ dldx
+    @test l2.base.dldx[l1.base.id] ≈ dldx
 end
 
 # First Test

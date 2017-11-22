@@ -8,7 +8,7 @@ type InputLayer <: DataLayer
 
     function InputLayer(shape; tag="default")
         # TODO: could allocate less memory by having only two arrays to pass around
-        layer = new(Layer(), shape, tag)
+        layer = new(LayerBase(), shape, tag)
         layer.base.has_init = true
         # are below necessary?
         # layer.base.x = Array{Float64}(shape)
@@ -47,9 +47,6 @@ end
 
 function backward(l::InputLayer; kwargs...)
     l.base.dldy = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
-    # l.base.dldy = DLDY
-    parent_id = l.base.parents[1].id
-    l.base.dldx[parent_id] = l.base.dldy
 end
 
 function getInputSize(l::InputLayer)
