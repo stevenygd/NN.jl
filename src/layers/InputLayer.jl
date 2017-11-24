@@ -42,7 +42,11 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
 end
 
 function backward(l::InputLayer; kwargs...)
-    l.dldy = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    backward(l, sum(map(x -> x.base.dldx[l.base.id], l.base.children)))
+end
+
+function backward(l::InputLayer, DLDY::Array{Float64}; kwargs...)
+    l.dldy = DLDY
 end
 
 function getInputSize(l::InputLayer)
