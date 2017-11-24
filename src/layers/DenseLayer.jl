@@ -88,11 +88,6 @@ function update(l::DenseLayer, input_size::Tuple;)
     # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
-function forward(l::DenseLayer; kwargs...)
-	forward(l, l.base.parents[1].base.y; kwargs...)
-end
-
-
 function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     # X      : NxI matrix, N is the mini batch size, I is the input size
     # Output : NxO matrix
@@ -110,6 +105,10 @@ function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; 
     # Multiplication inplaces
     A_mul_B!(l.base.y, l.x, l.W)
     return l.base.y
+end
+
+function forward(l::DenseLayer; kwargs...)
+	forward(l, l.base.parents[1].base.y; kwargs...)
 end
 
 function backward(l::DenseLayer, DLDY::Array; kwargs...)

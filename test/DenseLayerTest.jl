@@ -69,20 +69,17 @@ gb2 = [1. 2;]
 testDenseLayerOneVector(w2, b2, x, y, dldy, dldx, gw2, gb2)
 println("test 3 passed.\n")
 
-include("gradient_test.jl")
+include("gradient_check.jl")
 
 bsize= 1
 in_size = 50
 out_size = 30
 l1 = InputLayer((bsize, in_size))
 l2 = DenseLayer(l1, out_size)
-l3 = SoftMaxCrossEntropyLoss(l2)
-graph  = Graph(l3)
 X = rand(bsize, in_size)
-Y = ones(l2.base.y)
-forward(graph, Dict("default"=>X, "labels"=>Y))
-backward(graph)
-g  = getGradient(l2)[1]
+Y = ones(forward(l2, X))
+backward(l2, Y)
+g = getGradient(l2)[1]
 w = copy(l2.W)
 function f_w1(w)
     setParam!(l2, Array[w])
@@ -114,8 +111,8 @@ function f_w2(w)
     return sum(loss)
 end
 w = l2.W
-forward(graph, X, Y)
-backward(graph, Y)
+forward(graph, Dict("default"=>X, "labels"=>Y))
+backward(graph)
 g = getGradient(l2)[1]
 anl_g, err = gradient_check(f_w2, g, w)
 println("Relative error: $(err) $(mean(abs.(anl_g))) $(mean(abs.(g)))")
