@@ -1,28 +1,22 @@
 # Abtract out DropOut
 # include("LayerBase.jl")
 type DropoutLayer <: RegularizationLayer
-    parents  :: Array{Layer}
-    children :: Array{Layer}
-    has_init    :: Bool
-    id          :: Base.Random.UUID
+    base        :: LayerBase
 
     p           :: Float64
     last_drop   :: Array{Float64}
     x           :: Array{Float64}
-    y           :: Array{Float64}
-    dldx        :: Array{Float64}
     dldy        :: Array{Float64}
 
     function DropoutLayer(p::Float64)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
-        return new(Layer[], Layer[], false, Base.Random.uuid4(),
-            p, Float64[], Float64[], Float64[], Float64[], Float64[])
+        return new(LayerBase(), p, Float64[], Float64[], Float64[])
     end
 
-    function DropoutLayer(prev::Union{Layer,Void}, p; config::Union{Dict{String,Any},Void}=nothing)
+    function DropoutLayer(prev::Union{Layer,Void}, p;
+                          config::Union{Dict{String,Any},Void}=nothing)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
-        layer = new(Layer[], Layer[], false, Base.Random.uuid4(),
-            p, Float64[], Float64[], Float64[], Float64[], Float64[])
+        layer = new(LayerBase(), p, Float64[], Float64[], Float64[])
         init(layer, prev, config)
         layer
     end
@@ -30,8 +24,8 @@ end
 
 function init(l::DropoutLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
 	if !isa(p,Void)
-        l.parents = [p]
-        push!(p.children, l)
+        push!(l.base.parents , p)
+        push!(p.base.children, l)
     end
 
     # TODO: currently I only accept Single dimensional dropout
@@ -44,13 +38,13 @@ function init(l::DropoutLayer, p::Union{Layer,Void}, config::Union{Dict{String,A
         out_size = getOutputSize(p)
         @assert length(out_size) == 2 # TODO: maybe a friendly error message?
     end
-    N, D = out_size
-    l.last_drop = Array{Float64}(N, D)
-    l.x         = Array{Float64}(N, D)
-    l.y         = Array{Float64}(N, D)
-    l.dldy      = Array{Float64}(N, D)
-    l.dldx      = Array{Float64}(N, D)
-    l.has_init  = true
+
+    @assert length(l.base.parents) == 1
+    l.last_drop = Array{Float64}(out_size)
+    l.x         = Array{Float64}(out_size)
+    l.dldy      = Array{Float64}(out_size)
+    l.base.y    = Array{Float64}(out_size)
+    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(out_size)
 end
 
 function update(l::DropoutLayer, input_size::Tuple;)
@@ -61,9 +55,9 @@ function update(l::DropoutLayer, input_size::Tuple;)
     @assert length(input_size) == 2
     l.last_drop = Array{Float64}(input_size)
     l.x         = Array{Float64}(input_size)
-    l.y         = Array{Float64}(input_size)
     l.dldy      = Array{Float64}(input_size)
-    l.dldx      = Array{Float64}(input_size)
+    l.base.y    = Array{Float64}(input_size)
+    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
 
     # println("DropoutLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
@@ -79,8 +73,12 @@ function forward(l::DropoutLayer, x::Union{SubArray{Float64,2},Array{Float64,2}}
         broadcast!(>, l.last_drop, l.last_drop, l.p)
         broadcast!(/, l.last_drop, l.last_drop, 1-l.p)
     end
-    broadcast!(*, l.y, l.last_drop, l.x)
-    return l.y
+    broadcast!(*, l.base.y, l.last_drop, l.x)
+    return l.base.y
+end
+
+function forward(l::DropoutLayer; deterministics=false)
+    forward(l, l.base.parents[1].base.y, deterministics=deterministics)
 end
 
 # Donot annotate DLDY since it could be subarray
@@ -88,9 +86,15 @@ function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64
     @assert size(DLDY)[2] == size(l.last_drop)[2] &&
             size(DLDY)[1] == size(l.x)[1]
     l.dldy = DLDY
-    broadcast!(*, l.dldx, l.dldy, l.last_drop)
-    return l.dldx
+    broadcast!(*, l.base.dldx[l.base.parents[1].base.id], l.dldy, l.last_drop)
+    return l.base.dldx
 end
+
+function backward(l::DropoutLayer; kwargs...)
+    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    backward(l, DLDY)
+end
+
 
 function getInputSize(l::DropoutLayer)
     if !l.has_init

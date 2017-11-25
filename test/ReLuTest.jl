@@ -1,26 +1,24 @@
 include("../src/layers/LayerBase.jl")
+include("../src/layers/InputLayer.jl")
 include("../src/layers/ReLu.jl")
 import Calculus: check_gradient
 using Base.Test
 
-l = ReLu()
-function beforeTest(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [3]))
-end
-
-
 function testReLuOneVector(x, y, dldy, dldx; alpha = 1.)
-    beforeTest(l)
+    l0 = InputLayer(size(x))
+    l  = ReLu(l0)
+    l1 = Softma
 
     # Testing forwarding
-    @test forward(l,x) == y
+    forward(l0, x)
+    @test forward(l) == y
     @test l.x == x
-    @test l.y == y
+    @test l.base.y == y
 
-    #Testing back propagation
-    @test backward(l,dldy) == dldx
+    #Testing back propagations
+    @test backward(l, dldy) == dldx
     @test l.dldy == dldy
-    @test l.dldx == dldx
+    @test l.base.dldx[l0.base.id] == dldx
 end
 
 # First Test
