@@ -28,6 +28,15 @@ function connect(l::Layer, parents::Array{<:Layer})
     end
 end
 
+function forward(l ::Layer; kwargs...)
+	forward(l, l.base.parents[1].base.y; kwargs...)
+end
+
+function backward(l ::Layer; kwargs...)
+    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
+    backward(l, DLDY; kwargs...)
+end
+
 StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 
 function getGradient(l::StaticLayer)

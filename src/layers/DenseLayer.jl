@@ -12,40 +12,37 @@ type DenseLayer <: Layer
     velc      :: Array{Float64}
     grad      :: Array{Float64}
 
-    # Minimal Initializer, needs to be initialized
-    function DenseLayer(num_units::Int;init_type="Uniform")
+    function DenseLayer(prev::Layer, num_units::Int; init_type="Uniform")
         i, o = 1, num_units
-        return new(LayerBase(), Float64[], Float64[], init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        layer = new(LayerBase(), Float64[], Float64[], init_type,
+            i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        out_size = getOutputSize(prev)
+        connect(layer, [prev])
+        @assert length(layer.base.parents) == 1
+        init(layer, out_size)
+        layer
     end
 
-    function DenseLayer(prev::Union{Layer,Void}, num_units::Int; config::Union{Dict{String,Any},Void}=nothing, init_type="Uniform")
+    function DenseLayer(config::Dict{String,Any}, num_units::Int; init_type="Uniform")
         i, o = 1, num_units
-        layer = new(LayerBase(), Float64[], Float64[], init_type, i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
-        init(layer, prev, config)
+        layer = new(LayerBase(), Float64[], Float64[], init_type,
+            i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        @assert length(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+        init(layer, out_size)
         layer
     end
 end
 
 verbose = 0
 
-function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
+function init(l::DenseLayer, out_size::Tuple; kwargs...)
     """
     [l]         the layer to be initialized
-    [p]         the input layer (previous layer), assumed initialized
-    [config]    the configuration of the whole network (i.e. batch, etc)
+    [out_size]  the size of the output matrix
     """
-    if p == nothing
-        # [l] is the first layer, batch_size used default network batch_size
-        # and input_size should be single dimensional (i.e. vector)
-        @assert length(config["input_size"]) == 1 # TODO: maybe a error message?
-        out_size = (config["batch_size"], config["input_size"][1])
-    else
-        out_size = getOutputSize(p)
-        connect(l, [p])
-        @assert length(out_size) == 2 # TODO: maybe a friendly error message?
-    end
 
-    # @assert length(l.base.parents) == 1
+
     batch_size, input_size = out_size
     l.i = input_size
 
@@ -53,9 +50,7 @@ function init(l::DenseLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any
     l.x     = Array{Float64}(batch_size, l.i + 1)
     l.base.y     = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
-    if length(l.base.parents)==1
-        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(batch_size, l.i + 1)
-    end
+    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(batch_size, l.i + 1)
     l.velc  = zeros(l.i + 1,    l.num_units)
     l.grad  = zeros(l.i + 1,    l.num_units)
 
@@ -81,9 +76,9 @@ function update(l::DenseLayer, input_size::Tuple;)
     # to reinitialize the weights and bias
     @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
     batch_size = input_size[1]
-    l.x     = Array{Float64}(batch_size, l.i + 1)
-    l.base.y     = Array{Float64}(batch_size, l.num_units)
-    l.dldy  = Array{Float64}(batch_size, l.num_units)
+    l.x      = Array{Float64}(batch_size, l.i + 1)
+    l.base.y = Array{Float64}(batch_size, l.num_units)
+    l.dldy   = Array{Float64}(batch_size, l.num_units)
     l.base.dldx[l.base.parents[1].id]  = Array{Float64}(batch_size, l.i + 1)
     # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
@@ -107,10 +102,6 @@ function forward(l::DenseLayer, X::Union{SubArray{Float64,2},Array{Float64,2}}; 
     return l.base.y
 end
 
-function forward(l::DenseLayer; kwargs...)
-	forward(l, l.base.parents[1].base.y; kwargs...)
-end
-
 function backward(l::DenseLayer, DLDY::Array; kwargs...)
     @assert size(DLDY,2) == size(l.W,2)
     l.dldy = DLDY
@@ -119,10 +110,7 @@ function backward(l::DenseLayer, DLDY::Array; kwargs...)
     At_mul_B!(l.grad, l.x, l.dldy)
 end
 
-function backward(l::DenseLayer; kwargs...)
-    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
-    backward(l, DLDY; kwargs...)
-end
+
 
 function getGradient(l::DenseLayer)
   return Array[l.grad]
