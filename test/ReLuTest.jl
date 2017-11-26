@@ -7,7 +7,6 @@ using Base.Test
 function testReLuOneVector(x, y, dldy, dldx; alpha = 1.)
     l0 = InputLayer(size(x))
     l  = ReLu(l0)
-    l1 = Softma
 
     # Testing forwarding
     forward(l0, x)

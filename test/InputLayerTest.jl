@@ -4,13 +4,8 @@ include("../src/layers/SoftMaxCrossEntropy.jl")
 import Calculus: check_gradient
 using Base.Test
 
-function beforeTest()
-    return InputLayer((1,2))
-end
-
-
 function testInputLayerOneVector(x, y, dldy, dldx)
-    l = beforeTest()
+    l = InputLayer(size(x))
     l2 = SoftMaxCrossEntropyLoss(l)
 
     # Testing forwarding

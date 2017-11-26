@@ -6,17 +6,7 @@ type InputLayer <: DataLayer
     shape   :: Tuple
     tag     :: String
 
-
-    function InputLayer(shape; tag="default")
-        # TODO: could allocate less memory by having only two arrays to pass around
-        layer = new(LayerBase(), Float64[], shape, tag)
-        # are below necessary?
-        # layer.base.y = Array{Float64}(shape)
-        # layer.base.dldy = Array{Float64}(shape)
-        layer
-    end
-
-    function InputLayer(shape, config::Union{Dict{String,Any},Void}=nothing;tag="default")
+    function InputLayer(shape::Tuple; tag="default")
         layer = new(LayerBase(), Float64[], shape, tag)
         # layer.base.y = Array{Float64}(shape)
         # layer.base.dldy = Array{Float64}(shape)
@@ -24,10 +14,7 @@ type InputLayer <: DataLayer
     end
 end
 
-function init(l::InputLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
-end
-
-function update(l::InputLayer, input_size::Tuple;)
+function update(l::InputLayer, input_size::Tuple)
     # Reinitialize the memory due to the updated of the batch_size
     l.shape = input_size
     # println("Input layer shape update:$(l.shape)")
@@ -39,10 +26,6 @@ function forward(l::InputLayer, X::Union{SubArray{Float64},Array{Float64}}; kwar
     end
     l.base.y = X
     return l.base.y
-end
-
-function backward(l::InputLayer; kwargs...)
-    backward(l, sum(map(x -> x.base.dldx[l.base.id], l.base.children)))
 end
 
 function backward(l::InputLayer, DLDY::Array{Float64}; kwargs...)
