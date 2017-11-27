@@ -1,34 +1,30 @@
 type SgdOptimizerGraph
     graph     :: Graph
     base_lr :: Any
-    iter    :: Int
-    batch_size  ::  Int
 
-    function SgdOptimizerGraph(graph::Graph, batch_size;  base_lr=(x->0.01))
-         return new(net, base_lr, 1, batch_size)
+    function SgdOptimizerGraph(graph::Graph; base_lr=(x->0.01))
+         return new(graph, base_lr, 1)
     end
  end
 
- function optimize(this::SgdOptimizer, batch_X, batch_Y)
+ function optimize(opt::SgdOptimizerGraph, XY::Dict{Layer, Array{Float64}})
 
-     loss, pred = forward(this.graph, batch_X, batch_Y)
-     backward(this.graph, batch_Y)
+     loss, pred = forward(opt.graph, XY)
+     backward(opt.graph)
 
-     for i = 1:length(this.graph.forward_order)
-         layer = this.graph.forward_order[i]
-
+     for layer ∈ opt.graph.forward_order
          param = getParam(layer)
+
          if param == nothing
              continue
          end
 
-         gradi = getGradient(layer)
+         grad = getGradient(layer)
          for j = 1:length(gradi)
-             param[j] -= this.base_lr(this.iter) * gradi[j] / this.batch_size
+             param[j] -= opt.base_lr(opt.iter) * gradi[j] # does not divide batch
          end
          setParam!(layer, param)
      end
 
-     this.iter += 1;
      return loss, pred
  end
