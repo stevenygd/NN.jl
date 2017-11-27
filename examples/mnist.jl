@@ -3,29 +3,16 @@ include("util/datasets.jl")
 
 batch_size = 500
 
-function build_graph()
-    l0 = InputLayer(Void, (28,28,1,batch_size))
-
-    l1 = CaffeConvLayer(l0, 32,(5,5))
-    l2 = ReLu(l1)
-    l3 = MaxPoolingLayer(l2, (2,2))
-
-    l4 = CaffeConvLayer(l3, 32,(5,5))
-    l5 = ReLu(l4)
-    l6 = MaxPoolingLayer(l5, (2,2))
-
-    l7 = FlattenLayer(l6)
-
-    l8 = DenseLayer(l7, 256)
-    l9 = ReLu(l8)
-
-    l10 = DropoutLayer(l9, 0.5)
-    l11 = DenseLayer(l10, 10)
-
-    l12 = SoftMaxCrossEntropyLoss(l11)
-
-    graph = Graph(l12)
-    return graph
+function build_model()
+    input = InputLayer((batch_size,784)),
+    l1    = DenseLayer(input, 1000; init_type = "Normal"),
+    l2    = ReLu(l1),
+    l3    = DropoutLayer(l2, 0.5),
+    l4    = DenseLayer(l3, 1000; init_type = "Normal" ),
+    l5    = ReLu(l4),
+    l6    = DropoutLayer(l5, 0.5),
+    l7    = DenseLayer(l6, 10; init_type = "Normal")
+    return Graph(l7)
 end
 
 function get_corr(pred, answ)
@@ -102,7 +89,7 @@ println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
-graph = build_graph()
+graph = s()
 
 epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
     net, (trX, trY), (valX, valY);
@@ -116,4 +103,3 @@ plot(1:length(all_losses), all_losses)
 title("SGD Graph: Training losses")
 
 show()
-

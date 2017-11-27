@@ -8,38 +8,26 @@ type DropoutLayer <: RegularizationLayer
     x           :: Array{Float64}
     dldy        :: Array{Float64}
 
-    function DropoutLayer(p::Float64)
-        @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
-        return new(LayerBase(), p, Float64[], Float64[], Float64[])
+    function DropoutLayer(prev::Layer, p::Float64; kwargs...)
+        layer = new(LayerBase(), p, Float64[], Float64[], Float64[])
+        connect(layer, [prev])
+        init(layer, getOutputSize(prev); kwargs...)
+        layer
     end
 
-    function DropoutLayer(prev::Union{Layer,Void}, p;
-                          config::Union{Dict{String,Any},Void}=nothing)
+    function DropoutLayer(config::Dict{String,Any}, p::Float64; kwargs...)
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
         layer = new(LayerBase(), p, Float64[], Float64[], Float64[])
-        init(layer, prev, config)
+        @assert ndims(config["input_size"]) == 1
+        out_size = (config["batch_size"], config["input_sisze"][1])
+        init(layer, out_size; kwargs...)
         layer
     end
 end
 
-function init(l::DropoutLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
-	if !isa(p,Void)
-        push!(l.base.parents , p)
-        push!(p.base.children, l)
-    end
-
-    # TODO: currently I only accept Single dimensional dropout
-    if p == nothing
-        # [l] is the first layer, batch_size used default network batch_size
-        # and input_size should be single dimensional (i.e. vector)
-        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
-        out_size = (config["batch_size"], config["input_size"][1])
-    else
-        out_size = getOutputSize(p)
-        @assert length(out_size) == 2 # TODO: maybe a friendly error message?
-    end
-
+function init(l::DropoutLayer, out_size::Tuple; kwargs...)
     @assert length(l.base.parents) == 1
+    @assert length(out_size) == 2
     l.last_drop = Array{Float64}(out_size)
     l.x         = Array{Float64}(out_size)
     l.dldy      = Array{Float64}(out_size)
@@ -77,10 +65,6 @@ function forward(l::DropoutLayer, x::Union{SubArray{Float64,2},Array{Float64,2}}
     return l.base.y
 end
 
-function forward(l::DropoutLayer; deterministics=false)
-    forward(l, l.base.parents[1].base.y, deterministics=deterministics)
-end
-
 # Donot annotate DLDY since it could be subarray
 function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...)
     @assert size(DLDY)[2] == size(l.last_drop)[2] &&
@@ -90,23 +74,11 @@ function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64
     return l.base.dldx
 end
 
-function backward(l::DropoutLayer; kwargs...)
-    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
-    backward(l, DLDY)
-end
-
-
 function getInputSize(l::DropoutLayer)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But input shapes wanted.")
-    end
     return size(l.x)
 end
 
 function getOutputSize(l::DropoutLayer)
-    if !l.has_init
-        println("Warning: layer $(l) hasn't been initizalized. But output shapes wanted.")
-    end
     return size(l.y)
 end
 

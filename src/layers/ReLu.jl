@@ -8,43 +8,30 @@ type ReLu <: Nonlinearity
     x        :: Array{Float64}
     dldy     :: Array{Float64}
 
-    function ReLu(alpha::Float64 = 1.0)
-        @assert alpha ≥ 0.
-        return new(LayerBase(), alpha, Float64[], Float64[])
-    end
-
-    function ReLu(prev::Union{Layer,Void};
-                  config::Union{Dict{String,Any},Void}=nothing,
-                  alpha::Float64 = 1.0, kwargs...)
+    function ReLu(prev::Layer; alpha::Float64 = 1.0, kwargs...)
         @assert alpha ≥ 0.
         layer = new(LayerBase(), alpha, Float64[], Float64[])
-        init(layer, prev, config; kwargs...)
+        connect(layer, [prev])
+        init(layer, getOutputSize(prev); kwargs...)
+        layer
+    end
+
+    function ReLu(config::Dict{String,Any}; alpha::Float64 = 1.0, kwargs...)
+        @assert alpha ≥ 0.
+        layer = new(LayerBase(), alpha, Float64[], Float64[])
+        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
+        out_size = (config["batch_size"], config["input_size"][1])
+        init(layer, out_size; kwargs...)
         layer
     end
 end
 
-function init(l::ReLu, p::Union{Layer,Void}, config::Union{Dict{String,Any},Void}; kwargs...)
-    # TODO: currently I only accept Single dimensional dropout
-    if !isa(p, Void)
-        push!(l.base.parents , p)
-        push!(p.base.children, l)
-    end
-
-    if p == nothing
-        # [l] is the first layer, batch_size used default network batch_size
-        # and input_size should be single dimensional (i.e. vector)
-        @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
-        out_size = (config["batch_size"], config["input_size"][1])
-    else
-        out_size = getOutputSize(p)
-    end
-
+function init(l::ReLu, out_size::Tuple; kwargs...)
     @assert length(l.base.parents) == 1
     l.x = Array{Float64}(out_size)
     l.base.y = Array{Float64}(out_size)
     l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(out_size)
     l.dldy = Array{Float64}(out_size)
-
 end
 
 function update(l::ReLu, input_size::Tuple;)
@@ -52,10 +39,6 @@ function update(l::ReLu, input_size::Tuple;)
     l.base.y = Array{Float64}(input_size)
     l.base.dldx[l.base.parents[1]] = Array{Float64}(input_size)
     l.dldy = Array{Float64}(input_size)
-end
-
-function forward(l::ReLu; kwargs...)
-    forward(l, l.base.parents[1].base.y; kwargs...)
 end
 
 function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
@@ -78,11 +61,6 @@ function backward(l::ReLu, DLDY::Array{Float64}; kwargs...)
     broadcast!(>, l.base.dldx[parent_id], l.x, 0.)        # l.base.dldx = l.x .> 0.
     broadcast!(*, l.base.dldx[parent_id], l.base.dldx[parent_id], l.alpha)    # l.base.dldx = l.base.dldx * alpha
     broadcast!(*, l.base.dldx[parent_id], l.base.dldx[parent_id], DLDY)
-end
-
-function backward(l::ReLu; kwargs...)
-    DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
-    backward(l, DLDY)
 end
 
 # l = ReLu()
