@@ -6,9 +6,10 @@ using Base.Test
 
 
 function testSoftMaxCrossEntropyOneVector(x, labels, p, loss, dldx; alpha = 1.)
-    xs = Dict{String,Array{Float64}}("default"=>x, "labels" => labels)
     l1 = InputLayer(size(x))
-    l2 = SoftMaxCrossEntropyLoss(l1)
+    label = InputLayer(size(x))
+    l2 = SoftMaxCrossEntropyLoss(l1, label)
+    xs = Dict{Layer,Array{Float64}}(l1 => x, label => labels)
     g  = Graph(l2)
     # Testing forwarding
     forward(g, xs)
