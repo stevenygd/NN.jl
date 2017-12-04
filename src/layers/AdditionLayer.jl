@@ -1,4 +1,3 @@
-include("LayerBase.jl")
 type AdditionLayer <: Layer
     base    :: LayerBase
 
