@@ -1,5 +1,3 @@
-include("InputLayer.jl")
-
 type SoftMaxCrossEntropyLoss <: LossCriteria
     base    :: LayerBase
 

@@ -1,5 +1,4 @@
 # Dummy Layer to create the input shape for initilization
-include("LayerBase.jl")
 type InputLayer <: DataLayer
     base    :: LayerBase
     dldy    :: Array{Float64}

@@ -1,6 +1,4 @@
 # Define the ReLu layers
-include("LayerBase.jl")
-
 type ReLu <: Nonlinearity
     base     :: LayerBase
 
