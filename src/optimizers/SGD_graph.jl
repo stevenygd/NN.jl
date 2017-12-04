@@ -7,7 +7,7 @@ type SgdOptimizerGraph
     end
  end
 
- function optimize(opt::SgdOptimizerGraph, XY::Dict{Layer, Array{Float64}})
+ function optimize(opt::SgdOptimizerGraph, XY)
 
      loss, pred = forward(opt.graph, XY)
      backward(opt.graph)

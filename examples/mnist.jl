@@ -4,17 +4,17 @@ using NN
 batch_size = 500
 
 function build_model()
-    input = InputLayer((batch_size,784))
-    loss  = InputLayer((batch_size, 10))
-    l1    = DenseLayer(input, 1000; init_type = "Normal")
+    layerX = InputLayer((batch_size,784))
+    layerY  = InputLayer((batch_size, 10))
+    l1    = DenseLayer(layerX, 1000; init_type = "Normal")
     l2    = ReLu(l1)
     l3    = DropoutLayer(l2, 0.5)
     l4    = DenseLayer(l3, 1000; init_type = "Normal" )
     l5    = ReLu(l4)
     l6    = DropoutLayer(l5, 0.5)
     l7    = DenseLayer(l6, 10; init_type = "Normal")
-    l8    = SoftMaxCrossEntropyLoss(l7)
-    return input, loss, Graph(l8)
+    l8    = SoftMaxCrossEntropyLoss(l7, layerY)
+    return layerX, layerY, Graph(l8)
 end
 
 function get_corr(pred, answ)
@@ -86,7 +86,7 @@ end
 X,Y = mnistData(ttl=55000) # 0-1
 Y = round.(Int, Y)
 
-println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+# println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
 
 
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
