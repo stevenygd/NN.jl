@@ -3,7 +3,7 @@ type SgdOptimizerGraph
     base_lr :: Any
 
     function SgdOptimizerGraph(graph::Graph; base_lr=(x->0.01))
-         return new(graph, base_lr, 1)
+         return new(graph, base_lr)
     end
  end
 

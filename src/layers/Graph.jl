@@ -1,4 +1,4 @@
-type Graph <: ANN
+type Graph
     forward_order :: Array{Layer} # list of pointers to layers in order of calling forward
     input_layers :: Dict{String, DataLayer} # dictionary of input layer tags to input layers
 
