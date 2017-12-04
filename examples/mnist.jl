@@ -83,14 +83,6 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
-function convert_to_one_hot(x::Array{Int64}, classes)
-  m = zeros(size(x,1), classes)
-  for i=1:size(x,1)
-    m[i,x[i]+1]=1
-  end
-  m
-end
-
 X,Y = mnistData(ttl=55000) # 0-1
 Y = round.(Int, Y)
 
