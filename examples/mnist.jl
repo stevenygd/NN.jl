@@ -82,13 +82,27 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
+function convert_to_one_hot(x::Array{Int64}, classes)
+  m = zeros(size(x,1), classes)
+  for i=1:size(x,1)
+    m[i,x[i]+1]=1
+  end
+  m
+end
+
 X,Y = mnistData(ttl=55000) # 0-1
+Y = round.(Int, Y)
+
 println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
+
 
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
 trX, trY = train_set[1], train_set[2]
 valX, valY = validation_set[1], validation_set[2]
 teX, teY = test_set[1], test_set[2]
+trY = convert_to_one_hot(trY, 10)
+valY = convert_to_one_hot(valY, 10)
+teY = convert_to_one_hot(teY, 10)
 
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
