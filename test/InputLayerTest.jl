@@ -6,7 +6,8 @@ using Base.Test
 
 function testInputLayerOneVector(x, y, dldy, dldx)
     l = InputLayer(size(x))
-    l2 = SoftMaxCrossEntropyLoss(l)
+    label = l = InputLayer(size(x))
+    l2 = SoftMaxCrossEntropyLoss(l,label)
 
     # Testing forwarding
     @test forward(l,x) == y

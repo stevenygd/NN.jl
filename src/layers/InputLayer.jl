@@ -3,19 +3,24 @@ type InputLayer <: DataLayer
     base    :: LayerBase
     dldy    :: Array{Float64}
     shape   :: Tuple
-    tag     :: String
 
-    function InputLayer(shape::Tuple; tag="default")
-        layer = new(LayerBase(), Float64[], shape, tag)
-        # layer.base.y = Array{Float64}(shape)
-        # layer.base.dldy = Array{Float64}(shape)
+    function InputLayer(shape::Tuple)
+        layer = new(LayerBase(), Float64[], shape)
+        init(layer, shape)
         layer
     end
+end
+
+function init(l::InputLayer, shape::Tuple; kwargs...)
+    l.base.y = Array{Float64}(shape)
+    l.dldy = Array{Float64}(shape)
 end
 
 function update(l::InputLayer, input_size::Tuple)
     # Reinitialize the memory due to the updated of the batch_size
     l.shape = input_size
+    l.base.y = Array{Float64}(shape)
+    l.dldy = Array{Float64}(shape)
     # println("Input layer shape update:$(l.shape)")
 end
 

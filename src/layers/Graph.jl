@@ -1,9 +1,9 @@
 type Graph
     forward_order :: Array{Layer} # list of pointers to layers in order of calling forward
-    input_layers :: Dict{String, DataLayer} # dictionary of input layer tags to input layers
+    # input_layers :: Dict{String, DataLayer} # dictionary of input layer tags to input layers
 
     function Graph(layer::Layer)
-        graph = new(Layer[], Dict{String,DataLayer}())
+        graph = new(Layer[])
         top_sort(graph, layer, Set{Layer}([layer]))
         return graph
     end
@@ -17,11 +17,13 @@ function top_sort(graph::Graph, layer::Layer, visited::Set{Layer})
             top_sort(graph, l, visited)
         end
     end
-	if isa(layer, DataLayer)
-        graph.input_layers[layer.tag] = layer
-    else
+	if !isa(layer, DataLayer)
         push!(graph.forward_order, layer)
     end
+    #     graph.input_layers[layer.tag] = layer
+    # else
+    #     push!(graph.forward_order, layer)
+    # end
 end
 
 function forward(graph::Graph, xs::Dict{<:Layer, <:Array{Float64}}; kwargs...)

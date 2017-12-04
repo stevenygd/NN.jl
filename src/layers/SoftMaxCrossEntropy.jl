@@ -7,31 +7,26 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     loss   :: Array{Float64} # output of cross entropy loss
     pred   :: Array{Int64}   # output for prediction
 
-    function SoftMaxCrossEntropyLoss()
-        return new(LayerBase(), Float64[], Float64[], Float64[], Float64[], Int64[])
-    end
-
-    function SoftMaxCrossEntropyLoss(prev::Layer; kwargs...)
+    function SoftMaxCrossEntropyLoss(prev::Layer, label::DataLayer; kwargs...)
         layer = new(LayerBase(), Float64[], Float64[], Float64[], Int64[])
         connect(layer, [prev])
-        init(layer, getOutputSize(prev);kwargs...)
+        init(layer, label, getOutputSize(prev);kwargs...)
         layer
     end
 
-    function SoftMaxCrossEntropyLoss(config::Dict{String,Any}; kwargs...)
+    function SoftMaxCrossEntropyLoss(config::Dict{String,Any}, label::DataLayer; kwargs...)
         layer = new(LayerBase(), Float64[], Float64[], Float64[], Int64[])
         @assert ndims(config["input_size"]) == 1
         out_size = (config["batch_size"], config["input_sisze"][1])
-        init(layer, out_size)
+        init(layer, label, out_size)
         layer
     end
 end
 
-function init(l::SoftMaxCrossEntropyLoss, out_size::Tuple; kwargs...)
+function init(l::SoftMaxCrossEntropyLoss, label::DataLayer, out_size::Tuple; kwargs...)
     N, D     = out_size
 
     # loss layer's parents[1] is an input layer providing label
-    label = InputLayer((out_size); tag="labels")
     unshift!(l.base.parents, label)
     @assert 1 ≤ length(l.base.parents) ≤ 2
 
