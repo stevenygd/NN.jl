@@ -13,7 +13,8 @@ function build_model()
     l5    = ReLu(l4)
     l6    = DropoutLayer(l5, 0.5)
     l7    = DenseLayer(l6, 10; init_type = "Normal")
-    return input, loss, Graph(l7)
+    l8    = SoftMaxCrossEntropyLoss(l7)
+    return input, loss, Graph(l8)
 end
 
 function get_corr(pred, answ)
