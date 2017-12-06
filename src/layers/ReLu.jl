@@ -35,7 +35,7 @@ end
 function update(l::ReLu, input_size::Tuple;)
     l.x = Array{Float64}(input_size)
     l.base.y = Array{Float64}(input_size)
-    l.base.dldx[l.base.parents[1]] = Array{Float64}(input_size)
+    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
     l.dldy = Array{Float64}(input_size)
 end
 
@@ -50,6 +50,10 @@ function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
 end
 
 function backward(l::ReLu, DLDY::Array{Float64}; kwargs...)
+    if size(l.x) != size(DLDY)
+        println(size(DLDY))
+        println(size(l.x))
+    end
     @assert size(l.x) == size(DLDY)
     # if size(l.base.dldx, 1) != size(DLDY, 1)
     #     l.base.dldx = Array{Float64}(size(DLDY))

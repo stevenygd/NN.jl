@@ -19,8 +19,8 @@ end
 function update(l::InputLayer, input_size::Tuple)
     # Reinitialize the memory due to the updated of the batch_size
     l.shape = input_size
-    l.base.y = Array{Float64}(shape)
-    l.dldy = Array{Float64}(shape)
+    l.base.y = Array{Float64}(l.shape)
+    l.dldy = Array{Float64}(l.shape)
     # println("Input layer shape update:$(l.shape)")
 end
 

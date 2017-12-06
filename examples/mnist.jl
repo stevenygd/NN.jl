@@ -1,11 +1,13 @@
 include("../src/NN.jl")
 include("../util/datasets.jl")
 using NN
+using Plots
+
 batch_size = 500
 
 function build_model()
     layerX = InputLayer((batch_size,784))
-    layerY  = InputLayer((batch_size, 10))
+    layerY = InputLayer((batch_size, 10))
     l1    = DenseLayer(layerX, 1000; init_type = "Normal")
     l2    = ReLu(l1)
     l3    = DenseLayer(l2, 1000; init_type = "Normal" )
@@ -15,14 +17,23 @@ function build_model()
     return layerX, layerY, Graph(l6)
 end
 
-function get_corr(pred, answ)
-    return length(filter(e -> abs(e) < 1e-5, pred-answ))
+function get_cor(pred, label)
+    @assert size(pred) == size(label)
+    cor = 0
+    for i=1:(size(pred)[1])
+        idx = findmax(pred[i, :])[2]
+        pred_idx = findmax(label[i, :])[2]
+        if idx == pred_idx
+            cor += 1
+        end
+    end
+    return cor
 end
 
 function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizerGraph,
     train_set, validation_set;
-    batch_size::Int64 = 100, ttl_epo::Int64 = 10,
-    lrSchedule = (x -> 0.01), alpha::Float64 = 0.9, verbose=0)
+    batch_size::Int64 = 100, ttl_epo::Int64 = 10, alpha::Float64 = 0.9)
+
     X, Y = train_set
     valX, valY = validation_set
     local N = size(Y)[1]
@@ -32,69 +43,54 @@ function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer
     all_losses = []
 
     local val_losses = []
-    local val_accu   = []
+    local val_accus   = []
+
     for epo = 1:ttl_epo
         local num_batch = ceil(N/batch_size)
-        if verbose > 0
-            println("Epo $(epo) num batches : $(num_batch)")
-        end
+        println("Epo $(epo) num batches : $(num_batch)")
+
         epo_cor = 0
         for bid = 0:(num_batch-1)
             time_used = @elapsed begin
                 batch += 1
-                local sidx::Int = convert(Int64, bid*batch_size+1)
-                local eidx::Int = convert(Int64, min(N, (bid+1)*batch_size))
-                local batch_X = X[sidx:eidx, :]
-                local batch_Y = Y[sidx:eidx, :]
+                local start::Int = bid*batch_size+1
+                local last::Int = min(N, (bid+1)*batch_size)
+                local batch_X = X[start:last, :]
+                local batch_Y = Y[start:last, :]
                 loss, pred = optimize(optimizer, Dict(layerX=>batch_X, layerY=>batch_Y))
-                # _, pred = forward(net, batch_X, batch_Y; deterministics = true)
-                epo_cor  += get_corr(pred, batch_Y)
-                local acc = get_corr(pred, batch_Y) / batch_size
+                push!(all_losses, loss)
+                batch_cor = get_cor(pred, batch_Y)
+                epo_cor  += batch_cor
+                local accu = batch_cor / (last-start+1)
             end
-            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(acc)")
+            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(accu)")
         end
         local epo_loss = mean(all_losses)
         local epo_accu = epo_cor / N
-        append!(epo_losses, epo_loss)
-        append!(epo_accus, epo_accu)
+        push!(epo_losses, epo_loss)
+        push!(epo_accus, epo_accu)
 
         # Run validation set
-        v_ls, v_pd = forward(graph, valX, valY)
-        local v_loss = mean(v_ls)
-        v_size = size(valX)[1]
-        v_accu = get_corr(v_pd, valY) / v_size
-        append!(val_losses, v_loss)
-        append!(val_accu,   v_accu)
+        val_loss, val_pred = forward(graph, Dict(layerX=>valX, layerY=>valY))
+        val_loss = mean(val_loss)
+        val_size = size(valY)[1]
+        val_accu = get_cor(val_pred, valY) / val_size
+        push!(val_losses, val_loss)
+        push!(val_accus, val_accu)
 
-        # if verbose > 0
-            println("Epo $(epo) has loss :$(epo_loss)\t\taccuracy : $(epo_accu)")
-        # end
+        println("Epo $(epo) train has loss :$(mean(epo_loss))\t\taccuracy : $(epo_accu)")
+        println("Epo $(epo) validation has loss :$(mean(val_loss))\t\taccuracy : $(val_accu)")
     end
-    return epo_losses,epo_accus, val_losses, val_accu, all_losses
-end
-
-function convert_to_one_hot(x::Array{Int64}, classes)
-  m = zeros(size(x,1), classes)
-  for i=1:size(x,1)
-    m[i,x[i]+1]=1
-  end
-  m
+    return epo_losses, epo_accus, val_losses, val_accus, all_losses
 end
 
 X,Y = mnistData(ttl=55000) # 0-1
-Y = round.(Int, Y)
-
 # println("X statistics: $(mean(X)) $(minimum(X)) $(maximum(X))")
-
 
 train_set, test_set, validation_set = datasplit(X,Y;ratio=10./11.)
 trX, trY = train_set[1], train_set[2]
 valX, valY = validation_set[1], validation_set[2]
 teX, teY = test_set[1], test_set[2]
-trY = convert_to_one_hot(trY, 10)
-valY = convert_to_one_hot(valY, 10)
-teY = convert_to_one_hot(teY, 10)
-
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
@@ -104,13 +100,11 @@ opt = SgdOptimizerGraph(graph)
 
 epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
     graph, layerX, layerY, opt, (trX, trY), (valX, valY);
-    ttl_epo = 10, batch_size = batch_size,
-    lrSchedule = x -> 0.01, verbose=1
-)
+    ttl_epo = 10, batch_size = batch_size)
 
-figure(figsize=(12,6))
 # subplot(221)
-plot(1:length(all_losses), all_losses)
-title("SGD Graph: Training losses")
+p=plot(1:length(all_losses), all_losses)
+plot!(p, 1:length(all_losses), all_losses)
+title!(p, "MNIST - SGD optimizer: Training losses")
 
 show()

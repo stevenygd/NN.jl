@@ -80,8 +80,6 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
       end
       l.loss[i] = -sum(l.exp[i,:])
     end
-
-
     # l.loss = - sum(log(l.y) .* label,2)
 
     return l.loss, l.base.y
@@ -94,4 +92,20 @@ function backward(l::SoftMaxCrossEntropyLoss;kwargs...)
         parent_id = p.base.id
         l.base.dldx[parent_id] = l.base.y .* sum(label,2) - label
     end
+end
+
+function getGradient(l::SoftMaxCrossEntropyLoss)
+    return nothing
+end
+
+function getParam(l::SoftMaxCrossEntropyLoss)
+    return nothing
+end
+
+function setParam!(l::SoftMaxCrossEntropyLoss, theta)
+    return nothing
+end
+
+function getVelocity(l::SoftMaxCrossEntropyLoss)
+    return nothing
 end

@@ -79,7 +79,7 @@ function update(l::DenseLayer, input_size::Tuple;)
     l.x      = Array{Float64}(batch_size, l.i + 1)
     l.base.y = Array{Float64}(batch_size, l.num_units)
     l.dldy   = Array{Float64}(batch_size, l.num_units)
-    l.base.dldx[l.base.parents[1].id]  = Array{Float64}(batch_size, l.i + 1)
+    l.base.dldx[l.base.parents[1].base.id]  = Array{Float64}(batch_size, l.i + 1)
     # println("DenseLayer update:\n\tInput:$(size(l.x))\n\tOutput:$(size(l.y))")
 end
 
@@ -106,11 +106,9 @@ function backward(l::DenseLayer, DLDY::Array; kwargs...)
     @assert size(DLDY,2) == size(l.W,2)
     l.dldy = DLDY
     parent_id = l.base.parents[1].base.id
-    A_mul_Bt!(l.base.dldx[parent_id], DLDY, l.W)
+    l.base.dldx[parent_id] = A_mul_Bt(l.dldy, l.W)[:, 1:end-1]
     At_mul_B!(l.grad, l.x, l.dldy)
 end
-
-
 
 function getGradient(l::DenseLayer)
   return Array[l.grad]
