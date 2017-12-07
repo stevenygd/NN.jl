@@ -1,5 +1,3 @@
-include("LayerBase.jl")
-
 # Assumptions:
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)

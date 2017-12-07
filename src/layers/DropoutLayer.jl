@@ -79,7 +79,7 @@ function getInputSize(l::DropoutLayer)
 end
 
 function getOutputSize(l::DropoutLayer)
-    return size(l.y)
+    return size(l.base.y)
 end
 
 # l = DropoutLayer(0.3)

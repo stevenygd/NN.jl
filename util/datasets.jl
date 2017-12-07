@@ -69,7 +69,7 @@ function mnistData(;ttl=55000)
     # Tiny bit of preprocessing, the image will be put in range of 0..1
     # print(X[1,:])
     X = X / 256.
-    Y = round(Int,Y)
+    Y = round.(Int,Y)
     Y_out = zeros(Float64, ttl, 10)
     for i=1:ttl
         Y_out[i,Y[i]+1] = 1.
