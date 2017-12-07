@@ -46,41 +46,44 @@ function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer
     local val_accus   = []
 
     for epo = 1:ttl_epo
-        local num_batch = ceil(N/batch_size)
-        println("Epo $(epo) num batches : $(num_batch)")
+        epo_time = @elapsed begin
+            local num_batch = ceil(N/batch_size)
+            println("Epo $(epo) num batches : $(num_batch)")
 
-        epo_cor = 0
-        for bid = 0:(num_batch-1)
-            time_used = @elapsed begin
-                batch += 1
-                local start::Int = bid*batch_size+1
-                local last::Int = min(N, (bid+1)*batch_size)
-                local batch_X = X[start:last, :]
-                local batch_Y = Y[start:last, :]
-                loss, pred = optimize(optimizer, Dict(layerX=>batch_X, layerY=>batch_Y))
-                push!(all_losses, loss)
-                batch_cor = get_cor(pred, batch_Y)
-                epo_cor  += batch_cor
-                local accu = batch_cor / (last-start+1)
+            epo_cor = 0
+            for bid = 0:(num_batch-1)
+                time_used = @elapsed begin
+                    batch += 1
+                    local start::Int = bid*batch_size+1
+                    local last::Int = min(N, (bid+1)*batch_size)
+                    local batch_X = X[start:last, :]
+                    local batch_Y = Y[start:last, :]
+                    loss, pred = optimize(optimizer, Dict(layerX=>batch_X, layerY=>batch_Y))
+                    push!(all_losses, mean(loss))
+                    batch_cor = get_cor(pred, batch_Y)
+                    epo_cor  += batch_cor
+                    local accu = batch_cor / (last-start+1)
+                end
+                println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(accu)")
             end
-            println("[$(bid)/$(num_batch)]($(time_used)s) Loss is: $(mean(loss))\tAccuracy:$(accu)")
+            local epo_loss = mean(all_losses)
+            local epo_accu = epo_cor / N
+            push!(epo_losses, epo_loss)
+            push!(epo_accus, epo_accu)
+
+            # Run validation set
+            println("Validation size: $(size(valY))")
+            val_loss, val_pred = forward(graph, Dict(layerX=>valX, layerY=>valY))
+            val_loss = mean(val_loss)
+            val_size = size(valY)[1]
+            val_accu = get_cor(val_pred, valY) / val_size
+            push!(val_losses, val_loss)
+            push!(val_accus, val_accu)
         end
-        local epo_loss = mean(all_losses)
-        local epo_accu = epo_cor / N
-        push!(epo_losses, epo_loss)
-        push!(epo_accus, epo_accu)
-
-        # Run validation set
-        val_loss, val_pred = forward(graph, Dict(layerX=>valX, layerY=>valY))
-        val_loss = mean(val_loss)
-        val_size = size(valY)[1]
-        val_accu = get_cor(val_pred, valY) / val_size
-        push!(val_losses, val_loss)
-        push!(val_accus, val_accu)
-
-        println("Epo $(epo) train has loss :$(mean(epo_loss))\t\taccuracy : $(epo_accu)")
-        println("Epo $(epo) validation has loss :$(mean(val_loss))\t\taccuracy : $(val_accu)")
+        println("Epo $(epo) takes ($(epo_time)s), validation set has loss :
+                $(mean(val_loss))\t\taccuracy : $(val_accu)")
     end
+
     return epo_losses, epo_accus, val_losses, val_accus, all_losses
 end
 
@@ -99,12 +102,16 @@ layerX, layerY, graph = build_model()
 opt = SgdOptimizerGraph(graph)
 
 epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
-    graph, layerX, layerY, opt, (trX, trY), (valX, valY);
-    ttl_epo = 10, batch_size = batch_size)
+graph, layerX, layerY, opt, (trX, trY), (valX, valY);
+ttl_epo = 10, batch_size = batch_size)
 
 # subplot(221)
-p=plot(1:length(all_losses), all_losses)
-plot!(p, 1:length(all_losses), all_losses)
-title!(p, "MNIST - SGD optimizer: Training losses")
-
-show()
+println("size: $(size(val_losses))")
+println("size: $(size(epo_losses))")
+println("size: $(size(epo_accu))")
+p=plot([all_losses, val_losses, epo_accu, val_accu],
+        xlabel=["batch" "epoch" "epoch" "epoch"],
+        ylabel=["losses" "loss" "accuracy" "accuracy"],
+        title =["train losess" "validation losses" "train accuracy" "validation accuracy"],
+        layout=4)
+savefig("mnist.png")
