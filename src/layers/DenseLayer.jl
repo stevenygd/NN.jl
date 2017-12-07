@@ -34,16 +34,19 @@ type DenseLayer <: Layer
     end
 
     function DenseLayer(main::DenseLayer)
-        layer = new(LayerBase(), Float64[], Float64[], init_type,
-            i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
+        layer = new(LayerBase(), Float64[], Float64[], "",
+            0, 0, randn(1,1), zeros(1, 1), zeros(1, 1))
         layer.base.y = copy(main.base.y)
         layer.base.dldx = copy(main.base.dldx)
-        layer.init_type = copy(main.init_type)
+        layer.x = copy(main.x)
+        layer.dldy = copy(main.dldy)
+        layer.init_type = main.init_type
         layer.i = copy(main.i)
         layer.num_units = copy(main.num_units)
         layer.W = main.W
         layer.velc = copy(main.velc)
         layer.grad = copy(main.grad)
+        layer
     end
 end
 
