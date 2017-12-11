@@ -5,18 +5,6 @@ using Plots
 
 batch_size = 500
 
-layerX = InputLayer((batch_size,784))
-layerY = InputLayer((batch_size, 10))
-l1    = DenseLayer(layerX, 1000; init_type = "Normal")
-l2    = ReLu(l1)
-l3    = DenseLayer(l2, 1000; init_type = "Normal" )
-l4    = ReLu(l3)
-l5    = DenseLayer(l4, 10; init_type = "Normal")
-l6    = SoftMaxCrossEntropyLoss(l5, layerY)
-graph = Graph(l6)
-
-
-
 function get_cor(pred, label)
     @assert size(pred) == size(label)
     cor = 0
@@ -53,7 +41,7 @@ trX, trY = train_set[1], train_set[2]
 valX, valY = validation_set[1], validation_set[2]
 teX, teY = test_set[1], test_set[2]
 
-function clone_graph()
+function clone_graph(l1, l3, l5)
     # Clone graph
     thread_layerX = InputLayer((batch_size,784))
     thread_layerY = InputLayer((batch_size, 10))
@@ -73,11 +61,21 @@ function clone_graph()
 end
 
 function benchmark(iter::Int, epo::Int)
-
-    clone_array = [clone_graph() for i in 1:4]
+    # Creating main graph
+    layerX = InputLayer((batch_size,784))
+    layerY = InputLayer((batch_size, 10))
+    l1    = DenseLayer(layerX, 1000; init_type = "Normal")
+    l2    = ReLu(l1)
+    l3    = DenseLayer(l2, 1000; init_type = "Normal" )
+    l4    = ReLu(l3)
+    l5    = DenseLayer(l4, 10; init_type = "Normal")
+    l6    = SoftMaxCrossEntropyLoss(l5, layerY)
+    graph = Graph(l6)
+    # Clone graph for different threads
+    clone_array = [clone_graph(l1, l3, l5) for i in 1:iter]
     val_accus = []
     t = @elapsed for e = 1:epo
-        Threads.@threads for i = 1:1
+        Threads.@threads for i = 1:4
             thread_layerX, thread_layerY, thread_graph, thread_opt = clone_array[i]
             # optimize
             multi_sgd(thread_graph, thread_layerX, thread_layerY, thread_opt, (trX, trY), (valX, valY);
@@ -90,7 +88,7 @@ function benchmark(iter::Int, epo::Int)
         val_size = size(valY)[1]
         val_accu = get_cor(val_pred, valY) / val_size
         push!(val_accus, val_accu)
-        println("epo: $(e), validation loss: $(val_loss),
+        println("epo: $(e), iteration: $(iter) validation loss: $(val_loss),
             validation accuracy: $(val_accu)")
     end
     return (t, val_accus[end])
@@ -98,17 +96,21 @@ end
 
 times = []
 val_accus = []
-iters = [i for i = 1:1]
+iters = [i for i = 2:10]
 for i in iters
     time_used, val_accu = benchmark(i, 10)
     push!(times, time_used)
     push!(val_accus, val_accu)
 end
 
-p = plot(x = [times iters iters], y = [val_accus times val_accus],
+plotly()
+p = plot([times iters iters], [val_accus times val_accus],
         xlabel=["time" "iteration" "iteration"],
         ylabel=["accuracy" "time" "accuracy"],
+        label =["accuracy" "time" "accuracy"],
         title = ["accuracy vs. time" "time vs. iteration" "accuracy vs. iteration"],
-        layout = 3)
-gui(p)
-savefig("multi_threading_mnist.png")
+        window_title = "Mnist on Single Thread",
+        marker= (:hexagon, :green),
+        size = (1200, 300),
+        layout = grid(1, 3))
+gui()
