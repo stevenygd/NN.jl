@@ -1,5 +1,5 @@
-# include("../src/NN.jl")
-# using NN
+include("../src/NN.jl")
+using NN
 
 batch_size = 2
 layerX = InputLayer((batch_size,2))
@@ -14,6 +14,7 @@ Threads.@threads for i = 1:8
     l = DenseLayer(l1)
     broadcast!(+, l.W, l.W, [1])
     l.x = ones(l.x)
+    ccall(:jl_,Void,(Any,), "this is thread number $(Threads.threadid())")
 end
 println(l1.W)
 println(l1.x)

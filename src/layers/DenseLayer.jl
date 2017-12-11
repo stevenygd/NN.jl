@@ -138,7 +138,8 @@ function setParam!(l::DenseLayer, theta)
     @assert size(l.W) == size(theta[1])
     # broadcast!(-, l.velc, theta, l.W)
     l.velc = theta[1] - l.W
-    l.W = theta[1]
+    # l.W = theta[1]
+    copy!(l.W, theta[1])
 end
 
 function getVelocity(l::DenseLayer)
