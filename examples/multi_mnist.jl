@@ -15,6 +15,8 @@ l5    = DenseLayer(l4, 10; init_type = "Normal")
 l6    = SoftMaxCrossEntropyLoss(l5, layerY)
 graph = Graph(l6)
 
+
+
 function get_cor(pred, label)
     @assert size(pred) == size(label)
     cor = 0
@@ -62,32 +64,51 @@ function clone_graph()
     thread_l5    = DenseLayer(thread_l4, 10; init_type = "Normal")
     thread_l6    = SoftMaxCrossEntropyLoss(thread_l5, thread_layerY)
     thread_graph = Graph(thread_l6)
-    thread_opt = SgdOptimizerGraph(thread_graph)
+    thread_opt   = SgdOptimizerGraph(thread_graph)
     # Link learnable parameter
     thread_l1.W = l1.W
     thread_l3.W = l3.W
     thread_l5.W = l5.W
-    return (thread_l3, thread_layerX, thread_layerY, thread_graph, thread_opt)
+    return (thread_layerX, thread_layerY, thread_graph, thread_opt)
 end
 
-clone_array = [clone_graph() for i in 1:4]
+function benchmark(iter::Int, epo::Int)
 
-time_used = @elapsed for _ = 1:10
-    Threads.@threads for i = 1:8
-        thread_l3, thread_layerX, thread_layerY, thread_graph, thread_opt = clone_array[i]
-        # optimize
-        multi_sgd(thread_graph, thread_layerX, thread_layerY, thread_opt, (trX, trY), (valX, valY);
-        iteration = 5, batch_size = batch_size)
-        # ccall(:jl_,Void,(Any,), "this is thread: $(Threads.threadid())
-        #     , weights: $(thread_l3.W[1:10])")
+    clone_array = [clone_graph() for i in 1:4]
+    val_accus = []
+    t = @elapsed for e = 1:epo
+        Threads.@threads for i = 1:1
+            thread_layerX, thread_layerY, thread_graph, thread_opt = clone_array[i]
+            # optimize
+            multi_sgd(thread_graph, thread_layerX, thread_layerY, thread_opt, (trX, trY), (valX, valY);
+            iteration = iter, batch_size = batch_size)
+        end
+
+        # println("Running Validation. Validation size: $(size(valY))")
+        val_loss, val_pred = forward(graph, Dict(layerX=>valX, layerY=>valY))
+        val_loss = mean(val_loss)
+        val_size = size(valY)[1]
+        val_accu = get_cor(val_pred, valY) / val_size
+        push!(val_accus, val_accu)
+        println("epo: $(e), validation loss: $(val_loss),
+            validation accuracy: $(val_accu)")
     end
-
-    println("Running Validation. Validation size: $(size(valY))")
-    val_loss, val_pred = forward(graph, Dict(layerX=>valX, layerY=>valY))
-    val_loss = mean(val_loss)
-    val_size = size(valY)[1]
-    val_accu = get_cor(val_pred, valY) / val_size
-    println("validation loss: $(val_loss), validation accuracy: $(val_accu)")
+    return (t, val_accus[end])
 end
 
-println("8 Threads 5 iteration use time :$(time_used)s")
+times = []
+val_accus = []
+iters = [i for i = 1:1]
+for i in iters
+    time_used, val_accu = benchmark(i, 10)
+    push!(times, time_used)
+    push!(val_accus, val_accu)
+end
+
+p = plot(x = [times iters iters], y = [val_accus times val_accus],
+        xlabel=["time" "iteration" "iteration"],
+        ylabel=["accuracy" "time" "accuracy"],
+        title = ["accuracy vs. time" "time vs. iteration" "accuracy vs. iteration"],
+        layout = 3)
+gui(p)
+savefig("multi_threading_mnist.png")
