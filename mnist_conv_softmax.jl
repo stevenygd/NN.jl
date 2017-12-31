@@ -13,7 +13,7 @@ batch_size = 500
 function softmax_classifier()
     layers = Layer[
         InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(10,(28,28)),
+        CaffeConv(10,(28,28)),
         FlattenLayer(),
     ]
     criteria = SoftMaxCrossEntropyLoss()

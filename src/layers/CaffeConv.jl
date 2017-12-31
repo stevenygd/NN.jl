@@ -4,7 +4,7 @@
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type CaffeConvLayer <: LearnableLayer
+type CaffeConv <: LearnableLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
 
@@ -41,7 +41,7 @@ type CaffeConvLayer <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConvLayer(filters::Int, kernel::Tuple{Int,Int};
+    function CaffeConv(filters::Int, kernel::Tuple{Int,Int};
          padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -55,7 +55,7 @@ type CaffeConvLayer <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
     end
 
-    function CaffeConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
+    function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
          config::Union{Dict{String, Any}, Void}=nothing, padding = 0, stride = 1, init_type="Normal", kwargs...)
         layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
@@ -70,14 +70,14 @@ type CaffeConvLayer <: LearnableLayer
     end
 end
 
-function computeOutputSize(l::CaffeConvLayer, input_size::Tuple)
+function computeOutputSize(l::CaffeConv, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     w, h, _, b  = input_size
     return (convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1), f, b)
 end
 
-function init(l::CaffeConvLayer, p::Union{Layer,Void}, config::Union{Dict{String,Any}, Void}; kwargs...)
+function init(l::CaffeConv, p::Union{Layer,Void}, config::Union{Dict{String,Any}, Void}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
@@ -223,7 +223,7 @@ function col2im_impl{T}(col::Array{T}, img::Array{T}, input_size::NTuple{3,Int},
   end
 end
 
-function update(l::CaffeConvLayer, input_size::Tuple;)
+function update(l::CaffeConv, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[1:2] == size(l.x)[1:2]
@@ -261,7 +261,7 @@ function update(l::CaffeConvLayer, input_size::Tuple;)
         zeros(kw * kh,     f)
     )
 
-    # println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    # println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
     # println("$(size(l.x))\t$(size(l.y))\t$(size(l.dldx))\t$(size(l.dldy))")
 end
 
@@ -320,11 +320,11 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     return output
 end
 
-function forward(l::CaffeConvLayer; kwargs...)
+function forward(l::CaffeConv; kwargs...)
 	forward(l, l.parents[1].y)
 end
 
-function forward(l::CaffeConvLayer, x::tensor4; kwargs...)
+function forward(l::CaffeConv, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
@@ -334,7 +334,7 @@ function forward(l::CaffeConvLayer, x::tensor4; kwargs...)
     return l.y
 end
 
-function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
+function backward(l::CaffeConv, dldy::tensor4; kwargs...)
     l.dldy = dldy
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
@@ -343,7 +343,7 @@ function backward(l::CaffeConvLayer, dldy::tensor4; kwargs...)
     return l.dldx
 end
 
-function backward(l::CaffeConvLayer; kwargs...)
+function backward(l::CaffeConv; kwargs...)
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
     caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
@@ -353,7 +353,7 @@ function backward(l::CaffeConvLayer; kwargs...)
     return l.dldx
 end
 
-function getGradient(l::CaffeConvLayer)
+function getGradient(l::CaffeConv)
     img    = permutedims(l.x,    [1,2,4,3]) # (w,h,c,b)   -> (w,h,b,c)
     kernel = permutedims(l.dldy, [1,2,4,3]) # (ow,oh,f,b) -> (ow,oh,b,f)
     f = size(kernel,4)
@@ -365,11 +365,11 @@ function getGradient(l::CaffeConvLayer)
     return Array[l.k_grad, l.b_grad]
 end
 
-function getParam(l::CaffeConvLayer)
+function getParam(l::CaffeConv)
     return Array[l.kern, l.bias]
 end
 
-function setParam!(l::CaffeConvLayer, theta)
+function setParam!(l::CaffeConv, theta)
     # convention: ret[:,end,1,1] is the gradient for bias
 
     l.k_velc = theta[1] - l.kern
@@ -379,34 +379,10 @@ function setParam!(l::CaffeConvLayer, theta)
     l.bias   = theta[2]
 end
 
-function getVelocity(l::CaffeConvLayer)
+function getVelocity(l::CaffeConv)
     return Array[l.k_velc, l.b_velc]
 end
 
-function getNumParams(l::CaffeConvLayer)
+function getNumParams(l::CaffeConv)
     return 2
 end
-
-# bsize= 500
-# l = CaffeConvLayer(32,(3,3))
-# X = rand(27, 27, 3,  bsize)
-# Y = rand(25, 25, 32, bsize)
-#
-# println("First time (compiling...)")
-# init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (27, 27, 3)))
-# @time y1 = forward(l,X)
-# @time y1 = backward(l,Y)
-# @time y1 = getGradient(l)
-#
-# println("Second time (after compilation) CaffeConvLayer")
-# X = rand(27, 27, 3,  bsize)
-# Y = rand(25, 25, 32, bsize)
-# @time begin
-#     forward(l,X)
-# end
-# @time begin
-#     backward(l,Y)
-# end
-# @time begin
-#     getGradient(l)
-# end

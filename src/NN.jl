@@ -3,8 +3,8 @@ module NN
     #        getParam, setParam!, getVelocity, getNumParams
     # export Layer, DropoutLayer, DenseLayer, ReLu, Sigmoid, SoftMax,
     #        SoftMaxCrossEntropyLoss, SquareLossLayer, Tanh, InputLayer,
-    #        ConvLayer, MaxPoolingLayer, FlattenLayer,
-    #        CaffeConvLayer, CrossEntropyLoss
+    #        Conv, MaxPoolingLayer, FlattenLayer,
+    #        CaffeConv, CrossEntropyLoss
     export Graph, forward, backward, getGradient,
 	    getParam, setParam!, getVelocity, getNumParams
     export Layer, DataLayer, DenseLayer, ReLu, DropoutLayer,
@@ -21,12 +21,12 @@ module NN
     # include("layers/SquareLossLayer.jl")
     # include("layers/Tanh.jl")
     # include("layers/SequentialNet.jl")
-    # include("layers/ConvLayer.jl")
+    # include("layers/Conv.jl")
     # include("layers/MaxPoolingLayer.jl")
     # include("layers/FlattenLayer.jl")
-    # include("layers/FlatConvLayer.jl")
-    # include("layers/MultiThreadedConvLayer.jl")
-    # include("layers/CaffeConvLayer.jl")
+    # include("layers/FlatConv.jl")
+    # include("layers/MultiThreadedConv.jl")
+    # include("layers/CaffeConv.jl")
     # include("layers/CrossEntropyLoss.jl")
 
     # optimizers

@@ -4,7 +4,7 @@
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type ConvLayer <: LearnableLayer
+type Conv <: LearnableLayer
     parents  :: Array{Layer}
     children :: Array{Layer}
     has_init :: Bool
@@ -34,7 +34,7 @@ type ConvLayer <: LearnableLayer
     b_grad   :: Array{Float64, 1}       # (#filter)
     b_velc   :: Array{Float64, 1}       # (#filter)
 
-    function ConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function Conv(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
         # @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -45,7 +45,7 @@ type ConvLayer <: LearnableLayer
                    zeros(1), zeros(1), zeros(1))
     end
 
-    function ConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal")
+    function Conv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal")
         @assert stride == 1
         @assert padding == 0
         layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init,
@@ -58,14 +58,14 @@ type ConvLayer <: LearnableLayer
     end
 end
 
-function computeOutputSize(l::ConvLayer, input_size::Tuple)
+function computeOutputSize(l::Conv, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     b, _, w, h  = input_size
     return (b, f, convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1))
 end
 
-function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::Conv, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
@@ -111,7 +111,7 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
     l.has_init = true
 end
 
-function update(l::ConvLayer, input_size::Tuple;)
+function update(l::Conv, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
@@ -126,7 +126,7 @@ function update(l::ConvLayer, input_size::Tuple;)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
-    println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
@@ -153,7 +153,7 @@ function flip(x::tensor4)
     return x[:,:,end:-1:1, end:-1:1]
 end
 
-function forward(l::ConvLayer, x::tensor4; kwargs...)
+function forward(l::Conv, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
@@ -168,7 +168,7 @@ function forward(l::ConvLayer, x::tensor4; kwargs...)
     return l.y
 end
 
-function backward(l::ConvLayer; kwargs...)
+function backward(l::Conv; kwargs...)
     DLDY = sum(map(x -> x.dldx[l.id], l.children))
     l.dldy = DLDY
     dldx = zeros(size(l.dldx))
@@ -183,7 +183,7 @@ function backward(l::ConvLayer; kwargs...)
     return l.dldx
 end
 
-function getGradient(l::ConvLayer)
+function getGradient(l::Conv)
     flipped = flip(l.dldy)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     scale!(l.k_grad,0.)
@@ -201,7 +201,7 @@ function getGradient(l::ConvLayer)
     return ret
 end
 
-function getParam(l::ConvLayer)
+function getParam(l::Conv)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
     ret[:,1:end-1,:,:] = l.kern
@@ -209,7 +209,7 @@ function getParam(l::ConvLayer)
     return ret
 end
 
-function setParam!(l::ConvLayer, theta::Array{Float64})
+function setParam!(l::Conv, theta::Array{Float64})
     # convention: ret[:,end,1,1] is the gradient for bias
 
     new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
@@ -221,7 +221,7 @@ function setParam!(l::ConvLayer, theta::Array{Float64})
     l.bias   = new_bias
 end
 
-function getVelocity(l::ConvLayer)
+function getVelocity(l::Conv)
     # return (l.k_velc, l.b_velc)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -230,8 +230,8 @@ function getVelocity(l::ConvLayer)
     return ret
 end
 
-# println("Profiling ConvLayer")
-# l = ConvLayer(128,(3,3))
+# println("Profiling Conv")
+# l = Conv(128,(3,3))
 # X = rand(32, 3, 30, 30)
 # Y = rand(32, 128, 28, 28)
 #

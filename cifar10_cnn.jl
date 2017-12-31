@@ -12,11 +12,11 @@ batch_size = 128
 function build_cnn()
     layers = Layer[
         InputLayer((32,32,3,batch_size)),
-        CaffeConvLayer(64,(5,5)),
+        CaffeConv(64,(5,5)),
         ReLu(),
         MaxPoolingLayer((2,2)),
 
-        CaffeConvLayer(256,(5,5)),
+        CaffeConv(256,(5,5)),
         ReLu(),
         MaxPoolingLayer((2,2)),
 

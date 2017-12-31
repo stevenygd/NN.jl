@@ -2,7 +2,7 @@
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type FlatConvLayer <: LearnableLayer
+type FlatConv <: LearnableLayer
 
     parents  :: Array{Layer}
     children :: Array{Layer}
@@ -33,7 +33,7 @@ type FlatConvLayer <: LearnableLayer
     b_grad   :: Array{Float64, 1}       # (#filter)
     b_velc   :: Array{Float64, 1}       # (#filter)
 
-    function FlatConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function FlatConv(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
         @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -44,7 +44,7 @@ type FlatConvLayer <: LearnableLayer
                    zeros(1), zeros(1), zeros(1))
     end
 
-    function FlatConvLayer(prev::Layer, filters::Int, kernel::Tuple{Int,Int}; config::Union{Dict{String,Any},Void}=nothing, padding = 0, stride = 1, init="Uniform")
+    function FlatConv(prev::Layer, filters::Int, kernel::Tuple{Int,Int}; config::Union{Dict{String,Any},Void}=nothing, padding = 0, stride = 1, init="Uniform")
         @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
@@ -58,14 +58,14 @@ type FlatConvLayer <: LearnableLayer
     end
 end
 
-function computeOutputSize(l::FlatConvLayer, input_size::Tuple)
+function computeOutputSize(l::FlatConv, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     b, _, w, h  = input_size
     return (b, f, convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1))
 end
 
-function init(l::FlatConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::FlatConv, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
 
     if !isa(p,Void)
         l.parents = [p]
@@ -117,7 +117,7 @@ function init(l::FlatConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; 
     l.has_init = true
 end
 
-function update(l::FlatConvLayer, input_size::Tuple;)
+function update(l::FlatConv, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
@@ -132,7 +132,7 @@ function update(l::FlatConvLayer, input_size::Tuple;)
     l.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
-    println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
@@ -188,7 +188,7 @@ function conv4d(x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool)
     end
 end
 
-function forward(l::FlatConvLayer, x::tensor4; kwargs...)
+function forward(l::FlatConv, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
@@ -197,7 +197,7 @@ function forward(l::FlatConvLayer, x::tensor4; kwargs...)
     return l.y
 end
 
-function backward(l::FlatConvLayer, dldy::tensor4; kwargs...)
+function backward(l::FlatConv, dldy::tensor4; kwargs...)
     l.dldy = dldy
     flipped = permutedims(flip(l.kern), [2,1,3,4])
     f = size(flipped,1)
@@ -205,7 +205,7 @@ function backward(l::FlatConvLayer, dldy::tensor4; kwargs...)
     return l.dldx
 end
 
-function getGradient(l::FlatConvLayer)
+function getGradient(l::FlatConv)
     flipped  = permutedims(flip(l.dldy), [2,1,3,4])
     f = size(flipped,1)
     flipped_x = permutedims(l.x, [2,1,3,4])
@@ -220,7 +220,7 @@ function getGradient(l::FlatConvLayer)
     return ret
 end
 
-function getParam(l::FlatConvLayer)
+function getParam(l::FlatConv)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
     ret[:,1:end-1,:,:] = l.kern
@@ -228,7 +228,7 @@ function getParam(l::FlatConvLayer)
     return ret
 end
 
-function setParam!(l::FlatConvLayer, theta::Array{Float64})
+function setParam!(l::FlatConv, theta::Array{Float64})
     # convention: ret[:,end,1,1] is the gradient for bias
 
     new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
@@ -240,7 +240,7 @@ function setParam!(l::FlatConvLayer, theta::Array{Float64})
     l.bias   = new_bias
 end
 
-function getVelocity(l::FlatConvLayer)
+function getVelocity(l::FlatConv)
     # return (l.k_velc, l.b_velc)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -249,10 +249,10 @@ function getVelocity(l::FlatConvLayer)
     return ret
 end
 
-# include("ConvLayer.jl")
+# include("Conv.jl")
 # using Base.Test
-# l = FlatConvLayer(16,(3,3))
-# l2= ConvLayer(16,(3,3))
+# l = FlatConv(16,(3,3))
+# l2= Conv(16,(3,3))
 # X = rand(32, 3, 10, 10)
 # Y = rand(32, 16, 8, 8)
 #

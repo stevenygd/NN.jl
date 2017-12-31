@@ -1,5 +1,5 @@
 include("../src/layers/LayerBase.jl")
-include("../src/layers/CaffeConvLayer.jl")
+include("../src/layers/CaffeConv.jl")
 
 using PyPlot
 
@@ -11,7 +11,7 @@ b   = 128
 X = rand(w,h,c,b)
 K = 32
 for k = 1:K
-    l = CaffeConvLayer(f,(k,k))
+    l = CaffeConv(f,(k,k))
     init(l, nothing, Dict{String, Any}("batch_size" => b, "input_size" => (w,h,c)))
 
     _,t,a,_,_ = @timed Y = forward(l, X)
