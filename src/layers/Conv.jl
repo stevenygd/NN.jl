@@ -75,8 +75,10 @@ function init(l::Conv, input_size::Tuple; kwargs...)
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
-    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
     # initialize weights
@@ -98,7 +100,6 @@ function init(l::Conv, input_size::Tuple; kwargs...)
     l.b_grad = zeros(size(l.bias))
     l.k_velc = zeros(size(l.kern))
     l.b_velc = zeros(size(l.bias))
-    l.has_init = true
 end
 
 function update(l::Conv, input_size::Tuple;)
@@ -107,13 +108,15 @@ function update(l::Conv, input_size::Tuple;)
     @assert input_size[2:end] == size(l.x)[2:end]
 
     b = input_size[1]
-    output_size = size(l.y)
+    output_size = size(l.base.y)
     output_size = (b, output_size[2], output_size[3], output_size[4])
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)
-    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
     println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
@@ -149,19 +152,18 @@ function forward(l::Conv, x::tensor4; kwargs...)
     end
     l.x = x
     batch_size, img_depth = size(l.x, 1), size(l.x, 2)
-    scale!(l.y, 0.)
+    scale!(l.base.y, 0.)
     for b = 1:batch_size
     for c = 1:img_depth
     for f = 1:l.filter
-        l.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
+        l.base.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
     end; end; end
-    return l.y
+    return l.base.y
 end
 
 function backward(l::Conv, dldy::tensor4; kwargs...)
     l.dldy = dldy
-    l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
-    dldx = zeros(input_size)
+    dldx = zeros(size(l.x))
     flipped = flip(l.kern)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     for b=1:batch_size
@@ -169,12 +171,10 @@ function backward(l::Conv, dldy::tensor4; kwargs...)
     for c=1:depth
         dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
     end; end; end
-    l.base.dldx[l.base.parents[1].base.id] = dldx
-end
-
-function backward(l::Conv; kwargs...)
-    dldy = sum(map(x -> x.dldx[l.id], l.children))
-    backward(l, dldy; kwargs...)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = dldx
+    end
+    dldx
 end
 
 function getGradient(l::Conv)
