@@ -17,9 +17,8 @@ type CaffeConv <: LearnableLayer
 
     # Input output place holders
     x        :: Array{Float64, 4}       # (width,       height,     channel,   batch_size)
-    y        :: Array{Float64, 4}       # (out_width,   out_height, #filter,   batch_size)
     dldy     :: Array{Float64, 4}       # (width,       height,     channel,   batch_size)
-    dldx     :: Array{Float64, 4}       # (out_width,   out_height, #filter,   batch_size)
+    dldx_cache :: Array{Float64, 4}
 
     # Kernel and it's gradient & velocity
     kern     :: Array{Float64, 4}       # (k_width,   k_height,     channel,   #filter)
@@ -38,12 +37,12 @@ type CaffeConv <: LearnableLayer
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
     function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
-         padding = 0, stride = 1, init="Normal")
+         padding = 0, stride = 1, init_type="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init,
+        layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1),
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
@@ -56,15 +55,15 @@ type CaffeConv <: LearnableLayer
 
     function CaffeConv(config::Dict{String,Any}, filters::Int, kernel::Tuple{Int,Int};
          padding = 0, stride = 1, init_type="Normal")
-        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type,
+        layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1),
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
-        input_size = (config["batch_size"], config["input_size"][1])
+        input_size = (config["input_size"]..., config["batch_size"]...)
         init(layer, input_size)
         layer
     end
@@ -89,7 +88,10 @@ function init(l::CaffeConv, input_size::Tuple)
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
-    l.base.dldx = Array{Float64}(input_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.dldx_cache = Array{Float64}(input_size)
     l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
@@ -138,7 +140,6 @@ function init(l::CaffeConv, input_size::Tuple)
         zeros(kw * kh,     f)
     )
 
-    l.has_init = true
 end
 
 # Codes from Moncha.jl
@@ -319,8 +320,11 @@ function backward(l::CaffeConv, dldy::tensor4; kwargs...)
     l.dldy = dldy
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
-    caffe_conv4d!(l.base.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
-    return l.base.dldx
+    caffe_conv4d!(l.dldx_cache, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = l.dldx_cache
+    end
+    l.dldx_cache
 end
 
 function getGradient(l::CaffeConv)

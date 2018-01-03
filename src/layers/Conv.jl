@@ -16,6 +16,7 @@ type Conv <: LearnableLayer
     # Input output place holders
     x        :: Array{Float64, 4}       # (batch_size,  channel,    width,     height)
     dldy     :: Array{Float64, 4}       # (batch_size,  #filter,    out_width, out_height)
+    dldx_cache :: Array{Float64, 4}
 
     # Kernel and it's gradient & velocity
     kern     :: Array{Float64, 4}       # (#filter,     channel,    k_width,   k_height)
@@ -33,7 +34,7 @@ type Conv <: LearnableLayer
         @assert padding == 0    # doesn't support padding yet
         layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1))
         connect(layer, [prev])
@@ -46,7 +47,7 @@ type Conv <: LearnableLayer
         @assert padding == 0
         layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1))
         input_size = (config["batch_size"]..., config["input_size"]...)
@@ -78,6 +79,7 @@ function init(l::Conv, input_size::Tuple; kwargs...)
     if length(l.base.parents)>0
         l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
     end
+    l.dldx_cache = Array{Float64}(input_size)
     l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
@@ -163,18 +165,18 @@ end
 
 function backward(l::Conv, dldy::tensor4; kwargs...)
     l.dldy = dldy
-    dldx = zeros(size(l.x))
+    l.dldx_cache = zeros(size(l.x))
     flipped = flip(l.kern)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     for b=1:batch_size
     for f=1:l.filter
     for c=1:depth
-        dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
+        l.dldx_cache[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
     end; end; end
     if length(l.base.parents)>0
-        l.base.dldx[l.base.parents[1].base.id] = dldx
+        l.base.dldx[l.base.parents[1].base.id] = l.dldx_cache
     end
-    dldx
+    l.dldx_cache
 end
 
 function getGradient(l::Conv)

@@ -5,9 +5,8 @@ using Base.Test
 
 function test1()
     bsize= 1
-    l = CaffeConv(1,(3,3))
+    l = CaffeConv(Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)), 1,(3,3))
     X = rand(5, 5, 1, bsize)
-    init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)))
 
     img1 = [
         1 3 2 0 2;
@@ -52,9 +51,8 @@ function test2()
     #  Test 2 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConv(1,(3,3))
+    l = CaffeConv(Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)),1,(3,3))
     X = rand(5, 5, 3, bsize)
-    init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     img1 = [
         1 3 2 0 2;
         1 0 2 3 3;
@@ -122,9 +120,8 @@ function test3()
     #  Test 3 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConv(3,(3,3))
+    l = CaffeConv(Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)),3,(3,3))
     X = rand(5, 5, 1, bsize)
-    init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)))
     img1 = [
         3 4 0 1 1;
         1 3 0 2 3;
@@ -184,9 +181,8 @@ function test4()
     #  Test 4 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConv(3,(3,3))
+    l = CaffeConv(Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)),3,(3,3))
     X = rand(5, 5, 3, bsize)
-    init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     X[:,:,1,1] = [
         3 -4 0 1 -1;
         -1 3 0 2 3;
@@ -256,9 +252,8 @@ function test5()
     #  Test 5 Starts                                                               #
     ################################################################################
     bsize= 3
-    l = CaffeConv(3,(3,3))
+    l = CaffeConv(Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)),3,(3,3))
     X = rand(5, 5, 3, bsize)
-    init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     for b = 1:3
         for c = 1:3
             X[:,:,c,b] = rem.(rand(Int, 5,5), 5)

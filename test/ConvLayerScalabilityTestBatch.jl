@@ -10,8 +10,7 @@ w,h,c,f = 32, 32, 64, 64
 B   = 302
 k = 5
 for b = 32:10:B
-    l = CaffeConv(f,(k,k))
-    init(l, nothing, Dict{String, Any}("batch_size" => b, "input_size" => (w,h,c)))
+    l = CaffeConv(Dict{String, Any}("batch_size" => b, "input_size" => (w,h,c)),f,(k,k))
     X = rand(w,h,c,b)
 
     println("Working on batch_size:$(b)")

@@ -21,12 +21,12 @@ module NN
     # include("layers/SquareLossLayer.jl")
     # include("layers/Tanh.jl")
     # include("layers/SequentialNet.jl")
-    # include("layers/Conv.jl")
+    include("layers/Conv.jl")
     # include("layers/MaxPoolingLayer.jl")
     # include("layers/FlattenLayer.jl")
     # include("layers/FlatConv.jl")
     # include("layers/MultiThreadedConv.jl")
-    # include("layers/CaffeConv.jl")
+    include("layers/CaffeConv.jl")
     # include("layers/CrossEntropyLoss.jl")
 
     # optimizers
