@@ -32,9 +32,6 @@ module NN
     # optimizers
     # include("optimizers/Adam.jl")
     # include("optimizers/AdamPrim.jl")
-    # include("optimizers/Bdam.jl")
-    # include("optimizers/Cdam.jl")
-    # include("optimizers/Ddam.jl")
     # include("optimizers/RMSprop.jl")
     # include("optimizers/SGD.jl")
     include("optimizers/SGD.jl")
