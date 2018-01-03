@@ -37,8 +37,8 @@ module NN
     # include("optimizers/Ddam.jl")
     # include("optimizers/RMSprop.jl")
     # include("optimizers/SGD.jl")
-    include("optimizers/SGD_graph.jl")
+    include("optimizers/SGD.jl")
     # export AdamOptimizer, AdamPrimOptimizer, BdamOptimizer, CdamOptimizer, DdamOptimizer,
     #        RMSPropOptimizer, SgdOptimizer, optimize
-    export SgdOptimizerGraph, optimize
+    export SgdOptimizer, optimize
 end

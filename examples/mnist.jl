@@ -30,7 +30,7 @@ function get_cor(pred, label)
     return cor
 end
 
-function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizerGraph,
+function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer,
     train_set, validation_set;
     batch_size::Int64 = 100, ttl_epo::Int64 = 10, alpha::Float64 = 0.9)
 
@@ -99,7 +99,7 @@ println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
 
 layerX, layerY, graph = build_model()
-opt = SgdOptimizerGraph(graph)
+opt = SgdOptimizer(graph)
 
 epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
 graph, layerX, layerY, opt, (trX, trY), (valX, valY);
