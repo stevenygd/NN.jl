@@ -23,13 +23,29 @@ type DenseLayer <: Layer
         layer
     end
 
-    function DenseLayer(config::Dict{String,Any}, num_units::Int; init_type="Uniform")
+    function DenseLayer(config, num_units::Int; init_type="Uniform")
         i, o = 1, num_units
         layer = new(LayerBase(), Float64[], Float64[], init_type,
             i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
         @assert length(config["input_size"]) == 1 # TODO: maybe a error message?
         out_size = (config["batch_size"], config["input_size"][1])
         init(layer, out_size)
+        layer
+    end
+
+    function DenseLayer(main::DenseLayer)
+        layer = new(LayerBase(), Float64[], Float64[], "",
+            0, 0, randn(1,1), zeros(1, 1), zeros(1, 1))
+        layer.base.y = copy(main.base.y)
+        layer.base.dldx = copy(main.base.dldx)
+        layer.x = copy(main.x)
+        layer.dldy = copy(main.dldy)
+        layer.init_type = main.init_type
+        layer.i = copy(main.i)
+        layer.num_units = copy(main.num_units)
+        layer.W = main.W
+        layer.velc = copy(main.velc)
+        layer.grad = copy(main.grad)
         layer
     end
 end
@@ -48,7 +64,7 @@ function init(l::DenseLayer, out_size::Tuple; kwargs...)
 
     # Get enough information, now preallocate the memory
     l.x     = Array{Float64}(batch_size, l.i + 1)
-    l.base.y     = Array{Float64}(batch_size, l.num_units)
+    l.base.y = Array{Float64}(batch_size, l.num_units)
     l.dldy  = Array{Float64}(batch_size, l.num_units)
     l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(batch_size, l.i + 1)
     l.velc  = zeros(l.i + 1,    l.num_units)
@@ -122,7 +138,8 @@ function setParam!(l::DenseLayer, theta)
     @assert size(l.W) == size(theta[1])
     # broadcast!(-, l.velc, theta, l.W)
     l.velc = theta[1] - l.W
-    l.W = theta[1]
+    # l.W = theta[1]
+    copy!(l.W, theta[1])
 end
 
 function getVelocity(l::DenseLayer)
