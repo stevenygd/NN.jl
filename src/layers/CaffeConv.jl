@@ -5,11 +5,7 @@
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
 type CaffeConv <: LearnableLayer
-    parents  :: Array{Layer}
-    children :: Array{Layer}
-
-    has_init :: Bool
-    id       :: Base.Random.UUID
+    base     :: LayerBase
 
     # Parameters
     init_type:: String                  # Type of initialization
@@ -41,11 +37,11 @@ type CaffeConv <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConv(filters::Int, kernel::Tuple{Int,Int};
+    function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
          padding = 0, stride = 1, init="Normal")
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(Layer[], Layer[], false, Base.Random.uuid4(), init,
+        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -53,10 +49,13 @@ type CaffeConv <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
+        connect(layer, [prev])
+        init(layer, getOutputSize(prev))
+        layer
     end
 
-    function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
-         config::Union{Dict{String, Any}, Void}=nothing, padding = 0, stride = 1, init_type="Normal", kwargs...)
+    function CaffeConv(config::Dict{String,Any}, filters::Int, kernel::Tuple{Int,Int};
+         padding = 0, stride = 1, init_type="Normal")
         layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -65,7 +64,8 @@ type CaffeConv <: LearnableLayer
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_forward
                    (zeros(1,1), zeros(1,1), zeros(1,1)), # tmps_backward
                    (zeros(1,1), zeros(1,1), zeros(1,1))) # tmps_gradient
-        init(layer, prev, config;kwargs...)
+        input_size = (config["batch_size"], config["input_size"][1])
+        init(layer, input_size)
         layer
     end
 end
@@ -77,23 +77,10 @@ function computeOutputSize(l::CaffeConv, input_size::Tuple)
     return (convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1), f, b)
 end
 
-function init(l::CaffeConv, p::Union{Layer,Void}, config::Union{Dict{String,Any}, Void}; kwargs...)
+function init(l::CaffeConv, input_size::Tuple)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
-    if !isa(p,Void)
-        l.parents = [p]
-        push!(p.children, l)
-    end
-
-    if p == nothing
-        @assert length(config["input_size"]) == 3
-        batch_size = config["batch_size"]
-        w, h, c    = config["input_size"]
-        input_size = (w, h, c, batch_size)
-    else
-        input_size = getOutputSize(p)
-    end
     @assert length(input_size) == 4
     output_size  = computeOutputSize(l, input_size)
     w, h, c,  b  = input_size
@@ -102,8 +89,8 @@ function init(l::CaffeConv, p::Union{Layer,Void}, config::Union{Dict{String,Any}
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
-    l.dldx = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    l.base.dldx = Array{Float64}(input_size)
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
     # initialize weights
@@ -229,15 +216,15 @@ function update(l::CaffeConv, input_size::Tuple;)
     @assert input_size[1:2] == size(l.x)[1:2]
 
     b = input_size[4]
-    output_size = (size(l.y,1), size(l.y,2), size(l.y,3), b)
+    output_size = (size(l.base.y,1), size(l.base.y,2), size(l.base.y,3), b)
     ow, oh, f, _ = output_size
     w,  h,  c, _ = input_size
     kw, kh, _, _ = size(l.kern)
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)
-    l.dldx = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    l.base.dldx = Array{Float64}(input_size)
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
     # TODO: output_size here should be that of the full outer-convolution
@@ -260,9 +247,6 @@ function update(l::CaffeConv, input_size::Tuple;)
         zeros(ow * oh * b, f),
         zeros(kw * kh,     f)
     )
-
-    # println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
-    # println("$(size(l.x))\t$(size(l.y))\t$(size(l.dldx))\t$(size(l.dldy))")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
@@ -309,8 +293,6 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
         end
 
         A_mul_B!(m_conved, m_img, m_ker)
-        # println("$(size(m_conved)) $(size(bias)) $(f) ")
-        # println("$(size(reshape(bias,1,f)))")
         broadcast!(+, m_conved, m_conved, reshape(bias,1,f))
 
         m_transp = reshape(m_conved, o_w, o_h, f)
@@ -329,28 +311,26 @@ function forward(l::CaffeConv, x::tensor4; kwargs...)
         update(l, size(x))
     end
     l.x = x
-    caffe_conv4d!(l.y, l.tmps_forward, l.x, l.kern, l.bias, true) # inner convolution
-    # println("Forward:\nx:$(mean(x))\t$(mean(l.y))\t$(mean(l.kern))")
-    return l.y
+    caffe_conv4d!(l.base.y, l.tmps_forward, l.x, l.kern, l.bias, true) # inner convolution
+    return l.base.y
 end
 
 function backward(l::CaffeConv, dldy::tensor4; kwargs...)
     l.dldy = dldy
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
-    caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
-    # println("Backward:\nx:$(mean(l.dldy))\t$(mean(l.dldx))")
-    return l.dldx
+    caffe_conv4d!(l.base.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    return l.base.dldx
 end
 
 function backward(l::CaffeConv; kwargs...)
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
-    caffe_conv4d!(l.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    caffe_conv4d!(l.base.dldx, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
     for i=1:length(l.parents)
         l.dldy
     end
-    return l.dldx
+    return l.base.dldx
 end
 
 function getGradient(l::CaffeConv)
@@ -360,8 +340,6 @@ function getGradient(l::CaffeConv)
     caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
     permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
-    # println("Kernel Grad:\t$(mean(abs(l.k_grad)))\t$(mean(abs(l.kern)))\t")
-    # println("Bias Grad:\t$(mean(abs(l.b_grad)))\t$(mean(abs(l.bias)))\t$(mean(abs(l.dldy)))")
     return Array[l.k_grad, l.b_grad]
 end
 
