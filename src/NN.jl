@@ -13,7 +13,7 @@ module NN
     include("layers/Graph.jl")
     include("layers/InputLayer.jl")
     include("layers/DropoutLayer.jl")
-    include("layers/DenseLayer.jl")
+    include("layers/FullyConnected.jl.jl")
     include("layers/SoftMaxCrossEntropy.jl")
     include("layers/ReLu.jl")
     # include("layers/Sigmoid.jl")
