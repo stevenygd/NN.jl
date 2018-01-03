@@ -1,6 +1,6 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/Graph.jl")
-include("../src/layers/AdditionLayer.jl")
+include("../src/layers/Addition.jl")
 include("../src/layers/InputLayer.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
 using Base.Test
@@ -8,7 +8,7 @@ using Base.Test
 function AdditionTest(xs, y, dldy)
     input1 = InputLayer((1, 2))
     input2 = InputLayer((1, 2))
-    l      = AdditionLayer([input1, input2])
+    l      = Addition([input1, input2])
     l2     = SoftMaxCrossEntropyLoss(l)
     forward(input1, xs[1])
     forward(input2, xs[2])
@@ -32,4 +32,4 @@ dldy = [3. 4.;]
 dldx1 = [3. 4.;]
 dldx2 = [3. 4.;]
 AdditionTest(xs, y, dldy)
-println("AdditionLayer Test passed")
+println("Addition Test passed")

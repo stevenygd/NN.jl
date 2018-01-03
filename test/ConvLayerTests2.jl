@@ -1,11 +1,11 @@
 include("../src/layers/LayerBase.jl")
-include("../src/layers/CaffeConvLayer.jl")
+include("../src/layers/CaffeConv.jl")
 using Base.Test
 # println(sum(forward(l,X)))
 
 function test1()
     bsize= 1
-    l = CaffeConvLayer(1,(3,3))
+    l = CaffeConv(1,(3,3))
     X = rand(5, 5, 1, bsize)
     init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)))
 
@@ -26,7 +26,7 @@ function test1()
     ]
 
     y = forward(l,X)
-    @test_approx_eq_eps img1[1:3,1:3] y 1e-4
+    @test img1[1:3,1:3] ≈ y
     println("[Test 1.1][Pass] Forward Unit Test 1 Passes.")
 
     # println(y)
@@ -42,7 +42,7 @@ function test1()
         sum(img1[2:4,1:3].*y) sum(img1[2:4,2:4].*y) sum(img1[2:4,3:5].*y);
         sum(img1[3:5,1:3].*y) sum(img1[3:5,2:4].*y) sum(img1[3:5,3:5].*y);
     ]
-    @test_approx_eq_eps my_grad k_grad 1e-10
+    @test my_grad ≈ k_grad
     println("[Test 1.3][Pass] Gradient Unit Test 1 Passed.")
     # println("My Gradient:$(my_grad)")
 end
@@ -52,7 +52,7 @@ function test2()
     #  Test 2 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConvLayer(1,(3,3))
+    l = CaffeConv(1,(3,3))
     X = rand(5, 5, 3, bsize)
     init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     img1 = [
@@ -100,7 +100,7 @@ function test2()
     ]
     y = forward(l,X)
     ans_y = img1[3:5, 1:3] + img2[2:4,3:5] + img3[2:4,2:4]
-    @test_approx_eq_eps y ans_y 1e-10
+    @test y ≈ ans_y
     println("[Test 2.1][Pass] Pass Forward Unit Test 2.")
 
     dldx = backward(l, y)
@@ -113,7 +113,7 @@ function test2()
             sum(X[:,:,c,1][3:5,1:3].*y) sum(X[:,:,c,1][3:5,2:4].*y) sum(X[:,:,c,1][3:5,3:5].*y);
         ]
     end
-    @test_approx_eq_eps g g_ans 1e-10
+    @test g ≈ g_ans
     println("[Test 2.3][Pass] Pass Gradient Unit Test 2.")
 end
 
@@ -122,7 +122,7 @@ function test3()
     #  Test 3 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConvLayer(3,(3,3))
+    l = CaffeConv(3,(3,3))
     X = rand(5, 5, 1, bsize)
     init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 1)))
     img1 = [
@@ -162,7 +162,7 @@ function test3()
             sum(l.kern[:,:,1,f].*img1[3:5,1:3]) sum(l.kern[:,:,1,f].*img1[3:5,2:4]) sum(l.kern[:,:,1,f].*img1[3:5,3:5]);
         ]
     end
-    @test_approx_eq_eps y ans_y 1e-10
+    @test y ≈ ans_y
     println("[Test 3.1][Pass] Pass Forward Unit Test 3.")
 
     dldx = backward(l, y)
@@ -175,7 +175,7 @@ function test3()
             sum(X[:,:,1,1][3:5,1:3].*y[:,:,f,1]) sum(X[:,:,1,1][3:5,2:4].*y[:,:,f,1]) sum(X[:,:,1,1][3:5,3:5].*y[:,:,f,1]);
         ]
     end
-    @test_approx_eq_eps g g_ans 1e-10
+    @test g ≈ g_ans
     println("[Test 2.3][Pass] Pass Gradient Unit Test 3.")
 end
 
@@ -184,7 +184,7 @@ function test4()
     #  Test 4 Starts                                                               #
     ################################################################################
     bsize= 1
-    l = CaffeConvLayer(3,(3,3))
+    l = CaffeConv(3,(3,3))
     X = rand(5, 5, 3, bsize)
     init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     X[:,:,1,1] = [
@@ -232,7 +232,7 @@ function test4()
             ]
         end;
     end
-    @test_approx_eq_eps y ans_y 1e-10
+    @test y ≈ ans_y
     println("[Test 4.1][Pass] Pass Forward Unit Test 4.")
 
     dldx = backward(l, y)
@@ -247,7 +247,7 @@ function test4()
             ]
         end
     end
-    @test_approx_eq_eps g g_ans 1e-10
+    @test g ≈ g_ans
     println("[Test 4.3][Pass] Pass Gradient Unit Test 4.")
 end
 
@@ -256,12 +256,12 @@ function test5()
     #  Test 5 Starts                                                               #
     ################################################################################
     bsize= 3
-    l = CaffeConvLayer(3,(3,3))
+    l = CaffeConv(3,(3,3))
     X = rand(5, 5, 3, bsize)
     init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => (5, 5, 3)))
     for b = 1:3
         for c = 1:3
-            X[:,:,c,b] = rand(Int, 5,5) % 5
+            X[:,:,c,b] = rem.(rand(Int, 5,5), 5)
         end
     end
 
@@ -288,7 +288,7 @@ function test5()
             end;
         end
     end
-    @test_approx_eq_eps y ans_y 1e-10
+    @test y ≈ ans_y
     println("[Test 5.1][Pass] Pass Forward Unit Test 5.")
 
     dldx = backward(l, y)
@@ -305,7 +305,7 @@ function test5()
             end
         end
     end
-    @test_approx_eq_eps g g_ans 1e-10
+    @test g ≈ g_ans
     println("[Test 5.3][Pass] Pass Gradient Unit Test 5.")
 end
 

@@ -44,14 +44,14 @@ function test_performance(l, lname; bsize=500, input_size=(1,27,27), output_size
     println("$(lname) used $(t) seconds to run $(n) passes")
 end
 
-include("../src/layers/ConvLayer.jl")
-test_performance(ConvLayer(32,(3,3)), "ConvLayer")
+include("../src/layers/Conv.jl")
+test_performance(Conv(32,(3,3)), "Conv")
 
-include("../src/layers/FlatConvLayer.jl")
-test_performance(FlatConvLayer(32,(3,3)), "FlatConvLayer")
+include("../src/layers/FlatConv.jl")
+test_performance(FlatConv(32,(3,3)), "FlatConv")
 
-include("../src/layers/CaffeConvLayer.jl")
-test_performance(CaffeConvLayer(32,(3,3)), "CaffeConvLayer")
+include("../src/layers/CaffeConv.jl")
+test_performance(CaffeConv(32,(3,3)), "CaffeConv")
 
 
-# include("../layers/MultiThreadedConvLayer.jl")
+# include("../layers/MultiThreadedConv.jl")

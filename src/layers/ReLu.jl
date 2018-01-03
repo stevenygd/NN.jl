@@ -1,4 +1,3 @@
-# Define the ReLu layers
 type ReLu <: Nonlinearity
     base     :: LayerBase
 
