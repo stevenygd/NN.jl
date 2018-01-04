@@ -1,4 +1,5 @@
 include("../src/layers/LayerBase.jl")
+include("../src/layers/InputLayer.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
 include("../src/layers/Graph.jl")
 import Calculus: check_gradient

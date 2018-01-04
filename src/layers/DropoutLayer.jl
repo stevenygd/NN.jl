@@ -19,7 +19,7 @@ type DropoutLayer <: RegularizationLayer
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
         layer = new(LayerBase(), p, Float64[], Float64[], Float64[])
         @assert ndims(config["input_size"]) == 1
-        out_size = (config["batch_size"], config["input_sisze"][1])
+        out_size = (config["batch_size"], config["input_size"][1])
         init(layer, out_size; kwargs...)
         layer
     end

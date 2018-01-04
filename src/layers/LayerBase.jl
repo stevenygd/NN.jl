@@ -28,14 +28,31 @@ function connect(l::Layer, parents::Array{<:Layer})
     end
 end
 
+function init(l::LossCriteria, label::DataLayer, out_size::Tuple)
+    unshift!(l.base.parents, label)
+    @assert 1 ≤ length(l.base.parents) ≤ 2
+    init(l, out_size)
+end
+
 function forward(l ::Layer; kwargs...)
 	forward(l, l.base.parents[1].base.y; kwargs...)
+end
+
+function forward(l ::LossCriteria; kwargs...)
+    forward(l, l.base.parents[2].base.y, l.base.parents[1].base.y; kwargs...)
 end
 
 function backward(l ::Layer; kwargs...)
     DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
     backward(l, DLDY; kwargs...)
 end
+
+function backward(l::LossCriteria;kwargs...)
+
+    label = l.base.parents[1].base.y
+    backward(l,label)
+end
+
 
 StaticLayer = Union{Nonlinearity, DataLayer, RegularizationLayer, UtilityLayer}
 

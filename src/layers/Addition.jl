@@ -37,6 +37,5 @@ end
 
 function backward(l::Addition;kwargs...)
     DLDY = sum(map(x -> x.base.dldx[l.base.id], l.base.children))
-    println(DLDY)
     foreach(x -> l.base.dldx[x.base.id] = DLDY, l.base.parents)
 end
