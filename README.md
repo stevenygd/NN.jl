@@ -1,2 +1,4 @@
-# JLNN
-Jupiter neural network library
+# NN.jl
+Julia Neural Network Library
+
+Coming soon...
