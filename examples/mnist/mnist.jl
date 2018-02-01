@@ -1,5 +1,5 @@
-include("../src/NN.jl")
-include("../util/datasets.jl")
+include("../../src/NN.jl")
+include("../../util/datasets.jl")
 using NN
 using Plots
 
@@ -8,11 +8,11 @@ batch_size = 500
 function build_model()
     layerX = InputLayer((batch_size,784))
     layerY = InputLayer((batch_size, 10))
-    l1    = DenseLayer(layerX, 1000; init_type = "Normal")
+    l1    = FullyConnected(layerX, 1000; init_type = "Normal")
     l2    = ReLu(l1)
-    l3    = DenseLayer(l2, 1000; init_type = "Normal" )
+    l3    = FullyConnected(l2, 1000; init_type = "Normal" )
     l4    = ReLu(l3)
-    l5    = DenseLayer(l4, 10; init_type = "Normal")
+    l5    = FullyConnected(l4, 10; init_type = "Normal")
     l6    = SoftMaxCrossEntropyLoss(l5, layerY)
     return layerX, layerY, Graph(l6)
 end
@@ -114,4 +114,3 @@ p=plot([all_losses, val_losses, epo_accu, val_accu],
         ylabel=["losses" "loss" "accuracy" "accuracy"],
         title =["train losess" "validation losses" "train accuracy" "validation accuracy"],
         layout=4)
-savefig("mnist.png")
