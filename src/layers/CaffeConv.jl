@@ -38,8 +38,8 @@ type CaffeConv <: LearnableLayer
 
     function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
          padding = 0, stride = 1, init_type="Normal")
-        @assert stride == 1     # doesn't support other stride yet
-        @assert padding == 0    # doesn't support padding yet
+        # @assert stride == 1     # doesn't support other stride yet
+        # @assert padding == 0    # doesn't support padding yet
         layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -261,7 +261,7 @@ end
 
 function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}},
          x::tensor4, kern::tensor4, bias::Array{Float64, 1}, inner::Bool;
-         stride=1)
+         stride=1,pad=0)
     """
     [output] size (o_w, o_h, #f, b)
     [x]      size (w,   h,   c,  b)
@@ -272,8 +272,10 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     [kern]   size : (k_width,   k_height, channel,  #filter)
     """
     w,   h,   c,  b = size(x)
+    w_y, h_y, _, _ = size(l.base.y)
     k_w, k_h, c2, f = size(kern)
-    o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
+    # o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
+    o_w, o_h = inner?(w_y, h_y):(w,h)
     kernel          = (k_w, k_h)
     @assert c2 == c
 
@@ -288,7 +290,7 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
 
     for nb = 1:b
         if inner
-            im2col_impl(x[:,:,:,nb], m_img, kernel, (0,0), (stride,stride))
+            im2col_impl(x[:,:,:,nb], m_img, kernel, (pad,pad), (stride,stride))
         else # outter convolution, add padding
             im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w-1,k_h-1), (stride,stride))
         end
@@ -312,7 +314,7 @@ function forward(l::CaffeConv, x::tensor4; kwargs...)
         update(l, size(x))
     end
     l.x = x
-    caffe_conv4d!(l.base.y, l.tmps_forward, l.x, l.kern, l.bias, true) # inner convolution
+    caffe_conv4d!(l.base.y, l.tmps_forward, l.x, l.kern, l.bias, true;stride=l.stride, pad=l.pad) # inner convolution
     return l.base.y
 end
 
