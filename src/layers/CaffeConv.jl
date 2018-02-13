@@ -272,10 +272,11 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     [kern]   size : (k_width,   k_height, channel,  #filter)
     """
     w,   h,   c,  b = size(x)
-    w_y, h_y, _, _ = size(l.base.y)
+    w_y, h_y, _, _ = size(output)
     k_w, k_h, c2, f = size(kern)
     # o_w, o_h        = inner?(w-k_w+1):(w+k_w-1), inner?(h-k_h+1):(h+k_h-1)
-    o_w, o_h = inner?(w_y, h_y):(w,h)
+    # o_w, o_h = inner?(w_y, h_y):(w,h)
+    o_w, o_h = (w_y,h_y)
     kernel          = (k_w, k_h)
     @assert c2 == c
 
@@ -297,7 +298,6 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
 
         A_mul_B!(m_conved, m_img, m_ker)
         broadcast!(+, m_conved, m_conved, reshape(bias,1,f))
-
         m_transp = reshape(m_conved, o_w, o_h, f)
         output[:,:,:,nb] = m_transp
     end
