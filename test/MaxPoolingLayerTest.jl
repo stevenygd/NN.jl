@@ -1,29 +1,22 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/MaxPoolingLayer.jl")
+include("../src/layers/InputLayer.jl")
+
 using Base.Test
 
+function testMaxPoolingLayer(x, y, dldy, dldx; alpha = 1.)
+    l0 = InputLayer(size(x))
+    l  = MaxPoolingLayer(l0,(2,2))
+    println(x)
+    println(size(x))
+    println()
+    println(y)
 
-
-l1 = MaxPoolingLayer((2,2))
-function beforeTest1(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [3,4,4])) #output size should be 3 * 2 * 2
-end
-
-l2 = MaxPoolingLayer((2,2)) 
-function beforeTest2(l)
-    init(l, nothing, Dict{String, Any}("batch_size" => 1, "input_size" => [3,3,3])) #output size should be 3 * 2 * 2
-end
-
-
-function testMaxPoolingLayer(l, x, y, dldy, dldx)
     # Testing forwarding
-    @test forward(l,x) == y
-    @test l.x == x
+    @test forward(l0, x) == y
 
-    #Testing back propagation
-    @test backward(l,dldy) == dldx
-    @test l.dldy == dldy
-    @test l.dldx == dldx
+    #Testing back propagations
+    @test backward(l, dldy) == dldx
 end
 
 # First Test
@@ -52,8 +45,7 @@ for i = 1:3
     dldx[1,i,:,:] = dldx_channel
 end
 
-beforeTest1(l1)
-testMaxPoolingLayer(l1, x, y, dldy, dldx)
+testMaxPoolingLayer(x, y, dldy, dldx)
 println("test 1 passed.\n")
 
 # Second Test
@@ -83,7 +75,7 @@ for i = 1:3
 end
 
 beforeTest2(l2)
-testMaxPoolingLayer(l2, x2, y2, dldy2, dldx2)
+testMaxPoolingLayer(x2, y2, dldy2, dldx2)
 println("test 2 passed.\n")
 
 # # Third test
@@ -114,5 +106,5 @@ for i = 1:3
 end
 
 beforeTest2(l2)
-testMaxPoolingLayer(l2, x3, y3, dldy3, dldx3)
+testMaxPoolingLayer(x3, y3, dldy3, dldx3)
 println("test 3 passed.\n")
