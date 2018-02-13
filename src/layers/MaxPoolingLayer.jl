@@ -28,8 +28,8 @@ type MaxPoolingLayer <: RegularizationLayer
     function MaxPoolingLayer(config::Dict{String,Any}, size::Tuple{Int,Int};stride = 1, kwargs...)
         layer = new(LayerBase(), size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
-        out_size = (config["batch_size"], config["input_size"][1])
-        init(layer, out_size; kwargs...)
+        input_size = (config["input_size"], config["batch_size"])
+        init(layer, input_size; kwargs...)
         layer
     end
 end
@@ -109,7 +109,7 @@ end
 
 function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
-    scale!(l.dldx, 0.)#clear l.dldx
+    scale!(l.dldx_cache, 0.)#clear l.dldx
     batch_size, img_depth = size(l.x, 4), size(l.x, 3)
     for b = 1:batch_size
     for c = 1:img_depth
@@ -117,9 +117,9 @@ function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Floa
     for h = 1:size(l.base.y,2)
         x, y = l.max_idx[w,h,c,b]
         # print("x:$(x),y:$(y) coming from w:$(w), h:$(h)")
-        l.dldx[x,y,c,b] = l.dldy[w,h,c,b]
+        l.dldx_cache[x,y,c,b] = l.dldy[w,h,c,b]
     end; end; end; end
-    return l.dldx
+    return l.dldx_cache
 end
 
 # l = MaxPoolingLayer((3,3))
