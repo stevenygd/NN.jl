@@ -11,19 +11,18 @@ function build_model()
 
     input = InputLayer((28,28,1,batch_size))
     label = InputLayer((batch_size,10))
-    c1 = CaffeConv(input, 32, (5,5);padding=4)
+    c1 = CaffeConv(input, 32, (5,5))
     r1 = ReLu(c1);
     m1 = MaxPoolingLayer(r1, (2,2))
-    c2 = CaffeConv(m1, 32, (5,5);padding=4)
+    c2 = CaffeConv(m1, 32, (5,5))
     r2 = ReLu(c2);
     m2 = MaxPoolingLayer(r2, (2,2))
-    # 33 * 33 now
     fl = Flatten(m2)
     fc1 = FullyConnected(fl, 256)
     rf = ReLu(fc1);
-    d = DropoutLayer(rf, 0.5)
-    f2 = FullyConnected(d, 10)
-    loss = SoftMaxCrossEntropyLoss(f2, label)
+    # d = DropoutLayer(rf, 0.5)
+    fc2 = FullyConnected(rf, 10)
+    loss = SoftMaxCrossEntropyLoss(fc2, label)
 
     return input, label, Graph(loss)
 end
@@ -67,7 +66,7 @@ function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer
                     batch += 1
                     local start::Int = bid*batch_size+1
                     local last::Int = min(N, (bid+1)*batch_size)
-                    local batch_X = X[start:last, :]
+                    local batch_X = X[:,:,:,start:last]
                     local batch_Y = Y[start:last, :]
                     loss, pred = optimize(optimizer, Dict(layerX=>batch_X, layerY=>batch_Y))
                     push!(all_losses, mean(loss))
@@ -108,6 +107,10 @@ teX, teY = test_set[1], test_set[2]
 println("TrainSet: $(size(trX)) $(size(trY))")
 println("ValSet  : $(size(valX)) $(size(valY))")
 println("TestSet : $(size(teX)) $(size(teY))")
+
+trX  = permutedims(reshape(trX,  (size(trX,1),  1, 28, 28)), [3,4,2,1])
+valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
+teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 
 layerX, layerY, graph = build_model()
 opt = SgdOptimizer(graph)

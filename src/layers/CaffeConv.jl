@@ -224,7 +224,10 @@ function update(l::CaffeConv, input_size::Tuple;)
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)
-    l.base.dldx = Array{Float64}(input_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.dldx_cache = Array{Float64}(input_size)
     l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
