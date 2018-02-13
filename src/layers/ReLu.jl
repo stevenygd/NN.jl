@@ -17,7 +17,7 @@ type ReLu <: Nonlinearity
         @assert alpha ≥ 0.
         layer = new(LayerBase(), alpha, Float64[], Float64[])
         @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
-        out_size = (config["batch_size"], config["input_size"][1])
+        out_size = (config["input_size"][1], config["batch_size"])
         init(layer, out_size; kwargs...)
         layer
     end

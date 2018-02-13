@@ -20,7 +20,7 @@ function build_cnn()
         ReLu(),
         MaxPoolingLayer((2,2)),
 
-        FlattenLayer(),
+        Flatten(),
 
         DenseLayer(1024),
         ReLu(),
