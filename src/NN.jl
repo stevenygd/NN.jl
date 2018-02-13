@@ -8,7 +8,8 @@ module NN
     export Graph, forward, backward, getGradient,
 	    getParam, setParam!, getVelocity, getNumParams
     export Layer, DataLayer, FullyConnected, ReLu, DropoutLayer,
-	    SoftMaxCrossEntropyLoss, InputLayer, MaxPoolingLayer, Conv
+	    SoftMaxCrossEntropyLoss, InputLayer, MaxPoolingLayer, CaffeConv,
+        Flatten
     include("layers/LayerBase.jl")
     include("layers/Graph.jl")
     include("layers/InputLayer.jl")
@@ -16,16 +17,10 @@ module NN
     include("layers/FullyConnected.jl")
     include("layers/SoftMaxCrossEntropy.jl")
     include("layers/ReLu.jl")
-    # include("layers/Sigmoid.jl")
-    # include("layers/SoftMax.jl")
-    # include("layers/SquareLossLayer.jl")
-    # include("layers/Tanh.jl")
-    # include("layers/SequentialNet.jl")
-    include("layers/Conv.jl")
+    include("layers/SoftMax.jl")
+    include("layers/SquareLossLayer.jl")
     include("layers/MaxPoolingLayer.jl")
-    include("layers/Conv.jl")
-    # include("layers/Flatten.jl")
-    # include("layers/MultiThreadedConv.jl")
+    include("layers/Flatten.jl")
     include("layers/CaffeConv.jl")
     # include("layers/CrossEntropyLoss.jl")
 

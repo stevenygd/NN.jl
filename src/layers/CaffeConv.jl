@@ -305,10 +305,6 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
     return output
 end
 
-function forward(l::CaffeConv; kwargs...)
-	forward(l, l.parents[1].y)
-end
-
 function forward(l::CaffeConv, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
