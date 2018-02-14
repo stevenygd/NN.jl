@@ -5,16 +5,17 @@ using NN
 using PyPlot
 using IProfile
 
-batch_size = 500
+batch_size = 100
 
 function build_model()
 
     input = InputLayer((28,28,1,batch_size))
     label = InputLayer((batch_size,10))
-    c1 = CaffeConv(input, 32, (5,5);padding=4)
+    c1 = CaffeConv(input, 32, (4,4);padding=3,stride=2)
     r1 = ReLu(c1);
-    m1 = MaxPool(r1, (2,2))
-    c2 = CaffeConv(m1, 32, (5,5);padding=4)
+    # m1 = MaxPool(r1, (2,2))
+    c2 = CaffeConv(r1, 32, (4,4);padding=3,stride=2)
+    # now 10*10
     r2 = ReLu(c2);
     m2 = MaxPool(r2, (2,2))
     fl = Flatten(m2)
@@ -43,7 +44,6 @@ end
 function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer,
     train_set, validation_set;
     batch_size::Int64 = 100, ttl_epo::Int64 = 10, alpha::Float64 = 0.9)
-
     X, Y = train_set
     valX, valY = validation_set
     local N = size(Y)[1]

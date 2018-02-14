@@ -323,7 +323,7 @@ function backward(l::CaffeConv, dldy::tensor4; kwargs...)
     l.dldy = dldy
     flipped = permutedims(l.kern, [1,2,4,3]) # (kw, kh, f, c)
     f, c = size(flipped,3), size(flipped, 4)
-    caffe_conv4d!(l.dldx_cache, l.tmps_backward, l.dldy, flipped, zeros(c), false) # outter convolution
+    caffe_conv4d!(l.dldx_cache, l.tmps_backward, l.dldy, flipped, zeros(c), false;stride=l.stride) # outter convolution
     if length(l.base.parents)>0
         l.base.dldx[l.base.parents[1].base.id] = l.dldx_cache
     end
@@ -334,7 +334,7 @@ function getGradient(l::CaffeConv)
     img    = permutedims(l.x,    [1,2,4,3]) # (w,h,c,b)   -> (w,h,b,c)
     kernel = permutedims(l.dldy, [1,2,4,3]) # (ow,oh,f,b) -> (ow,oh,b,f)
     f = size(kernel,4)
-    caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), true)
+    caffe_conv4d!(l.k_grad_tmp, l.tmps_gradient, img, kernel, zeros(f), false;stride=l.stride,pad=l.pad)
     permutedims!(l.k_grad, l.k_grad_tmp, [1,2,4,3])
     l.b_grad = sum(sum(sum(l.dldy, 4), 2), 1)[1,1,:,1]
     return Array[l.k_grad, l.b_grad]
