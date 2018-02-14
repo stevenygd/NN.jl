@@ -15,11 +15,11 @@ function build_cnn()
         InputLayer((batch_size, 1, 28,28)),
         CaffeConv(32,(5,5)),
         ReLu(),
-        MaxPoolingLayer((2,2)),
+        MaxPool((2,2)),
 
         CaffeConv(32,(5,5)),
         ReLu(),
-        MaxPoolingLayer((2,2)),
+        MaxPool((2,2)),
 
         Flatten(),
 

@@ -1,6 +1,6 @@
 # include("LayerBase.jl")
 
-type MaxPoolingLayer <: RegularizationLayer
+type MaxPool <: RegularizationLayer
     base     :: LayerBase
 
     # Parameters
@@ -17,7 +17,7 @@ type MaxPoolingLayer <: RegularizationLayer
     # (batch_size, channel, out_width, out_height)
     max_idx  :: Array{Tuple{Int, Int}, 4}
 
-    function MaxPoolingLayer(prev::Layer, size::Tuple{Int,Int}; stride = 1, kwargs...)
+    function MaxPool(prev::Layer, size::Tuple{Int,Int}; stride = 1, kwargs...)
         layer = new(LayerBase(), size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         connect(layer, [prev])
@@ -25,7 +25,7 @@ type MaxPoolingLayer <: RegularizationLayer
         layer
     end
 
-    function MaxPoolingLayer(config::Dict{String,Any}, size::Tuple{Int,Int};stride = 1, kwargs...)
+    function MaxPool(config::Dict{String,Any}, size::Tuple{Int,Int};stride = 1, kwargs...)
         layer = new(LayerBase(), size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         input_size = (config["input_size"], config["batch_size"])
@@ -34,14 +34,14 @@ type MaxPoolingLayer <: RegularizationLayer
     end
 end
 
-function computeOutputSize(l::MaxPoolingLayer, input_size::Tuple)
+function computeOutputSize(l::MaxPool, input_size::Tuple)
     w, h, c, b = input_size
     x, y = l.size
     s = l.stride
     return (Int(ceil(w/x)), Int(ceil(h/y)), c, b)
 end
 
-function init(l::MaxPoolingLayer, input_size::Tuple; kwargs...)
+function init(l::MaxPool, input_size::Tuple; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
@@ -57,7 +57,7 @@ function init(l::MaxPoolingLayer, input_size::Tuple; kwargs...)
     l.max_idx = Array{Tuple{Int, Int}}(output_size)
 end
 
-function update(l::MaxPoolingLayer, input_size::Tuple;)
+function update(l::MaxPool, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[1:end-1] == size(l.x)[1:end-1]
@@ -76,7 +76,7 @@ function update(l::MaxPoolingLayer, input_size::Tuple;)
     # println("MaxPooling Layer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
-function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
+function forward(l::MaxPool, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
@@ -107,7 +107,7 @@ function forward(l::MaxPoolingLayer, x::Union{SubArray{Float64,4},Array{Float64,
     return l.base.y
 end
 
-function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
+function backward(l::MaxPool, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
     scale!(l.dldx_cache, 0.)#clear l.dldx
     batch_size, img_depth = size(l.x, 4), size(l.x, 3)
@@ -123,7 +123,7 @@ function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Floa
     l.base.dldx[parent_id] = l.dldx_cache
 end
 
-# l = MaxPoolingLayer((3,3))
+# l = MaxPool((3,3))
 # X = rand(64, 3, 31, 31)
 # Y = rand(64, 3, 11, 11)
 #

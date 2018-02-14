@@ -13,10 +13,10 @@ function build_model()
     label = InputLayer((batch_size,10))
     c1 = CaffeConv(input, 32, (5,5))
     r1 = ReLu(c1);
-    m1 = MaxPoolingLayer(r1, (2,2))
+    m1 = MaxPool(r1, (2,2))
     c2 = CaffeConv(m1, 32, (5,5))
     r2 = ReLu(c2);
-    m2 = MaxPoolingLayer(r2, (2,2))
+    m2 = MaxPool(r2, (2,2))
     fl = Flatten(m2)
     fc1 = FullyConnected(fl, 256)
     rf = ReLu(fc1);

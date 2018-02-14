@@ -1,12 +1,12 @@
 include("../src/layers/LayerBase.jl")
-include("../src/layers/MaxPoolingLayer.jl")
+include("../src/layers/MaxPool.jl")
 include("../src/layers/InputLayer.jl")
 
 using Base.Test
 
-function testMaxPoolingLayer(x, y, dldy, dldx; alpha = 1.)
+function testMaxPool(x, y, dldy, dldx; alpha = 1.)
     l0 = InputLayer(size(x))
-    l  = MaxPoolingLayer(l0,(2,2))
+    l  = MaxPool(l0,(2,2))
 
     # Testing forwarding
     @test forward(l, x) == y
@@ -42,7 +42,7 @@ for i = 1:3
     dldx[:,:,i,1] = dldx_channel
 end
 
-testMaxPoolingLayer(x, y, dldy, dldx)
+testMaxPool(x, y, dldy, dldx)
 println("test 1 passed.\n")
 
 # Second Test
@@ -71,7 +71,7 @@ for i = 1:3
     dldx2[:,:,i,1] = dldx2_channel
 end
 
-testMaxPoolingLayer(x2, y2, dldy2, dldx2)
+testMaxPool(x2, y2, dldy2, dldx2)
 println("test 2 passed.\n")
 
 # # Third test
@@ -101,5 +101,5 @@ for i = 1:3
     dldx3[:,:,i,1] = dldx3_channel
 end
 
-testMaxPoolingLayer(x3, y3, dldy3, dldx3)
+testMaxPool(x3, y3, dldy3, dldx3)
 println("test 3 passed.\n")
