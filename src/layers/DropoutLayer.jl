@@ -71,7 +71,6 @@ function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64
             size(DLDY)[1] == size(l.x)[1]
     l.dldy = DLDY
     broadcast!(*, l.base.dldx[l.base.parents[1].base.id], l.dldy, l.last_drop)
-    return l.base.dldx
 end
 
 function getInputSize(l::DropoutLayer)

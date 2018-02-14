@@ -20,8 +20,8 @@ function build_model()
     fl = Flatten(m2)
     fc1 = FullyConnected(fl, 256)
     rf = ReLu(fc1);
-    # d = DropoutLayer(rf, 0.5)
-    fc2 = FullyConnected(rf, 10)
+    d = DropoutLayer(rf, 0.5)
+    fc2 = FullyConnected(d, 10)
     loss = SoftMaxCrossEntropyLoss(fc2, label)
 
     return input, label, Graph(loss)
@@ -113,7 +113,7 @@ valX = permutedims(reshape(valX, (size(valX,1), 1, 28, 28)), [3,4,2,1])
 teX  = permutedims(reshape(teX,  (size(teX,1),  1, 28, 28)), [3,4,2,1])
 
 layerX, layerY, graph = build_model()
-opt = SgdOptimizer(graph)
+opt = SgdOptimizer(graph;base_lr=(x->0.001))
 
 epo_losses, epo_accu, val_losses, val_accu, all_losses = sgd(
 graph, layerX, layerY, opt, (trX, trY), (valX, valY);

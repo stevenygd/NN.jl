@@ -119,7 +119,8 @@ function backward(l::MaxPoolingLayer, dldy::Union{SubArray{Float64,4},Array{Floa
         # print("x:$(x),y:$(y) coming from w:$(w), h:$(h)")
         l.dldx_cache[x,y,c,b] = l.dldy[w,h,c,b]
     end; end; end; end
-    return l.dldx_cache
+    parent_id = l.base.parents[1].base.id
+    l.base.dldx[parent_id] = l.dldx_cache
 end
 
 # l = MaxPoolingLayer((3,3))
