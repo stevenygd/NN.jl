@@ -11,10 +11,10 @@ function build_model()
 
     input = InputLayer((28,28,1,batch_size))
     label = InputLayer((batch_size,10))
-    c1 = CaffeConv(input, 32, (5,5))
+    c1 = CaffeConv(input, 32, (5,5);padding=4)
     r1 = ReLu(c1);
     m1 = MaxPool(r1, (2,2))
-    c2 = CaffeConv(m1, 32, (5,5))
+    c2 = CaffeConv(m1, 32, (5,5);padding=4)
     r2 = ReLu(c2);
     m2 = MaxPool(r2, (2,2))
     fl = Flatten(m2)

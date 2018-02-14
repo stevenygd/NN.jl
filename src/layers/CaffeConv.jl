@@ -296,7 +296,9 @@ function caffe_conv4d!(output::tensor4, tmps::Tuple{Array{Float64, 2}, Array{Flo
         if inner
             im2col_impl(x[:,:,:,nb], m_img, kernel, (pad,pad), (stride,stride))
         else # outter convolution, add padding
-            im2col_impl(x[:,:,:,nb], m_img, kernel, (k_w-1,k_h-1), (stride,stride))
+            p_w = Int(((w_y-1)*stride + k_w - w)/2)
+            p_h = Int(((h_y-1)*stride + k_h - h)/2)
+            im2col_impl(x[:,:,:,nb], m_img, kernel, (p_w,p_h), (stride,stride))
         end
 
         A_mul_B!(m_conved, m_img, m_ker)
