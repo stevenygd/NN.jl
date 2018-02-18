@@ -1,11 +1,11 @@
-# include("LayerBase.jl")
+include("LayerBase.jl")
 
 type MaxPool <: RegularizationLayer
     base     :: LayerBase
 
     # Parameters
-    size     :: Tuple{Int, Int}     # (pool_width, pool_height)
-    stride   :: Int
+    kernel_size  :: Tuple{Int, Int}     # (pool_width, pool_height)
+    stride       :: Tuple{Int, Int}
 
     # Input output place holders
     x        :: Array{Float64, 4}   # (batch_size, channel, width,     height)
@@ -17,16 +17,16 @@ type MaxPool <: RegularizationLayer
     # (batch_size, channel, out_width, out_height)
     max_idx  :: Array{Tuple{Int, Int}, 4}
 
-    function MaxPool(prev::Layer, size::Tuple{Int,Int}; stride = 1, kwargs...)
-        layer = new(LayerBase(), size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+    function MaxPool(prev::Layer, kernel_size::Tuple{Int,Int}, stride=Void; kwargs...)
+        layer = new(LayerBase(), kernel_size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         connect(layer, [prev])
         init(layer, getOutputSize(prev); kwargs...)
         layer
     end
 
-    function MaxPool(config::Dict{String,Any}, size::Tuple{Int,Int};stride = 1, kwargs...)
-        layer = new(LayerBase(), size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
+    function MaxPool(config::Dict{String,Any}, kernel_size::Tuple{Int,Int}; stride=Void, kwargs...)
+        layer = new(LayerBase(), kernel_size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         input_size = (config["input_size"], config["batch_size"])
         init(layer, input_size; kwargs...)
@@ -36,9 +36,9 @@ end
 
 function computeOutputSize(l::MaxPool, input_size::Tuple)
     w, h, c, b = input_size
-    x, y = l.size
-    s = l.stride
-    return (Int(ceil(w/x)), Int(ceil(h/y)), c, b)
+    x, y = l.kernel_size
+    sw, sh = l.stride
+    return (Int(ceil((w-x)/sw))+1, Int(ceil((h-y)/sh))+1, c, b)
 end
 
 function init(l::MaxPool, input_size::Tuple; kwargs...)
@@ -47,6 +47,10 @@ function init(l::MaxPool, input_size::Tuple; kwargs...)
     """
     @assert length(input_size) == 4
     output_size  = computeOutputSize(l, input_size)
+    # Default Stride is kernel size
+    if l.stride == Void
+        l.stride = l.kernel_size
+    end
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
@@ -83,33 +87,26 @@ function forward(l::MaxPool, x::Union{SubArray{Float64,4},Array{Float64,4}}; kwa
     l.x = x
     batch_size, img_depth = size(l.x, 4), size(l.x, 3)
     in_w, in_h = size(l.x, 1), size(l.x, 2)
-    sw, sh = l.size
+    sw, sh = l.stride
+    kw, kh = l.kernel_size
     for b = 1:batch_size
     for c = 1:img_depth
     for w = 1:size(l.base.y,1)
     for h = 1:size(l.base.y,2)
-        start_w, start_h   = (w-1)*sw+1, (h-1)*sh+1
-        end_w,   end_h     = min(in_w, sw*w), min(in_h, sh*h)
-        view_w, view_h     = end_w - start_w + 1, end_h - start_h + 1
+    start_w, start_h   = (w-1)*sw+1, (h-1)*sh+1
+    end_w,   end_h     = min(in_w, kw*w), min(in_h, kh*h)
+    view_w, view_h     = end_w - start_w + 1, end_h - start_h + 1
 
-        l.base.y[w,h,c,b], i    = findmax(view(l.x, start_w:end_w, start_h:end_h, c, b))
-        l.max_idx[w,h,c,b] = (start_w + (i-1)%view_w, start_h + Int(floor((i-1)/view_w)))
-        # x,y = l.max_idx[w,h,c,b]
-        # if x > end_w || y > end_h
-        #     println("$(start_w), $(end_w)")
-        #     println("$(start_h), $(end_h)")
-        #     println("$(l.y[w,h,c,b]), $(i)")
-        #     println("$((i-1)%sw), $(Int(floor((i-1)/sh)))")
-        #     println(l.max_idx[w,h,c,b])
-        # end
-        # ix, iy = l.max_idx[w,h,c,b]
-    end; end; end; end
+    l.base.y[w,h,c,b], i    = findmax(view(l.x, start_w:end_w, start_h:end_h, c, b))
+    l.max_idx[w,h,c,b] = (start_w + (i-1)%view_w, start_h + Int(floor((i-1)/view_w)))
+
+    end;end;end;end
     return l.base.y
 end
 
 function backward(l::MaxPool, dldy::Union{SubArray{Float64,4},Array{Float64,4}}; kwargs...)
     l.dldy = dldy
-    scale!(l.dldx_cache, 0.)#clear l.dldx
+    fill!(l.dldx_cache, 0.)
     batch_size, img_depth = size(l.x, 4), size(l.x, 3)
     for b = 1:batch_size
     for c = 1:img_depth

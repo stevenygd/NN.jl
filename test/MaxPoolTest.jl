@@ -1,12 +1,11 @@
-include("../src/layers/LayerBase.jl")
-include("../src/layers/MaxPool.jl")
-include("../src/layers/InputLayer.jl")
+include("../src/NN.jl")
 
+using NN
 using Base.Test
 
-function testMaxPool(x, y, dldy, dldx; alpha = 1.)
+function testMaxPool(x, y, dldy, dldx, kernel, stride; alpha = 1.)
     l0 = InputLayer(size(x))
-    l  = MaxPool(l0,(2,2))
+    l  = MaxPool(l0, (kernel, kernel), (stride, stride))
 
     # Testing forwarding
     @test forward(l, x) == y
@@ -42,7 +41,7 @@ for i = 1:3
     dldx[:,:,i,1] = dldx_channel
 end
 
-testMaxPool(x, y, dldy, dldx)
+testMaxPool(x, y, dldy, dldx, 2, 2)
 println("test 1 passed.\n")
 
 # Second Test
@@ -71,7 +70,7 @@ for i = 1:3
     dldx2[:,:,i,1] = dldx2_channel
 end
 
-testMaxPool(x2, y2, dldy2, dldx2)
+testMaxPool(x2, y2, dldy2, dldx2, 2, 2)
 println("test 2 passed.\n")
 
 # # Third test
@@ -101,5 +100,35 @@ for i = 1:3
     dldx3[:,:,i,1] = dldx3_channel
 end
 
-testMaxPool(x3, y3, dldy3, dldx3)
+testMaxPool(x3, y3, dldy3, dldx3, 2, 2)
 println("test 3 passed.\n")
+
+# Third Test
+println("Unit test 4...")
+x_channel = reshape(1:16,4,4)
+
+x = zeros(4,4,3,1)
+for i = 1:3
+    x[:,:,i,1] = x_channel
+end
+
+y_channel = [11 15; 12 16]
+y = zeros(2,2,3,1)
+for i = 1:3
+    y[:,:,i,1] = y_channel
+end
+
+dldy_channel = [3 4; -1 -2]
+dldy = zeros(2,2,3,1)
+for i = 1:3
+    dldy[:,:,i,1] = dldy_channel
+end
+
+dldx_channel = [0 0 0 0; 0 0 0 0; 0 0 3 4; 0 0 -1 -2]
+dldx = zeros(4,4,3,1)
+for i = 1:3
+    dldx[:,:,i,1] = dldx_channel
+end
+
+testMaxPool(x, y, dldy, dldx, 3, 1)
+println("test 4 passed.\n")
