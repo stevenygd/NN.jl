@@ -36,7 +36,7 @@ type CaffeConv <: LearnableLayer
     tmps_backward :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
-    function CaffeConv(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int};
+    function CaffeConv(prev::Layer, filters::Int, kernel::Tuple{Int,Int};
          padding = 0, stride = 1, init_type="Normal")
         # @assert stride == 1     # doesn't support other stride yet
         # @assert padding == 0    # doesn't support padding yet
