@@ -18,6 +18,9 @@ type MaxPool <: RegularizationLayer
     max_idx  :: Array{Tuple{Int, Int}, 4}
 
     function MaxPool(prev::Layer, kernel_size::Tuple{Int,Int}, stride=Void; kwargs...)
+        if stride == Void
+            stride = kernel_size
+        end
         layer = new(LayerBase(), kernel_size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         connect(layer, [prev])
@@ -26,6 +29,9 @@ type MaxPool <: RegularizationLayer
     end
 
     function MaxPool(config::Dict{String,Any}, kernel_size::Tuple{Int,Int}; stride=Void, kwargs...)
+        if l.stride == Void
+            l.stride = l.kernel_size
+        end
         layer = new(LayerBase(), kernel_size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         input_size = (config["input_size"], config["batch_size"])
@@ -48,9 +54,7 @@ function init(l::MaxPool, input_size::Tuple; kwargs...)
     @assert length(input_size) == 4
     output_size  = computeOutputSize(l, input_size)
     # Default Stride is kernel size
-    if l.stride == Void
-        l.stride = l.kernel_size
-    end
+
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
