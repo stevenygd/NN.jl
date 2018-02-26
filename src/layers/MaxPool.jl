@@ -10,25 +10,24 @@ type MaxPool <: RegularizationLayer
     # Input output place holders
     x        :: Array{Float64, 4}   # (batch_size, channel, width,     height)
     dldx_cache     :: Array{Float64, 4}   # (batch_size, channel, width,     height)
-    y        :: Array{Float64, 4}   # (batch_size, channel, out_width, out_height)
     dldy     :: Array{Float64, 4}   # (batch_size, channel, out_width, out_height)
 
     # Index of the maximum
     # (batch_size, channel, out_width, out_height)
     max_idx  :: Array{Tuple{Int, Int}, 4}
 
-    function MaxPool(prev::Layer, kernel_size::Tuple{Int,Int}, stride=Void; kwargs...)
+    function MaxPool(prev::Layer, kernel_size::Tuple{Int,Int}; stride=kernel_size, kwargs...)
         if stride == Void
             stride = kernel_size
         end
         layer = new(LayerBase(), kernel_size, stride, zeros(1,1,1,1), zeros(1,1,1,1),
-                   zeros(1,1,1,1), zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
+                   zeros(1,1,1,1), Array{Tuple{Int, Int}}(1,1,1,1))
         connect(layer, [prev])
         init(layer, getOutputSize(prev); kwargs...)
         layer
     end
 
-    function MaxPool(config::Dict{String,Any}, kernel_size::Tuple{Int,Int}; stride=Void, kwargs...)
+    function MaxPool(config::Dict{String,Any}, kernel_size::Tuple{Int,Int}; stride=kernel_size, kwargs...)
         if l.stride == Void
             l.stride = l.kernel_size
         end
@@ -71,13 +70,14 @@ function update(l::MaxPool, input_size::Tuple;)
     @assert input_size[1:end-1] == size(l.x)[1:end-1]
 
     b = input_size[4]
-    output_size = size(l.y)
+    output_size = size(l.base.y)
     output_size = (output_size[1], output_size[2], output_size[3], b)
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)
+    l.dldx_cache = Array{Float64}(input_size)
     l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
     l.max_idx = Array{Tuple{Int,Int}}(output_size)
 
