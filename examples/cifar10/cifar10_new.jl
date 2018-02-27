@@ -23,8 +23,17 @@ function build_model(batch_size)
       layerX, layerY, g
 end
 
-function get_corr(pred, answ)
-    return length(filter(e -> abs(e) < 1e-5, pred-answ))
+function get_corr(pred, label)
+    @assert size(pred) == size(label)
+    cor = 0
+    for i=1:(size(pred)[1])
+        idx = findmax(pred[i, :])[2]
+        pred_idx = findmax(label[i, :])[2]
+        if idx == pred_idx
+            cor += 1
+        end
+    end
+    return cor
 end
 
 
@@ -70,21 +79,28 @@ transform(x) = (x .- 0.5) / 0.5
 trainX, testX, = transform(trainX), transform(testX)
 # trainY, testY = convert_one_hot(trainY), convert_one_hot(testY)
 trainY = convert_one_hot(trainY)
-
+testY = convert_one_hot(testY)
 #build model
 layerX, layerY, model = build_model(100)
 
-# function lr_schedule(x)
-#       lr = 0.0
-#       if x < 100
-#             lr = 0.002
-#       else
-#             lr = 0.001
-#       end
-#       lr
-# end
+function lr_schedule(x)
+      lr = 0.0
+      if x < 500
+            lr = 0.001
+      else
+            lr = 0.0005
+      end
+      lr
+end
 
-opt = SgdOptimizer(model;base_lr=(x->0.001))
+opt = SgdOptimizer(model;base_lr=lr_schedule)
 
 #train and inspection
-losses = train(model, layerX, layerY, opt, trainX, trainY, 100, 2)
+losses = train(model, layerX, layerY, opt, trainX, trainY, 100, 5)
+
+#test accuracy
+_, pred = forward(model, Dict(layerX=>testX, layerY=>testY))
+test_accu = get_corr(pred, testY)
+println("Test Accuracy is $(test_accu/size(testY)[1]).")
+
+plot(losses[10:end])
