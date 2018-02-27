@@ -13,7 +13,7 @@ type FullyConnected <: Layer
     velc      :: Array{Float64}
     grad      :: Array{Float64}
 
-    function FullyConnected(prev::Layer, num_units::Int; init_type="Uniform")
+    function FullyConnected(prev::Layer, num_units::Int; init_type="Normal")
         i, o = 1, num_units
         layer = new(LayerBase(), Float64[], Float64[], Float64[], init_type,
             i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
@@ -24,7 +24,7 @@ type FullyConnected <: Layer
         layer
     end
 
-    function FullyConnected(config, num_units::Int; init_type="Uniform")
+    function FullyConnected(config, num_units::Int; init_type="Normal")
         i, o = 1, num_units
         layer = new(LayerBase(), Float64[], Float64[], Float64[], init_type,
             i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
@@ -79,7 +79,7 @@ function init(l::FullyConnected, out_size::Tuple; kwargs...)
         local a    = sqrt(12. / (i + o))
         l.W = rand(i+1,o)* 2 * a - a
     elseif l.init_type == "Normal"
-        local sigma = sqrt(2. / (i + o))
+        local sigma = sqrt(2. / i)
         l.W  = randn(i+1,o) * sigma
     elseif l.init_type == "Random"
         l.W = rand(i+1,o) - 0.5
