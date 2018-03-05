@@ -9,7 +9,6 @@ module NN
 	    SoftMaxCrossEntropyLoss, InputLayer, MaxPool,
         Flatten, Conv, CaffeConv
     include("layers/LayerBase.jl")
-    include("layers/Graph.jl")
     include("layers/InputLayer.jl")
     include("layers/DropoutLayer.jl")
     include("layers/FullyConnected.jl")
@@ -21,6 +20,7 @@ module NN
     include("layers/Flatten.jl")
     include("layers/Conv.jl")
     include("layers/CaffeConv.jl")
+    include("layers/Graph.jl")
     # include("layers/CrossEntropyLoss.jl")
 
     # optimizers

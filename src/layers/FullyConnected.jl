@@ -13,7 +13,7 @@ type FullyConnected <: Layer
     velc      :: Array{Float64}
     grad      :: Array{Float64}
 
-    function FullyConnected(prev::Layer, num_units::Int; init_type="Normal")
+    function FullyConnected(prev::Layer, num_units::Int; init_type="He")
         i, o = 1, num_units
         layer = new(LayerBase(), Float64[], Float64[], Float64[], init_type,
             i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
@@ -24,7 +24,7 @@ type FullyConnected <: Layer
         layer
     end
 
-    function FullyConnected(config, num_units::Int; init_type="Normal")
+    function FullyConnected(config, num_units::Int; init_type="He")
         i, o = 1, num_units
         layer = new(LayerBase(), Float64[], Float64[], Float64[], init_type,
             i, o, randn(i+1,o), zeros(i+1, o), zeros(i+1, o))
@@ -34,6 +34,7 @@ type FullyConnected <: Layer
         layer
     end
 
+    # Create a copy of another FC layer; used for multi threading
     function FullyConnected(main::FullyConnected)
         layer = new(LayerBase(), Float64[], Float64[], Float64[], "",
             0, 0, randn(1,1), zeros(1, 1), zeros(1, 1))
@@ -74,17 +75,20 @@ function init(l::FullyConnected, out_size::Tuple; kwargs...)
     l.grad  = zeros(l.i + 1,    l.num_units)
 
     # Pull out the output size
-    i, o = l.i, l.num_units
+    fan_in, fan_out = l.i, l.num_units
     if l.init_type == "Uniform"
-        local a    = sqrt(12. / (i + o))
-        l.W = rand(i+1,o)* 2 * a - a
-    elseif l.init_type == "Normal"
-        local sigma = sqrt(2. / i)
-        l.W  = randn(i+1,o) * sigma
+        local a    = sqrt(12. / (fan_in + fan_out))
+        l.W = rand(fan_in+1,fan_out)* 2 * a - a
+    elseif l.init_type == "He"
+        σ = sqrt(2. / fan_in)
+        l.W  = randn(fan_in+1,fan_out) * σ
+    elseif l.init_type == "Glorot"
+        σ = sqrt(2. / (fan_in+fan_out))
+        l.W  = randn(fan_in+1,fan_out) * σ
     elseif l.init_type == "Random"
-        l.W = rand(i+1,o) - 0.5
+        l.W = rand(fan_in+1,fan_out) - 0.5
     end
-    l.W[i+1,:] = zeros(o)
+    l.W[fan_in+1,:] = zeros(fan_out)
 
 end
 

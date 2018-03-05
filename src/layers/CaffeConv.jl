@@ -37,7 +37,7 @@ type CaffeConv <: LearnableLayer
     tmps_gradient :: Tuple{Array{Float64, 2}, Array{Float64, 2}, Array{Float64, 2}}
 
     function CaffeConv(prev::Layer, filters::Int, kernel::Tuple{Int,Int};
-         padding = 0, stride = 1, init_type="Normal")
+         padding = 0, stride = 1, init_type="He")
         # @assert stride == 1     # doesn't support other stride yet
         # @assert padding == 0    # doesn't support padding yet
         layer = new(LayerBase(), init_type,
@@ -54,7 +54,7 @@ type CaffeConv <: LearnableLayer
     end
 
     function CaffeConv(config::Dict{String,Any}, filters::Int, kernel::Tuple{Int,Int};
-         padding = 0, stride = 1, init_type="Normal")
+         padding = 0, stride = 1, init_type="He")
         layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
@@ -96,19 +96,21 @@ function init(l::CaffeConv, input_size::Tuple)
     l.dldy = Array{Float64}(output_size)
 
     # initialize weights
-    f_in   = kw * kh * c    # Input number of neron: (kernel_w x kernel_h x channel)
-    f_out  = f              # Output number of neron is the number of filters
-    # f_out  = kw * kh * f    # Output number of neron is the number of filters
+    fan_in   = kw * kh * c    # Input number of neron: (kernel_w x kernel_h x channel)
+    fan_out  = f              # Output number of neron is the number of filters
     kernel_size = (kw, kh, c, f)
 
     if l.init_type == "Uniform"
-        a = sqrt(12./(f_in + f_out))
+        a = sqrt(12./(fan_in + fan_out))
         l.kern = rand(kernel_size) * 2 * a - a
         # println("Kernel Statistics[$(a)]: $(mean(abs(l.kern))) $(maximum(l.kern)) $(minimum(l.kern))")
-    elseif l.init_type == "Normal"
-        a = sqrt(2./f_in)
-        l.kern = randn(kernel_size) * a
-    else # l.init_type == Random : )
+    elseif l.init_type == "He"
+        σ = sqrt(2./fan_in)
+        l.kern = randn(kernel_size) * σ
+    elseif l.init_type == "Glorot"
+        σ = sqrt(2./(fan_in+fan_out))
+        l.kern = randn(kernel_size) * σ
+    elseif l.init_type == "Random"
         l.kern = rand(kernel_size) - 0.5
     end
     l.bias   = zeros(l.filter)
@@ -119,7 +121,6 @@ function init(l::CaffeConv, input_size::Tuple)
     l.b_velc = zeros(size(l.bias))
 
     # initializing the temp memories
-    # TODO: output_size here should be that of the full outer-convolution
     l.tmps_forward = (
         # output_size should be that of the outter convolution,
         # Although only the inner convolution is used
