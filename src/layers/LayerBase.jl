@@ -1,5 +1,6 @@
 abstract type ANN end
 abstract type Layer end
+abstract type Wrapper <: Layer end
 abstract type LearnableLayer <: Layer end
 abstract type Nonlinearity   <: Layer end
 abstract type LossCriteria   <: Layer end
@@ -18,6 +19,14 @@ type LayerBase
     function LayerBase()
         return new(Layer[], Layer[], Base.Random.uuid4(),
             Float64[], Dict{Base.Random.UUID,Array{Float64}}())
+    end
+end
+
+type WrapperBase
+    layer :: Layer
+
+    function WrapperBase(layer::Layer)
+        return new(layer)
     end
 end
 

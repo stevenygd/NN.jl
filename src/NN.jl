@@ -6,12 +6,13 @@ module NN
     export Graph, forward, backward, getGradient,
 	    getParam, setParam!, getVelocity, getNumParams
     export Layer, LearnableLayer, DataLayer, FullyConnected, ReLu, DropoutLayer,
-	    SoftMaxCrossEntropyLoss, InputLayer, MaxPool,
+	    SoftMaxCrossEntropyLoss, InputLayer, MaxPool, FullyConnected16,
         Flatten, Conv, CaffeConv
     include("layers/LayerBase.jl")
     include("layers/InputLayer.jl")
     include("layers/DropoutLayer.jl")
     include("layers/FullyConnected.jl")
+    include("layers/FullyConnected16.jl")
     include("layers/SoftMaxCrossEntropy.jl")
     include("layers/ReLu.jl")
     include("layers/SoftMax.jl")
