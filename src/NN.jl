@@ -5,7 +5,7 @@ module NN
     #        CaffeConv, CrossEntropyLoss
     export Graph, forward, backward, getGradient,
 	    getParam, setParam!, getVelocity, getNumParams
-    export Layer, DataLayer, FullyConnected, ReLu, DropoutLayer,
+    export Layer, LearnableLayer, DataLayer, FullyConnected, ReLu, DropoutLayer,
 	    SoftMaxCrossEntropyLoss, InputLayer, MaxPool,
         Flatten, Conv, CaffeConv
     include("layers/LayerBase.jl")

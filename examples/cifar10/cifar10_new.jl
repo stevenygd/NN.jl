@@ -81,7 +81,8 @@ trainX, testX, = transform(trainX), transform(testX)
 trainY = convert_one_hot(trainY)
 testY = convert_one_hot(testY)
 #build model
-layerX, layerY, model = build_model(100)
+batch_size = 500
+layerX, layerY, model = build_model(batch_size)
 
 function lr_schedule(x)
       lr = 0.0
@@ -96,7 +97,7 @@ end
 opt = SgdOptimizer(model;base_lr=lr_schedule)
 
 #train and inspection
-losses = train(model, layerX, layerY, opt, trainX, trainY, 100, 5)
+losses = train(model, layerX, layerY, opt, trainX, trainY, batch_size, 5)
 
 #test accuracy
 _, pred = forward(model, Dict(layerX=>testX, layerY=>testY))

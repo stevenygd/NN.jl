@@ -60,18 +60,19 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
     l.exp = exp.(l.x)
     l.lsum = sum(l.exp,2)
     l.base.y = l.exp ./ l.lsum
+    l.loss = sum((-l.x .+ log.(l.lsum)) .* label, 2)
 
-    for i=1:m
-      for j=1:n
-        l.exp[i,j] = exp(l.x[i,j])
-      end
-      l.lsum[i] = sum(l.exp[i,:])
-      for j=1:n
-        l.base.y[i,j] = l.exp[i,j]/l.lsum[i]
-        l.exp[i,j] = log(l.base.y[i,j])*label[i,j]
-      end
-      l.loss[i] = -sum(l.exp[i,:])
-    end
+    # for i=1:m
+    #   for j=1:n
+    #     l.exp[i,j] = exp(l.x[i,j])
+    #   end
+    #   l.lsum[i] = sum(l.exp[i,:])
+    #   for j=1:n
+    #     l.base.y[i,j] = l.exp[i,j]/l.lsum[i]
+    #     l.exp[i,j] = log(l.base.y[i,j])*label[i,j]
+    #   end
+    #   l.loss[i] = -sum(l.exp[i,:])
+    # end
     # l.loss = - sum(log(l.y) .* label,2)
 
     return l.loss, l.base.y

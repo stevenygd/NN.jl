@@ -1,10 +1,11 @@
 type SgdOptimizer
     graph     :: Graph
     base_lr   :: Any
+    batch_size :: Int
     iter      :: Int
 
-    function SgdOptimizer(graph::Graph; base_lr=(x->0.001))
-         return new(graph, base_lr, 1)
+    function SgdOptimizer(graph::Graph, batch_size::Int=1; base_lr=(x->0.001))
+         return new(graph, base_lr, batch_size, 1)
     end
  end
 
@@ -22,7 +23,7 @@ type SgdOptimizer
 
          grad = getGradient(layer)
          for j = 1:length(grad)
-             param[j] -= opt.base_lr(opt.iter) * grad[j] # does not divide batch
+             param[j] -= opt.base_lr(opt.iter) * grad[j] / opt.batch_size 
          end
          setParam!(layer, param)
      end

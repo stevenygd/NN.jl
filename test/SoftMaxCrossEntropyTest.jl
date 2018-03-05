@@ -6,14 +6,15 @@ import Calculus: check_gradient
 using Base.Test
 
 
-function testSoftMaxCrossEntropyOneVector(x, labels, p, loss, dldx; alpha = 1.)
+function testSoftMaxCrossEntropyOneVector(x, y, p, loss, dldx; alpha = 1.)
     l1 = InputLayer(size(x))
-    label = InputLayer(size(x))
+    label = InputLayer(size(y))
     l2 = SoftMaxCrossEntropyLoss(l1, label)
-    xs = Dict{Layer,Array{Float64}}(l1 => x, label => labels)
+    xs = Dict{Layer,Array{Float64}}(l1 => x, label => y)
     g  = Graph(l2)
     # Testing forwarding
     forward(g, xs)
+    println(size(l2.loss))
     @test l2.loss ≈ loss
 
     # Testing back propagation
