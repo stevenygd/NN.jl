@@ -1,4 +1,3 @@
-# Define the ReLu layers
 type ReLu <: Nonlinearity
     base     :: LayerBase
 
@@ -18,7 +17,7 @@ type ReLu <: Nonlinearity
         @assert alpha ≥ 0.
         layer = new(LayerBase(), alpha, Float64[], Float64[])
         @assert ndims(config["input_size"]) == 1 # TODO: maybe a error message?
-        out_size = (config["batch_size"], config["input_size"][1])
+        out_size = (config["input_size"][1], config["batch_size"])
         init(layer, out_size; kwargs...)
         layer
     end
@@ -50,10 +49,10 @@ function forward(l::ReLu, X::Union{SubArray{Float64},Array{Float64}}; kwargs...)
 end
 
 function backward(l::ReLu, DLDY::Array{Float64}; kwargs...)
-    if size(l.x) != size(DLDY)
-        println(size(DLDY))
-        println(size(l.x))
-    end
+    # if size(l.x) != size(DLDY)
+    #     println(size(DLDY))
+    #     println(size(l.x))
+    # end
     @assert size(l.x) == size(DLDY)
     # if size(l.base.dldx, 1) != size(DLDY, 1)
     #     l.base.dldx = Array{Float64}(size(DLDY))

@@ -1,34 +1,37 @@
 include("../src/layers/LayerBase.jl")
 include("../src/layers/InputLayer.jl")
-include("../src/layers/DenseLayer.jl")
+include("../src/layers/FullyConnected.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
 include("../src/layers/Graph.jl")
 
 import Calculus: check_gradient
 using Base.Test
 
-function testDenseLayerOneVector(w, b, x, y, dldy, dldx, gw, gb)
+tol = 1e10
+
+function testFullyConnectedOneVector(w, b, x, y, dldy, dldx, gw, gb)
     out_size = size(w, 1)
-    xs = Dict{String,Array{Float64}}("default"=>x, "labels" => zeros(out_size, out_size))
     l1 = InputLayer(size(x))
-    l2 = DenseLayer(l1, size(w, 2))
-    l3 = SoftMaxCrossEntropyLoss(l2)
+    l2 = FullyConnected(l1, size(w, 2))
+    l4 = InputLayer((out_size, out_size))
+    l3 = SoftMaxCrossEntropyLoss(l1,l4)
     g  = Graph(l3)
+    xs = Dict{Layer,Array{Float64}}(l1=>x, l4 => zeros(out_size, out_size))
     # Testing forwarding
     W = [w; b;]
     setParam!(l2, Array[W])
     n = size(x,2) # x is two dimensional
     forward(g, xs)
-    @test l2.x[1:n] == x[1,:]
-    @test l2.base.y == y
+    @test l2.x[1:n] ≈ x[1,:] atol=tol
+    @test l2.base.y ≈ y atol=tol
 
     #Testing back propagation
     l3.base.dldx[l2.base.id] = dldy
     backward(l2)
-    @test l2.dldy == dldy
-    @test l2.base.dldx[l1.base.id][1:n] == dldx[1,:]
-    @test getGradient(l2)[1][1:end-1, :]' == gw
-    @test getGradient(l2)[1][end, :]' == gb
+    @test l2.dldy ≈ dldy atol=tol
+    @test l2.base.dldx[l1.base.id][1:n] ≈ dldx[1,:] atol=tol
+    @test getGradient(l2)[1][1:end-1, :]' ≈ gw atol=tol
+    @test getGradient(l2)[1][end, :]' ≈ gb atol=tol
 end
 
 # First Test
@@ -42,7 +45,7 @@ dldy = [0. 0.;]
 dldx = [0. 0.;]
 gw = [0. 0.;0. 0.;]
 gb = [0. 0.]
-testDenseLayerOneVector(w, b, x, y, dldy, dldx, gw, gb)
+testFullyConnectedOneVector(w, b, x, y, dldy, dldx, gw, gb)
 println("test 1 passed.\n")
 
 # Second Test
@@ -53,7 +56,7 @@ dldy2 = [0. 1;]
 dldx2 = [1. 1;]
 gw2 = [0. 0.;2. 3.; ]
 gb2 = [0. 1;]  # bias is dldy
-testDenseLayerOneVector(w, b, x2, y2, dldy2, dldx2, gw2, gb2)
+testFullyConnectedOneVector(w, b, x2, y2, dldy2, dldx2, gw2, gb2)
 println("test 2 passed.\n")
 
 # Third test
@@ -66,7 +69,7 @@ dldy = [1. 2;]
 dldx = [8. 7;]
 gw2 = [1. 1; 2. 2;]
 gb2 = [1. 2;]
-testDenseLayerOneVector(w2, b2, x, y, dldy, dldx, gw2, gb2)
+testFullyConnectedOneVector(w2, b2, x, y, dldy, dldx, gw2, gb2)
 println("test 3 passed.\n")
 
 include("gradient_check.jl")
@@ -75,7 +78,7 @@ bsize= 1
 in_size = 50
 out_size = 30
 l1 = InputLayer((bsize, in_size))
-l2 = DenseLayer(l1, out_size)
+l2 = FullyConnected(l1, out_size)
 X = rand(bsize, in_size)
 Y = ones(forward(l2, X))
 backward(l2, Y)
@@ -96,7 +99,7 @@ inp_size    = 30
 out_size    = 10
 function build_mlp()
     l1 = InputLayer((batch_size, inp_size))
-    l2 = DenseLayer(l1, out_size)
+    l2 = FullyConnected(l1, out_size)
     l3 = SoftMaxCrossEntropyLoss(l2)
     graph = Graph(l3)
     return l2, graph

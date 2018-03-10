@@ -1,14 +1,9 @@
-# include("LayerBase.jl")
-
 # Assumptions:
 # 1. padding doesn't work yet
 # 2. stride doesn't work yet (especially for backward pass)
 # 3. double check whether we need the kernel size to be odd number
-type ConvLayer <: LearnableLayer
-    parents  :: Array{Layer}
-    children :: Array{Layer}
-    has_init :: Bool
-    id :: Base.Random.UUID
+type Conv <: LearnableLayer
+    base     :: LayerBase
 
     # Parameters
     init_type:: String                  # Type of initialization
@@ -20,9 +15,8 @@ type ConvLayer <: LearnableLayer
 
     # Input output place holders
     x        :: Array{Float64, 4}       # (batch_size,  channel,    width,     height)
-    y        :: Array{Float64, 4}       # (batch_size,  #filter,    out_width, out_height)
     dldy     :: Array{Float64, 4}       # (batch_size,  #filter,    out_width, out_height)
-    dldx     :: Dict{Base.Random.UUID, Array{Float64, 4}}
+    dldx_cache :: Array{Float64, 4}
 
     # Kernel and it's gradient & velocity
     kern     :: Array{Float64, 4}       # (#filter,     channel,    k_width,   k_height)
@@ -34,49 +28,46 @@ type ConvLayer <: LearnableLayer
     b_grad   :: Array{Float64, 1}       # (#filter)
     b_velc   :: Array{Float64, 1}       # (#filter)
 
-    function ConvLayer(filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init="Uniform")
+    function Conv(prev::Layer, filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init_type="Uniform")
         # @assert length(kernel) == 2 && kernel[1] % 2 == 1 &&  kernel[2] % 2 == 1
         @assert stride == 1     # doesn't support other stride yet
         @assert padding == 0    # doesn't support padding yet
-        return new(Layer[], Layer[], false, Base.Random.uuid4(), init,
+        layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1))
+        connect(layer, [prev])
+        init(layer, getOutputSize(prev))
+        layer
     end
 
-    function ConvLayer(prev::Union{Layer,Void}, filters::Int, kernel::Tuple{Int,Int}; config::Dict{String, Any}=nothing, padding = 0, stride = 1, init_type="Normal")
+    function Conv(config::Dict{String,Any}, filters::Int, kernel::Tuple{Int,Int}; padding = 0, stride = 1, init_type="Normal")
         @assert stride == 1
         @assert padding == 0
-        layer = new(Layer[], Layer[], false, Base.Random.uuid4(), init,
+        layer = new(LayerBase(), init_type,
                    padding, stride, filters, kernel, (0,0,0),
-                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
+                   zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1,1,1,1), zeros(1,1,1,1), zeros(1,1,1,1),
                    zeros(1), zeros(1), zeros(1))
-        init(layer, prev, config; kwargs...)
+        input_size = (config["batch_size"]..., config["input_size"]...)
+        init(layer, input_size)
         layer
     end
 end
 
-function computeOutputSize(l::ConvLayer, input_size::Tuple)
+function computeOutputSize(l::Conv, input_size::Tuple)
     f, p, s     = l.filter, l.pad, l.stride
     x, y        = l.k_size
     b, _, w, h  = input_size
     return (b, f, convert(Int, (w+2*p-x)/s + 1), convert(Int,(h+2*p-y)/s+1))
 end
 
-function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwargs...)
+function init(l::Conv, input_size::Tuple; kwargs...)
     """
     Initialize the Convolutional layers. Preallocate all the memories.
     """
-    if p == nothing
-        @assert length(config["input_size"]) == 3
-        batch_size = config["batch_size"]
-        c, w, h    = config["input_size"]
-        input_size = (batch_size, c, w, h)
-    else
-        input_size = getOutputSize(p)
-    end
+    print(input_size)
     @assert length(input_size) == 4
     output_size  = computeOutputSize(l, input_size)
     b, c, w, h   = input_size
@@ -85,8 +76,11 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
 
     # initialize input/output
     l.x    = Array{Float64}(input_size)
-    l.dldx = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.dldx_cache = Array{Float64}(input_size)
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
     # initialize weights
@@ -108,25 +102,26 @@ function init(l::ConvLayer, p::Union{Layer,Void}, config::Dict{String,Any}; kwar
     l.b_grad = zeros(size(l.bias))
     l.k_velc = zeros(size(l.kern))
     l.b_velc = zeros(size(l.bias))
-    l.has_init = true
 end
 
-function update(l::ConvLayer, input_size::Tuple;)
+function update(l::Conv, input_size::Tuple;)
     # assert: only change the batch sizes
     @assert length(input_size) == 4
     @assert input_size[2:end] == size(l.x)[2:end]
 
     b = input_size[1]
-    output_size = size(l.y)
+    output_size = size(l.base.y)
     output_size = (b, output_size[2], output_size[3], output_size[4])
 
     # Relinitialize input and output
     l.x    = Array{Float64}(input_size)
-    l.dldx = Array{Float64}(input_size)
-    l.y    = Array{Float64}(output_size)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(input_size)
+    end
+    l.base.y    = Array{Float64}(output_size)
     l.dldy = Array{Float64}(output_size)
 
-    println("ConvLayer update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
+    println("Conv update shape:\n\tInput:$(input_size)\n\tOutput:$(output_size)")
 end
 
 tensor2 = Union{SubArray{Float64,2},Array{Float64,2}}
@@ -153,37 +148,38 @@ function flip(x::tensor4)
     return x[:,:,end:-1:1, end:-1:1]
 end
 
-function forward(l::ConvLayer, x::tensor4; kwargs...)
+function forward(l::Conv, x::tensor4; kwargs...)
     if size(x) != size(l.x)
         update(l, size(x))
     end
     l.x = x
     batch_size, img_depth = size(l.x, 1), size(l.x, 2)
-    scale!(l.y, 0.)
+    scale!(l.base.y, 0.)
     for b = 1:batch_size
     for c = 1:img_depth
     for f = 1:l.filter
-        l.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
+        l.base.y[b,f,:,:] += inner_conv2(view(l.x,b,c,:,:), view(l.kern,f,c,:,:))
     end; end; end
-    return l.y
+    return l.base.y
 end
 
-function backward(l::ConvLayer; kwargs...)
-    DLDY = sum(map(x -> x.dldx[l.id], l.children))
-    l.dldy = DLDY
-    dldx = zeros(size(l.dldx))
+function backward(l::Conv, dldy::tensor4; kwargs...)
+    l.dldy = dldy
+    l.dldx_cache = zeros(size(l.x))
     flipped = flip(l.kern)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     for b=1:batch_size
     for f=1:l.filter
     for c=1:depth
-        dldx[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
+        l.dldx_cache[b,c,:,:] += outter_conv2(view(l.dldy,b,f,:,:), view(flipped,f,c,:,:))
     end; end; end
-    l.dldx[parent_id] = dldx
-    return l.dldx
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id] = l.dldx_cache
+    end
+    l.dldx_cache
 end
 
-function getGradient(l::ConvLayer)
+function getGradient(l::Conv)
     flipped = flip(l.dldy)
     batch_size, depth = size(l.x,1), size(l.x, 2)
     scale!(l.k_grad,0.)
@@ -201,7 +197,7 @@ function getGradient(l::ConvLayer)
     return ret
 end
 
-function getParam(l::ConvLayer)
+function getParam(l::Conv)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
     ret[:,1:end-1,:,:] = l.kern
@@ -209,7 +205,7 @@ function getParam(l::ConvLayer)
     return ret
 end
 
-function setParam!(l::ConvLayer, theta::Array{Float64})
+function setParam!(l::Conv, theta::Array{Float64})
     # convention: ret[:,end,1,1] is the gradient for bias
 
     new_kern, new_bias = theta[:,1:end-1,:,:], theta[:,end,1,1]
@@ -221,7 +217,7 @@ function setParam!(l::ConvLayer, theta::Array{Float64})
     l.bias   = new_bias
 end
 
-function getVelocity(l::ConvLayer)
+function getVelocity(l::Conv)
     # return (l.k_velc, l.b_velc)
     # convention: ret[:,end,1,1] is the gradient for bias
     ret = zeros(Float64, l.filter, size(l.x, 2)+1, l.k_size[1], l.k_size[2])
@@ -229,19 +225,3 @@ function getVelocity(l::ConvLayer)
     ret[:,end,1,1]     = l.b_velc
     return ret
 end
-
-# println("Profiling ConvLayer")
-# l = ConvLayer(128,(3,3))
-# X = rand(32, 3, 30, 30)
-# Y = rand(32, 128, 28, 28)
-#
-# println("First time (compiling...)")
-# @time init(l, nothing, Dict{String, Any}("batch_size" => 32, "input_size" => (3,30,30)))
-# @time forward(l,X)
-# @time backward(l,Y)
-# @time getGradient(l)
-#
-# println("Second time (after compilation...)")
-# @time forward(l,X)
-# @time backward(l,Y)
-# @time getGradient(l)

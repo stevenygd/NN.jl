@@ -26,7 +26,7 @@ function top_sort(graph::Graph, layer::Layer, visited::Set{Layer})
     # end
 end
 
-function forward(graph::Graph, xs::Dict{<:Layer, <:Array{Float64}}; kwargs...)
+function forward(graph::Graph, xs::Dict{<:Layer, <:Any}; kwargs...)
     for (input_layer, input) in xs
         forward(input_layer, input; kwargs...)
     end

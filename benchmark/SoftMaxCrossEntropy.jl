@@ -1,18 +1,16 @@
 include("../src/layers/LayerBase.jl")
+include("../src/layers/InputLayer.jl")
 include("../src/layers/SoftMaxCrossEntropy.jl")
 include("../src/layers/SoftMax.jl")
 include("../src/layers/CrossEntropyLoss.jl")
 using Base.Test
 
-smaxcross = SoftMaxCrossEntropyLoss()
-smax = SoftMax()
-cross = CrossEntropyLoss()
-
-
-function before(smaxcross, smax, cross, dict)
-    init(smaxcross, nothing, dict)
-    init(smax     , nothing, dict)
-    init(cross    , nothing, dict)
+function before(batch_size, input_size)
+  dict = Dict{String, Any}("batch_size" => batch_size, "input_size" => input_size)
+  smaxcross = SoftMaxCrossEntropyLoss(dict, InputLayer((batch_size, input_size)))
+  smax      = SoftMax(dict)
+  cross     = CrossEntropyLoss(dict, InputLayer((batch_size, input_size)))
+  return (smaxcross, smax, cross)
 end
 
 function convert_to_one_hot(x::Array{Int64}, classes)
@@ -23,10 +21,8 @@ function convert_to_one_hot(x::Array{Int64}, classes)
   m
 end
 
-function benchmmark(smaxcross, smax, cross, batch_size, input_size)
-  # batch_size = 10
-  # input_size = 5
-  before(smaxcross, smax, cross, Dict{String, Any}("batch_size" => batch_size, "input_size" => [input_size]))
+function benchmmark(batch_size, input_size)
+  smaxcross, smax, cross = before(batch_size, input_size)
   x = rand(batch_size, input_size)
   label = rand(0:input_size-1, batch_size,1)
   onehot_label = convert_to_one_hot(label,input_size)
@@ -60,7 +56,7 @@ b = zeros(4)
 num_iter = 500
 
 for i=1:num_iter
-  t_, b_ = benchmmark(smaxcross, smax, cross, 1000, 10)
+  t_, b_ = benchmmark(1000, 10)
   t.+= t_
   b.+= b_
 end

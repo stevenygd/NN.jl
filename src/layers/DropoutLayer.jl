@@ -19,7 +19,7 @@ type DropoutLayer <: RegularizationLayer
         @assert abs(p - 1.) >  1e-4 # Basically [p] couldn't be 1
         layer = new(LayerBase(), p, Float64[], Float64[], Float64[])
         @assert ndims(config["input_size"]) == 1
-        out_size = (config["batch_size"], config["input_sisze"][1])
+        out_size = (config["batch_size"], config["input_size"][1])
         init(layer, out_size; kwargs...)
         layer
     end
@@ -71,7 +71,6 @@ function backward(l::DropoutLayer, DLDY::Union{SubArray{Float64,2},Array{Float64
             size(DLDY)[1] == size(l.x)[1]
     l.dldy = DLDY
     broadcast!(*, l.base.dldx[l.base.parents[1].base.id], l.dldy, l.last_drop)
-    return l.base.dldx
 end
 
 function getInputSize(l::DropoutLayer)

@@ -10,26 +10,21 @@ type SoftMaxCrossEntropyLoss <: LossCriteria
     function SoftMaxCrossEntropyLoss(prev::Layer, label::DataLayer; kwargs...)
         layer = new(LayerBase(), Float64[], Float64[], Float64[], Int64[])
         connect(layer, [prev])
-        init(layer, label, getOutputSize(prev);kwargs...)
+        init(layer, label, getOutputSize(prev))
         layer
     end
 
     function SoftMaxCrossEntropyLoss(config::Dict{String,Any}, label::DataLayer; kwargs...)
         layer = new(LayerBase(), Float64[], Float64[], Float64[], Int64[])
-        @assert ndims(config["input_size"]) == 1
-        out_size = (config["batch_size"], config["input_sisze"][1])
+        @assert isa(config["input_size"], Int)
+        out_size = (config["batch_size"], config["input_size"])
         init(layer, label, out_size)
         layer
     end
 end
 
-function init(l::SoftMaxCrossEntropyLoss, label::DataLayer, out_size::Tuple; kwargs...)
+function init(l::SoftMaxCrossEntropyLoss, out_size::Tuple; kwargs...)
     N, D     = out_size
-
-    # loss layer's parents[1] is an input layer providing label
-    unshift!(l.base.parents, label)
-    @assert 1 ≤ length(l.base.parents) ≤ 2
-
     foreach(x -> l.base.dldx[x.base.id] = Array{Float64}(out_size), l.base.parents)
     l.x      = Array{Float64}(out_size)
     l.base.y = Array{Float64}(out_size)
@@ -54,10 +49,6 @@ function update(l::SoftMaxCrossEntropyLoss, input_size::Tuple;)
     # update(l.base.parents[1], input_size)
 end
 
-function forward(l::SoftMaxCrossEntropyLoss; kwargs...)
-    forward(l, l.base.parents[2].base.y, l.base.parents[1].base.y; kwargs...)
-end
-
 function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{Float64, 2}; kwargs...)
     @assert size(Y, 2) == size(l.x, 2)
     m,n = size(Y)
@@ -65,29 +56,29 @@ function forward(l::SoftMaxCrossEntropyLoss, Y::Array{Float64,2}, label::Array{F
       update(l, size(Y))
     end
     l.x = Y
+    broadcast!(-, l.x, l.x, maximum(l.x, 2))
     l.exp = exp.(l.x)
     l.lsum = sum(l.exp,2)
     l.base.y = l.exp ./ l.lsum
+    l.loss = sum((-l.x .+ log.(l.lsum)) .* label, 2)
 
-    for i=1:m
-      for j=1:n
-        l.exp[i,j] = exp(l.x[i,j])
-      end
-      l.lsum[i] = sum(l.exp[i,:])
-      for j=1:n
-        l.base.y[i,j] = l.exp[i,j]/l.lsum[i]
-        l.exp[i,j] = log(l.base.y[i,j])*label[i,j]
-      end
-      l.loss[i] = -sum(l.exp[i,:])
-    end
+    # for i=1:m
+    #   for j=1:n
+    #     l.exp[i,j] = exp(l.x[i,j])
+    #   end
+    #   l.lsum[i] = sum(l.exp[i,:])
+    #   for j=1:n
+    #     l.base.y[i,j] = l.exp[i,j]/l.lsum[i]
+    #     l.exp[i,j] = log(l.base.y[i,j])*label[i,j]
+    #   end
+    #   l.loss[i] = -sum(l.exp[i,:])
+    # end
     # l.loss = - sum(log(l.y) .* label,2)
 
     return l.loss, l.base.y
 end
 
-function backward(l::SoftMaxCrossEntropyLoss;kwargs...)
-
-    label = l.base.parents[1].base.y
+function backward(l::SoftMaxCrossEntropyLoss, label::Array{Float64, 2};kwargs...)
     for p ∈ l.base.parents
         parent_id = p.base.id
         l.base.dldx[parent_id] = l.base.y .* sum(label,2) - label

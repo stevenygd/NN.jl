@@ -3,22 +3,16 @@ include("../src/layers/SoftMax.jl")
 using Base.Test
 using ForwardDiff
 
-l = SoftMax();
 s(x::Vector) = exp.(x)./sum(exp.(x))
 g(x::Vector) = ForwardDiff.jacobian(s,x)
 
-function before(l,x)
-    m,n = size(x)
-    init(l, nothing, Dict{String, Any}("batch_size" => 0, "input_size" => [n]))
-end
-
-function testSoftMaxOneVector(x::Array{Float64}, y::Array{Float64}, dldy::Array{Float64}, dldx::Array{Float64}; alpha = 1.)
-  # Testing forwarding
-  before(l,x)
+function testSoftMaxOneVector(x::Array{Float64}, y::Array{Float64}, dldy::Array{Float64}, dldx::Array{Float64}; alpha=1.0)
+  m,n = size(x)
+  l = SoftMax(Dict{String, Any}("batch_size" => 0, "input_size" => n))
   f = vec(forward(l,x))
   b = vec(backward(l,dldy))
-  @test_approx_eq_eps norm(f-y) 0 alpha
-  @test_approx_eq_eps norm(b-dldx) 0 alpha
+  @test norm(f-y) ≈ 0 atol=alpha
+  @test norm(b-dldx) ≈ 0 atol=alpha
 
 end
 
@@ -38,9 +32,10 @@ function g_m(x::Array{Float64,2}, dldy::Array{Float64,2})
   f
 end
 
-function testSoftMaxGeneral(x::Array{Float64}, dldy::Array{Float64}; alpha = 2.)
-  # Testing forwarding
-  before(l,x)
+function testSoftMaxGeneral(x::Array{Float64}, dldy::Array{Float64}; alpha=1.0)
+  m,n = size(x)
+  l = SoftMax(Dict{String, Any}("batch_size" => 0, "input_size" => n))
+  
   @assert size(x) == size(dldy)
 
   f = forward(l,x)
@@ -48,8 +43,8 @@ function testSoftMaxGeneral(x::Array{Float64}, dldy::Array{Float64}; alpha = 2.)
   b = backward(l,dldy)
   bg = g_m(x,dldy)
 
-  @test_approx_eq_eps norm(f-fs) 0 alpha
-  @test_approx_eq_eps norm(b-bg) 0 alpha
+  @test norm(f-fs) ≈ 0 atol=alpha
+  @test norm(b-bg) ≈ 0 atol=alpha
 
 end
 

@@ -10,15 +10,15 @@ batch_size = 500
 function build_cnn()
     layers = Layer[
         InputLayer((28,28,1,batch_size)),
-        CaffeConvLayer(32,(5,5)),
+        CaffeConv(32,(5,5)),
         ReLu(),
-        MaxPoolingLayer((2,2)),
+        MaxPool((2,2)),
 
-        CaffeConvLayer(32,(5,5)),
+        CaffeConv(32,(5,5)),
         ReLu(),
-        MaxPoolingLayer((2,2)),
+        MaxPool((2,2)),
 
-        FlattenLayer(),
+        Flatten(),
 
         DenseLayer(256),
         ReLu(),

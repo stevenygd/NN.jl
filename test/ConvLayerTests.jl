@@ -1,5 +1,5 @@
 include("../src/layers/LayerBase.jl")
-include("../src/layers/CaffeConvLayer.jl")
+include("../src/layers/CaffeConv.jl")
 include("gradient_test.jl")
 using Base.Test
 
@@ -7,7 +7,7 @@ bsize= 500
 inp_size = (5,5,3)
 f = 3
 ksize = (3,3)
-l = CaffeConvLayer(f,ksize)
+l = CaffeConv(f,ksize)
 init(l, nothing, Dict{String, Any}("batch_size" => bsize, "input_size" => inp_size))
 X = rand(inp_size[1], inp_size[2], inp_size[3],  bsize)
 println("X statistics: $(mean(abs(X))) $(maximum(X)) $(minimum(X))")
