@@ -78,7 +78,7 @@ function init(l::FullyConnected, out_size::Tuple; kwargs...)
         local a    = sqrt(12. / (l.fan_in +l.fan_out))
         l.W = rand(l.fan_in+1,l.fan_out)* 2 * a - a
     elseif l.init_type == "He"
-        σ = sqrt(2. / fan_in)
+        σ = sqrt(2. / l.fan_in)
         l.W  = randn(l.fan_in+1, l.fan_out) * σ
     elseif l.init_type == "Glorot"
         σ = sqrt(2. / (l.fan_in + l.fan_out))
