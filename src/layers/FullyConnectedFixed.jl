@@ -42,9 +42,6 @@ function init(l::FullyConnectedFixed, out_size::Tuple; kwargs...)
     [l]         the layer to be initialized
     [out_size]  the size of the output matrix
     """
-
-    println("start init")
-
     batch_size, l.fan_in = out_size
 
     # Get enough information, now preallocate the memory
@@ -56,8 +53,6 @@ function init(l::FullyConnectedFixed, out_size::Tuple; kwargs...)
     end
     l.velc  = zeros(l.fan_in + 1,    l.fan_out)
     l.grad  = zeros(l.fan_in + 1,    l.fan_out)
-
-    println("other init finished")
 
     # Pull out the output size
     l.W = Array{FixedDecimal{Int, 4}}(l.fan_in+1, l.fan_out)
@@ -73,7 +68,6 @@ function init(l::FullyConnectedFixed, out_size::Tuple; kwargs...)
     elseif l.init_type == "Random"
         W = rand(l.fan_in+1, l.fan_out) - 0.5
     end
-    W[l.fan_in+1,:] = zeros(l.fan_out)
     for i=1:length(W)
         l.W[i] = FixedDecimal{Int, 4}(W[i])
     end
@@ -129,7 +123,9 @@ function setParam!(l::FullyConnectedFixed, theta)
     @assert size(l.W) == size(theta[1])
     # broadcast!(-, l.velc, theta, l.W)
     # l.velc = theta[1] - l.W
-    l.W = theta[1]
+    for i=1:length(theta[1])
+        l.W[i] = FixedDecimal{Int, 4}(theta[1][i])
+    end
     # copy!(l.W, theta[1])
 end
 

@@ -1,5 +1,3 @@
-include("LayerBase.jl")
-
 type MaxPool <: RegularizationLayer
     base     :: LayerBase
 

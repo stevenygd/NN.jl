@@ -1,5 +1,4 @@
 # Abtract out DropOut
-include("LayerBase.jl")
 type Flatten <: UtilityLayer
     base     :: LayerBase
 

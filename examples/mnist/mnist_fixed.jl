@@ -58,9 +58,7 @@ function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer
                     local batch_X = X[start:last, :]
                     local batch_Y = Y[start:last, :]
                     loss, pred = optimize(optimizer, Dict(layerX=>batch_X, layerY=>batch_Y))
-                    if bid % 100 == 0
-                        println("[$(bid+1)/$num_batch] loss: $(mean(loss))")
-                    end
+                    println("[$(bid+1)/$num_batch] loss: $(mean(loss))")
                     push!(all_losses, mean(loss))
                     batch_cor = get_cor(pred, batch_Y)
                     epo_cor  += batch_cor
@@ -88,7 +86,7 @@ function sgd(graph::Graph, layerX::Layer, layerY::Layer, optimizer::SgdOptimizer
     return epo_losses, epo_accus, val_losses, val_accus, all_losses
 end
 
-batch_size = 4
+batch_size = 500
 
 X,Y = mnistData(ttl=55000) # 0-1
 
