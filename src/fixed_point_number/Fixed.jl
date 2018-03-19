@@ -59,14 +59,18 @@ end
 # convert
 function convert(::Type{Fixed{T, σ, f}}, x::AbstractFloat) where {T<:Integer, σ, f}
     # x /= σ
-    if x > typemax(T)
-        return typemax(T)
-    elseif x < typemin(T)
-        return typemin(T)
+    if x >= (typemax(T)+1)>>f
+        println("x is $x")
+        return Fixed{T,σ,f}(typemax(T),0)
+    elseif x < typemin(T)>>f
+        return Fixed{T,σ,f}(typemin(T),0)
     else
         x_floor = floor(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f))
-        r = x - x_floor
-        if rand() > r*2.0^(-f)
+        r = x*2^f - x_floor
+        println("r is $r")
+        p = rand()
+        println("p is $p")
+        if p > r
             return Fixed{T,σ,f}(x_floor+1, 0)
         else return Fixed{T,σ,f}(x_floor, 0)
         end
