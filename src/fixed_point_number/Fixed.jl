@@ -12,7 +12,7 @@ struct Fixed{T <: Signed,f}
     i::T
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
-    function Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(saturate(T,i))
+    Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(saturate(T,i))
     Fixed{T,f}(x::Int) where {T,f} = convert(Fixed{T,f}, x)
     Fixed{T,f}(x::AbstractFloat) where {T,f} = quantize(Fixed{T,f}, x)
     Fixed{T,f}(x::Fixed{T,f}) where {T,f} = x
@@ -20,7 +20,7 @@ end
 
 struct BlockFixed{T<:Signed, σ}
     i::T
-    function BlockFixed{T,σ}(i::Integer, _) where {T, σ} = new{T, σ}(saturate(T,i))
+    BlockFixed{T,σ}(i::Integer, _) where {T, σ} = new{T, σ}(saturate(T,i))
 end
 
 type BlockFixedArray{T<:Signed, σ}
@@ -54,9 +54,10 @@ end
 
 # quantize
 function saturate(T::Type{<:Integer}, x::Integer)
-    if i > typemax(T) typemax(T)
-    elseif i < typemin(T) typemin(T)
-    else i
+    if x > typemax(T) typemax(T)
+    elseif x < typemin(T) typemin(T)
+    else x
+    end
 end
 
 # Error
@@ -90,6 +91,22 @@ function quantize(::Type{Fixed{T, f}}, x::AbstractFloat) where {T<:Integer,f}
         if p > r
             return Fixed{T,f}(x_floor+1, 0)
         else return Fixed{T,f}(x_floor, 0)
+        end
+    end
+end
+
+function quantize(::Type{BlockFixed{T, σ}}, x::AbstractFloat) where {T<:Integer,σ}
+    if x >= (typemax(T)+1)*σ
+        return BlockFixed{T,σ}(typemax(T),0)
+    elseif x < typemin(T)*σ
+        return BlockFixed{T,σ}(typemin(T),0)
+    else
+        x_floor = floor(T, trunc(widen1(T),x)/σ + rem(x,1)*(one(widen1(T))/σ))
+        r = x/σ - x_floor
+        p = rand()
+        if p > r
+            return BlockFixed{T,σ}(x_floor+1, 0)
+        else return BlockFixed{T,σ}(x_floor, 0)
         end
     end
 end
