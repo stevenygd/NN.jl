@@ -10,15 +10,9 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
 
 struct Fixed{T <: Signed,f}
     i::T
-
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
-    function Fixed{T, f}(i::Integer, _) where {T,f}
-        if i > typemax(T) new{T,f}(typemax(T))
-        elseif i < typemin(T) new{T,f}(typemin(T))
-        else new{T,f}(i)
-        end
-    end
+    function Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(saturate(T,i))
     Fixed{T,f}(x::Int) where {T,f} = convert(Fixed{T,f}, x)
     Fixed{T,f}(x::AbstractFloat) where {T,f} = quantize(Fixed{T,f}, x)
     Fixed{T,f}(x::Fixed{T,f}) where {T,f} = x
@@ -26,12 +20,7 @@ end
 
 struct BlockFixed{T<:Signed, σ}
     i::T
-    function BlockFixed{T,σ}(i::Integer, _) where {T, σ}
-        if i > typemax(T) new{T,f}(typemax(T))
-        elseif i < typemin(T) new{T,f}(typemin(T))
-        else new{T,f}(i)
-        end
-    end
+    function BlockFixed{T,σ}(i::Integer, _) where {T, σ} = new{T, σ}(saturate(T,i))
 end
 
 type BlockFixedArray{T<:Signed, σ}
@@ -64,21 +53,28 @@ function zero(::Type{Fixed{T,f}}) where {T<:Integer,f}
 end
 
 # quantize
-function qround(T::Type{<:Integer}, x::Integer)
-    if x > typemax(T)
-        return typemax(T)
-    elseif x < typemin(T)
-        return typemin(T)
-    else
-        d = bits_diff(T, typeof(x))
-        x_floor = (x>>d)<<d
-        r = x - x_floor
-        if rand() > float(r)^2^(-d)
-            return T(x_floor>>d)
-        else return T(x_floor+1>>d)
-        end
-    end
+function saturate(T::Type{<:Integer}, x::Integer)
+    if i > typemax(T) typemax(T)
+    elseif i < typemin(T) typemin(T)
+    else i
 end
+
+# Error
+# function qround(T::Type{<:Integer}, x::Integer)
+#     if x > typemax(T)
+#         return typemax(T)
+#     elseif x < typemin(T)
+#         return typemin(T)
+#     else
+#         d = bits_diff(T, typeof(x))
+#         x_floor = (x>>d)<<d
+#         r = x - x_floor
+#         if rand() > float(r)^2^(-d)
+#             return T(x_floor>>d)
+#         else return T(x_floor+1>>d)
+#         end
+#     end
+# end
 
 function quantize(::Type{Fixed{T, f}}, x::AbstractFloat) where {T<:Integer,f}
     # x /= σ
