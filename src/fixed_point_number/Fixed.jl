@@ -1,79 +1,83 @@
 # 32-bit fixed point; parameter `f` is the number of fraction bits
-struct Fixed{T <: Signed,f} <: FixedPoint{T,  f}
+
+import Base: ==, <, <=, -, +, *, /, ~, isapprox,
+             convert, promote_rule, show, showcompact, isinteger, abs, decompose,
+             isnan, isinf, isfinite,
+             zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
+             float, trunc, round, floor, ceil, bswap,
+             div, fld, rem, mod, mod1, fld1, min, max, minmax,
+             start, next, done, rand
+
+struct Fixed{T <: Signed,δ,f}
     i::T
 
     # constructor for manipulating the representation;
     # selected by passing an extra dummy argument
-    Fixed{T, f}(i::Integer, _) where {T,f} = new{T, f}(i % T)
-    Fixed{T, f}(x) where {T,f} = convert(Fixed{T,f}, x)
-    Fixed{T, f}(x::Fixed{T,f}) where {T,f} = x
-    Fixed{T, f}(x::Char) where {T,f} = throw(ArgumentError("Fixed cannot be constructed from a Char"))
-    Fixed{T, f}(x::Complex) where {T,f} = Fixed{T, f}(convert(real(typeof(x)), x))
-    Fixed{T, f}(x::Base.TwicePrecision) where {T,f} = Fixed{T, f}(convert(Float64, x))
+    Fixed{T, δ, f}(i::Integer, _) where {T,δ,f} = new{T,δ,f}(i % T)
+    Fixed{T, δ, f}(x) where {T,δ,f} = convert(Fixed{T,δ,f}, x)
+    Fixed{T, δ, f}(x::Fixed{T,δ,f}) where {T,δ,f} = x
 end
 
-reinterpret(::Type{Fixed{T,f}}, x::T) where {T <: Signed,f} = Fixed{T,f}(x, 0)
+reinterpret(::Type{Fixed{T,δ,f}}, x::T) where {T <: Signed,δ,f} = Fixed{T,δ,f}(x, 0)
 
-typechar(::Type{X}) where {X <: Fixed} = 'Q'
-signbits(::Type{X}) where {X <: Fixed} = 1
+# helper for type
+widen1(::Type{Int8})   = Int16
+widen1(::Type{UInt8})  = UInt16
+widen1(::Type{Int16})  = Int32
+widen1(::Type{UInt16}) = UInt32
+widen1(::Type{Int32})  = Int64
+widen1(::Type{UInt32}) = UInt64
+widen1(::Type{Int64})  = Int128
+widen1(::Type{UInt64}) = UInt128
+widen1(::Type{UInt128}) = UInt128
+widen1(x::Integer) = x % widen1(typeof(x))
+bits_diff(::Type{Int8}, ::Type{Int16}) = 8
+bits_diff(::Type{Int16}, ::Type{Int32}) = 16
+bits_diff(::Type{Int32}, ::Type{Int64}) = 32
 
-for T in (Int8, Int16, Int32, Int64)
-    for f in 0:sizeof(T)*8-1
-        sym = Symbol(String(take!(showtype(_iotypealias, Fixed{T,f}))))
-        @eval begin
-            const $sym = Fixed{$T,$f}
-            export $sym
+# basic
+function zero(::Type{Fixed{T,σ,f}}) where {T<:Integer,σ,f}
+    Fixed{T,σ,f}(0,0)
+end
+# multiplication
+function qround(T::Type{<:Integer}, x::Integer)
+    if x > typemax(T)
+        return typemax(T)
+    elseif x < typemin(T)
+        return typemin(T)
+    else
+        d = bits_diff(T, typeof(x))
+        x_floor = (x>>d)<<d
+        r = x - x_floor
+        if rand() > float(r)^2^(-d)
+            return T(x_floor>>d)
+        else return T(x_floor+1>>d)
         end
     end
 end
 
-# basic operators
--(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(-x.i,0)
-abs(x::Fixed{T,f}) where {T,f} = Fixed{T,f}(abs(x.i),0)
-
-+(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i+y.i,0)
--(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(x.i-y.i,0)
-
-# with truncation:
-#*{f}(x::Fixed32{f}, y::Fixed32{f}) = Fixed32{f}(Base.widemul(x.i,y.i)>>f,0)
-# with rounding up:
-*(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}((Base.widemul(x.i,y.i) + (one(widen(T)) << (f-1)))>>f,0)
-
-/(x::Fixed{T,f}, y::Fixed{T,f}) where {T,f} = Fixed{T,f}(div(convert(widen(T), x.i) << f, y.i), 0)
-
-
-# # conversions and promotions
-convert(::Type{Fixed{T,f}}, x::Integer) where {T,f} = Fixed{T,f}(round(T, convert(widen1(T),x)<<f),0)
-convert(::Type{Fixed{T,f}}, x::AbstractFloat) where {T,f} = Fixed{T,f}(round(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f)),0)
-convert(::Type{Fixed{T,f}}, x::Rational) where {T,f} = Fixed{T,f}(x.num)/Fixed{T,f}(x.den)
-
-rem(x::Integer, ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(x,T)<<f,0)
-rem(x::Real,    ::Type{Fixed{T,f}}) where {T,f} = Fixed{T,f}(rem(Integer(trunc(x)),T)<<f + rem(Integer(round(rem(x,1)*(one(widen1(T))<<f))),T),0)
-
-# convert{T,f}(::Type{AbstractFloat}, x::Fixed{T,f}) = convert(floattype(x), x)
-float(x::Fixed) = convert(floattype(x), x)
-
-convert(::Type{BigFloat}, x::Fixed{T,f}) where {T,f} =
-    convert(BigFloat,x.i>>f) + convert(BigFloat,x.i&(one(widen1(T))<<f - 1))/convert(BigFloat,one(widen1(T))<<f)
-convert(::Type{TF}, x::Fixed{T,f}) where {TF <: AbstractFloat,T,f} =
-    convert(TF,x.i>>f) + convert(TF,x.i&(one(widen1(T))<<f - 1))/convert(TF,one(widen1(T))<<f)
-
-convert(::Type{Bool}, x::Fixed{T,f}) where {T,f} = x.i!=0
-function convert(::Type{Integer}, x::Fixed{T,f}) where {T,f}
-    isinteger(x) || throw(InexactError())
-    convert(Integer, x.i>>f)
-end
-function convert(::Type{TI}, x::Fixed{T,f}) where {TI <: Integer,T,f}
-    isinteger(x) || throw(InexactError())
-    convert(TI, x.i>>f)
+# convert
+function convert(::Type{Fixed{T, σ, f}}, x::AbstractFloat) where {T<:Integer, σ, f}
+    # x /= σ
+    if x > typemax(T)
+        return typemax(T)
+    elseif x < typemin(T)
+        return typemin(T)
+    else
+        x_floor = floor(T, trunc(widen1(T),x)<<f + rem(x,1)*(one(widen1(T))<<f))
+        r = x - x_floor
+        if rand() > r*2.0^(-f)
+            return Fixed{T,σ,f}(x_floor+1, 0)
+        else return Fixed{T,σ,f}(x_floor, 0)
+        end
+    end
 end
 
-convert(::Type{TR}, x::Fixed{T,f}) where {TR <: Rational,T,f} =
-    convert(TR, x.i>>f + (x.i&(1<<f-1))//(one(widen1(T))<<f))
-
-promote_rule(ft::Type{Fixed{T,f}}, ::Type{TI}) where {T,f,TI <: Integer} = Fixed{T,f}
-promote_rule(::Type{Fixed{T,f}}, ::Type{TF}) where {T,f,TF <: AbstractFloat} = TF
-promote_rule(::Type{Fixed{T,f}}, ::Type{Rational{TR}}) where {T,f,TR} = Rational{TR}
-
-# TODO: Document and check that it still does the right thing.
-decompose(x::Fixed{T,f}) where {T,f} = x.i, -f, 1
+function array_cast(fix::Type{Fixed{T,σ,f}}, A::Array{<:AbstractFloat}) where {T<:Integer,σ,f}
+    B = zeros(A, Fixed{T,σ,f})
+    for i=1:length(A)
+        B[i] = Fixed{T,σ,f}(A[i])
+    end
+    return B
+end
+# convert(::Type{Fixed{T,δ,f}}, x::Integer) where {T,σ,f} = Fixed{T,f}(round(T, convert(widen1(T),x/δ)<<f),0)
