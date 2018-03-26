@@ -61,7 +61,7 @@ function backward(l::ReLu, DLDY::Array{Float64}; kwargs...)
     parent_id = l.base.parents[1].base.id
     broadcast!(>, l.base.dldx[parent_id], l.x, 0.)        # l.base.dldx = l.x .> 0.
     broadcast!(*, l.base.dldx[parent_id], l.base.dldx[parent_id], l.alpha)    # l.base.dldx = l.base.dldx * alpha
-    broadcast!(*, l.base.dldx[parent_id], l.base.dldx[parent_id], DLDY)
+    broadcast!(*, l.base.dldx[parent_id], l.base.dldx[parent_id], DLDY) #  l.base.dldx *= DLDY
 end
 
 # l = ReLu()

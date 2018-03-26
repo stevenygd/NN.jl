@@ -7,6 +7,8 @@ type BlockFixedFC{T} <: LearnableLayer where {T<:Signed}
     dldy    :: BlockFixedArray{T}
     init_type :: String
 
+    x_low :: Bool
+    nonlinearity :: String
     σ :: Real
     fan_in    :: Int
     fan_out   :: Int
@@ -15,10 +17,10 @@ type BlockFixedFC{T} <: LearnableLayer where {T<:Signed}
     velc      :: BlockFixedArray{T}
     grad      :: BlockFixedArray{T}
 
-    function BlockFixedFC(prev::Layer, fan_out::Int; σ = 2.0^(-12), init_type="He")
+    function BlockFixedFC(prev::Layer, fan_out::Int; σ = 2.0^(-12), init_type="He", x_low = true, nonlinearity="ReLu")
         i, o = 1, fan_out
         layer = new(LayerBase(), Float64[], BlockFixedArray{T}(σ), init_type,
-                    σ, i, o,
+                    x_low, nonlinearity, σ, i, o,
                     BlockFixedArray{T}(σ), BlockFixedArray{T}(σ), BlockFixedArray{T}(σ)
                     )
         out_size = getOutputSize(prev)
@@ -76,11 +78,21 @@ function forward(l::BlockFixedFC{T}, X::Union{SubArray{Float64,2},Array{Float64,
     end
 
     # Pad one at the end of the vector
-    x = Array{Float64,2}(size(l.x)[1], l.fan_in+1)
+    x = Array{Float64,2}(size(l.x,1), l.fan_in+1)
     x[:,1:l.fan_in] = X
     x[:,l.fan_in+1] = 1
-    l.x = BlockFixedArray{T}(x,σ)
-    return l.x*l.W
+    if x_low
+        l.x = BlockFixedArray{T}(x,σ)
+    else
+        l.x = x
+    end
+    y = l.x*l.w
+    if l.nonlinearity="ReLu"
+        return broadcast(max, X, 0.)
+    # TODO
+    else
+        return l.x*l.W
+    end
 end
 
 function backward(l::BlockFixedFC{T}, DLDY::Array; kwargs...) where {T<:Signed}
@@ -88,6 +100,7 @@ function backward(l::BlockFixedFC{T}, DLDY::Array; kwargs...) where {T<:Signed}
     l.dldy = DLDY
     if length(l.base.parents)>0
         # TODO fixed
+        broadcast!(>, l.base.dldx[parent_id], l.x, 0.)
         temp = BlockFixedArray{T}(l.W.arr', l.dldy.σ)
         temp = l.dldy * temp
         l.base.dldx[l.base.parents[1].base.id] = BlockFixedArray{T}(temp.arr[:, 1:end-1],l.dldy.σ)
