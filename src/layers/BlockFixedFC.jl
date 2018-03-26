@@ -5,19 +5,22 @@ type BlockFixedFC{T} <: LearnableLayer where {T<:Signed}
     base    :: LayerBase
     x       :: Union{Array{Float64}, BlockFixedArray{T}}
     dldy    :: BlockFixedArray{T}
-
     init_type :: String
+
+    σ :: Real
     fan_in    :: Int
     fan_out   :: Int
+
     W         :: BlockFixedArray{T}
     velc      :: BlockFixedArray{T}
     grad      :: BlockFixedArray{T}
 
-    function FullyConnected(prev::Layer, σ::Real, fan_out::Int; init_type="He")
+    function BlockFixedFC(prev::Layer, fan_out::Int; σ = 2.0^(-12), init_type="He")
         i, o = 1, fan_out
-        σ = 2.0^(-12)
         layer = new(LayerBase(), Float64[], BlockFixedArray{T}(σ), init_type,
-                    i, o, BlockFixedArray{T}(σ), BlockFixedArray{T}(σ), BlockFixedArray{T}(σ))
+                    σ, i, o,
+                    BlockFixedArray{T}(σ), BlockFixedArray{T}(σ), BlockFixedArray{T}(σ)
+                    )
         out_size = getOutputSize(prev)
         connect(layer, [prev])
         @assert length(layer.base.parents) == 1
@@ -62,19 +65,49 @@ function init(σ::Real, l::BlockFixedFC{T}, out_size::Tuple; kwargs...) where {T
     l.W.arr[l.fan_in+1,:] = zeros(T, fan_out)
 end
 
-function getGradient(l::FullyConnected)
-  return Array[l.grad]
+function forward(l::BlockFixedFC{T}, X::Union{SubArray{Float64,2},Array{Float64,2}}; kwargs...) where {T<:Signed}
+    # X      : NxI matrix, N is the mini batch size, I is the input size
+    # Output : NxO matrix
+    @assert size(X)[2] == l.fan_in
+
+    # update the batch_size, need to re-allocate the memory
+    if size(X, 1) != size(l.x, 1)
+        update(l, size(X))
+    end
+
+    # Pad one at the end of the vector
+    x = Array{Float64,2}(size(l.x)[1], l.fan_in+1)
+    x[:,1:l.fan_in] = X
+    x[:,l.fan_in+1] = 1
+    l.x = BlockFixedArray{T}(x,σ)
+    return l.x*l.W
 end
 
-function getParam(l::FullyConnected)
-    return Array[l.W]
+function backward(l::BlockFixedFC{T}, DLDY::Array; kwargs...) where {T<:Signed}
+    @assert size(DLDY,2) == size(l.W,2)
+    l.dldy = DLDY
+    if length(l.base.parents)>0
+        # TODO fixed
+        temp = BlockFixedArray{T}(l.W.arr', l.dldy.σ)
+        temp = l.dldy * temp
+        l.base.dldx[l.base.parents[1].base.id] = BlockFixedArray{T}(temp.arr[:, 1:end-1],l.dldy.σ)
+    end
+    l.grad = l.x*l.dldy
 end
 
-function setParam!(l::FullyConnected, theta)
+function getGradient(l::BlockFixedFC)
+    Array[l.grad]
+end
+
+function getParam(l::BlockFixedFC)
+    Array[l.W]
+end
+
+function setParam!(l::BlockFixedFC, theta)
     @assert size(l.W) == size(theta[1])
     l.W = theta[1]
 end
 
-function getVelocity(l::FullyConnected)
+function getVelocity(l::BlockFixedFC)
     return Array[l.velc]
 end

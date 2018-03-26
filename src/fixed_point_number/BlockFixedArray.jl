@@ -4,16 +4,20 @@ type BlockFixedArray{T<:Signed}
     arr::Array{T}
     σ::Real
 
-    function BlockFixedArray{T}(arr::Array{N}, σ::Real) where {T<:Signed, N}
+    function BlockFixedArray{T}(arr::Array{T}, σ::Real) where {T<:Signed}
         new(arr, σ)
     end
 
-    function BlockFixedArray{T}(σ::Real) where {T<:Signed, N}
+    function BlockFixedArray{T}(σ::Real) where {T<:Signed}
         new(T[], σ)
     end
 
     function BlockFixedArray{T}(σ::Real, dims::Integer...) where {T<:Signed}
         new(Array{T}(dims), σ)
+    end
+
+    function BlockFixedArray{T}(arr, σ::Real) where {T<:Signed}
+        new(quantize(T,σ,arr), σ)
     end
 end
 
@@ -53,6 +57,7 @@ function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
         else return x_floor
         end
     end
+    x
 end
 
 function quantize(::Type{<:Signed}, σ::Real, A::Array{N}) where {N<:AbstractFloat}
@@ -74,6 +79,14 @@ end
 
 function randn(T::Type{<:Signed}, σ::Real, dims::Integer...)
     quantize(T, σ, randn(convert(Dims, dims)))
+end
+
+function size(A::BlockFixedArray{T})
+    size(A.arr)
+end
+
+function size(A::BlockFixedArray{T},i::Int)
+    size(A.arr, i)
 end
 
 # helper for type
