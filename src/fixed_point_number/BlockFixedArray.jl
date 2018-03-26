@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import Base: +, -, *, float
+=======
+import Base: +, -, *, float, rand, randn, size
+>>>>>>> 175c2b001171ad72d727e3ee8c77e1b8bdb63345
 
 type BlockFixedArray{T<:Signed}
     arr::Array{T}
@@ -20,7 +24,7 @@ type BlockFixedArray{T<:Signed}
         new(Array{T}(dims), σ)
     end
 
-    function BlockFixedArray{T}(arr::Array{Float64}, σ::Real) where {T<:Signed}
+    function BlockFixedArray{T}(arr::Array{N}, σ::Real) where {T<:Signed, N<:AbstractFloat}
         quantize(T,σ,arr)
     end
 end
@@ -34,11 +38,14 @@ function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
 end
 
 # block array muls float
-function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
-    nT = widen(T)
-    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
-    σ = A.σ*B.σ
-    BlockFixedArray{nT}(arr, σ)
+function *(A::BlockFixedArray{T}, f::Real) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr * f)
+    BlockFixedArray{T}(arr, A.σ)
+end
+
+function *(f::Real, A::BlockFixedArray{T}) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr * f)
+    BlockFixedArray{T}(arr, A.σ)
 end
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
@@ -66,16 +73,23 @@ function quantize(T::Type{<:Signed}, σ::Real, x::Real)
         r = x - x_floor
         p = rand()
         if p <= r
-            return x_floor+1
-        else return x_floor
+            return T(x_floor+1)
+        else return T(x_floor)
         end
     end
-    x
+    T(x)
 end
 
 function quantize(T::Type{<:Signed}, σ::Real, A::Array)
     arr = Array{T}(map(x->quantize(T, σ, x), A))
     BlockFixedArray{T}(arr, σ)
+end
+
+function rescale!(A::BlockFixedArray{T}, σ::Real) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr*(A.σ/σ))
+    A.arr = arr
+    A.σ = σ
+    A
 end
 
 function rand_blocked(T::Type{<:Signed}, dims::Dims; σ::Real=2^(-12.))
@@ -94,11 +108,11 @@ function randn_blocked(T::Type{<:Signed}, σ::Real, dims::Integer...)
     quantize(T, σ, randn(convert(Dims, dims)))
 end
 
-function size(A::BlockFixedArray{T}) where {T<:Signed}
+function size(A::BlockFixedArray)
     size(A.arr)
 end
 
-function size(A::BlockFixedArray{T},i::Int) where {T<:Signed}
+function size(A::BlockFixedArray,i::Int)
     size(A.arr, i)
 end
 
