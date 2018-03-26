@@ -17,7 +17,7 @@ type BlockFixedFC{T} <: LearnableLayer where {T<:Signed}
     velc      :: BlockFixedArray{T}
     grad      :: BlockFixedArray{T}
 
-    function BlockFixedFC(prev::Layer, fan_out::Int; σ = 2.0^(-12), init_type="He", x_low = true, nonlinearity="ReLu")
+    function BlockFixedFC{T}(prev::Layer, fan_out::Int; σ = 2.0^(-12), init_type="He", x_low = true, nonlinearity="ReLu") where {T<:Signed}
         i, o = 1, fan_out
         layer = new(LayerBase(), Float64[], BlockFixedArray{T}(σ), init_type,
                     x_low, nonlinearity, σ, i, o,
@@ -87,7 +87,7 @@ function forward(l::BlockFixedFC{T}, X::Union{SubArray{Float64,2},Array{Float64,
         l.x = x
     end
     y = l.x*l.w
-    if l.nonlinearity="ReLu"
+    if l.nonlinearit=="ReLu"
         BlockFixedArray{T}(broadcast(max, y, 0.),σ)
     # TODO
     else

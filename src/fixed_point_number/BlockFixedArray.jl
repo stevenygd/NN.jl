@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import Base: +, -, *, float
-=======
-import Base: +, -, *, float, rand, randn, size
->>>>>>> 175c2b001171ad72d727e3ee8c77e1b8bdb63345
 
 type BlockFixedArray{T<:Signed}
     arr::Array{T}
