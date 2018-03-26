@@ -9,7 +9,7 @@ type FullyConnected <: LearnableLayer
     init_type :: String
     fan_in        :: Int
     fan_out :: Int
-    W         :: BlockFixedArray{Int16}
+    W         :: Array{Float64}
     velc      :: Array{Float64}
     grad      :: Array{Float64}
 

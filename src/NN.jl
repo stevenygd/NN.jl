@@ -9,7 +9,7 @@ module NN
             ReLu, DropoutLayer,
             SoftMaxCrossEntropyLoss, InputLayer, MaxPool,
             Flatten, Conv
-    export BlockFixedArray, quantize
+    export BlockFixedArray, quantize, BlockFixedFC
     include("layers/LayerBase.jl")
     include("layers/InputLayer.jl")
     include("layers/DropoutLayer.jl")
@@ -32,6 +32,7 @@ module NN
     # include("optimizers/SGD.jl")
     include("optimizers/SGD.jl")
     include("fixed_point_number/BlockFixedArray.jl")
+    include("layers/BlockFixedFC.jl")
     # export AdamOptimizer, AdamPrimOptimizer, BdamOptimizer, CdamOptimizer, DdamOptimizer,
     #        RMSPropOptimizer, SgdOptimizer, optimize
     export SgdOptimizer, optimize

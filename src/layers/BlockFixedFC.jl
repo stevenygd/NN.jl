@@ -32,7 +32,7 @@ type BlockFixedFC{T} <: LearnableLayer where {T<:Signed}
 
 end
 
-function init(σ::Real, l::BlockFixedFC{T}, out_size::Tuple; kwargs...) where {T<:Signed}
+function init(l::BlockFixedFC{T}, out_size::Tuple; kwargs...) where {T<:Signed}
     """
     [l]         the layer to be initialized
     [out_size]  the size of the output matrix
@@ -42,27 +42,27 @@ function init(σ::Real, l::BlockFixedFC{T}, out_size::Tuple; kwargs...) where {T
     batch_size, l.fan_in = out_size
 
     # Get enough information, now preallocate the memory
-    l.x      = BlockFixedArray{T}(σ, batch_size, l.fan_in + 1)
-    l.base.y = BlockFixedArray{T}(σ, batch_size, l.fan_out)
-    l.dldy   = BlockFixedArray{T}(σ, batch_size, l.fan_out)
+    l.x      = BlockFixedArray{T}(l.σ, batch_size, l.fan_in + 1)
+    l.base.y = BlockFixedArray{T}(l.σ, batch_size, l.fan_out)
+    l.dldy   = BlockFixedArray{T}(l.σ, batch_size, l.fan_out)
     if length(l.base.parents)>0
         l.base.dldx[l.base.parents[1].base.id] = Array{Float64}(batch_size, l.fan_in + 1)
     end
-    l.velc  = BlockFixedArray{T}(σ, l.fan_in + 1, l.fan_out)
-    l.grad  = BlockFixedArray{T}(σ, l.fan_in + 1, l.fan_out)
+    l.velc  = BlockFixedArray{T}(l.σ, l.fan_in + 1, l.fan_out)
+    l.grad  = BlockFixedArray{T}(l.σ, l.fan_in + 1, l.fan_out)
 
     # Pull out the output size
     if l.init_type == "Uniform"
         local a    = sqrt(12. / (l.fan_in +l.fan_out))
-        l.W = rand(T, σ, l.fan_in+1,l.fan_out)* 2 * a - a
+        l.W = rand(T, l.σ, l.fan_in+1,l.fan_out)* 2 * a - a
     elseif l.init_type == "He"
-        σ = sqrt(2. / l.fan_in)
-        l.W  = randn(T, σ, l.fan_in+1, l.fan_out) * σ
+        a = sqrt(2. / l.fan_in)
+        l.W  = randn(T, l.σ, l.fan_in+1, l.fan_out) * a
     elseif l.init_type == "Glorot"
-        σ = sqrt(2. / (l.fan_in + l.fan_out))
-        l.W  = randn(T, σ, l.fan_in+1, l.fan_out) * σ
+        a = sqrt(2. / (l.fan_in + l.fan_out))
+        l.W  = randn(T, l.σ, l.fan_in+1, l.fan_out) * a
     elseif l.init_type == "Random"
-        l.W = rand(T, σ, l.fan_in+1, l.fan_out) - 0.5
+        l.W = rand(T, l.σ, l.fan_in+1, l.fan_out) - 0.5
     end
     l.W.arr[l.fan_in+1,:] = zeros(T, fan_out)
 end
@@ -82,30 +82,44 @@ function forward(l::BlockFixedFC{T}, X::Union{SubArray{Float64,2},Array{Float64,
     x[:,1:l.fan_in] = X
     x[:,l.fan_in+1] = 1
     if x_low
-        l.x = BlockFixedArray{T}(x,σ)
+        l.x = BlockFixedArray{T}(x,l.σ)
     else
         l.x = x
     end
     y = l.x*l.w
-    if l.nonlinearity="ReLu"
-        BlockFixedArray{T}(broadcast(max, y, 0.),σ)
+    if l.nonlinearity=="ReLu"
+        BlockFixedArray{T}(broadcast(max, y, 0.),l.σ)
     # TODO
     else
-        BlockFixedArray{T}(l.x*l.W,σ)
+        BlockFixedArray{T}(y,l.σ)
     end
 end
 
-function backward(l::BlockFixedFC{T}, DLDY::Array; kwargs...) where {T<:Signed}
-    @assert size(DLDY,2) == size(l.W,2)
-    l.dldy = DLDY
-    if length(l.base.parents)>0
-        # TODO fixed
-        broadcast!(>, l.base.dldx[parent_id], l.x, 0.)
-        temp = BlockFixedArray{T}(l.W.arr', l.dldy.σ)
-        temp = l.dldy * temp
-        l.base.dldx[l.base.parents[1].base.id] = float(BlockFixedArray{T}(temp.arr[:, 1:end-1],l.dldy.σ))
+function update(l::FullyConnected, input_size::Tuple;)
+    @assert length(input_size) == 2 && size(l.x, 2) == size(l.x, 2)
+    batch_size = input_size[1]
+    x      = Array{Float64}(batch_size, l.fan_in + 1)
+    if x_low
+        l.x = BlockFixedArray{T}(x,l.σ)
+    else
+        l.x = x
     end
-    l.grad = l.x*l.dldy
+    l.base.y = BlockFixedArray{T}(l.σ, batch_size, l.fan_out)
+    l.dldy   = BlockFixedArray{T}(l.σ, batch_size, l.fan_out)
+    if length(l.base.parents)>0
+        l.base.dldx[l.base.parents[1].base.id]  = Array{Float64}(batch_size, l.fan_in + 1)
+    end
+end
+
+function backward(l::BlockFixedFC{T}, DLDY::Union{Array{Float64}}; kwargs...) where {T<:Signed}
+    @assert size(DLDY,2) == size(l.W,2)
+    l.dldy = DLDY * broadcast(>, l.base.y.arr, 0.)
+    if length(l.base.parents)>0
+        parent_id = l.base.parents[1].base.id
+        temp = l.dldy * l.W.arr' * l.W.σ
+        l.base.dldx[parent_id] = temp[:, 1:end-1]
+    end
+    l.grad = quantize(T, l.σ, l.x.arr' * l.x.σ *l.dldy)
 end
 
 function getGradient(l::BlockFixedFC)
