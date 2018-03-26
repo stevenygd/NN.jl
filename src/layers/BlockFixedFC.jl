@@ -88,10 +88,10 @@ function forward(l::BlockFixedFC{T}, X::Union{SubArray{Float64,2},Array{Float64,
     end
     y = l.x*l.w
     if l.nonlinearity="ReLu"
-        return broadcast(max, y, 0.)
+        BlockFixedArray{T}(broadcast(max, y, 0.),σ)
     # TODO
     else
-        return l.x*l.W
+        BlockFixedArray{T}(l.x*l.W,σ)
     end
 end
 
