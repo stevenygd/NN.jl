@@ -30,16 +30,16 @@ function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
 end
 
 # block array muls float
-# function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
-#     nT = widen(T)
-#     arr = Array{nT}(A.arr) * Array{nT}(B.arr)
-#     σ = A.σ*B.σ
-#     BlockFixedArray{nT}(arr, σ)
-# end
+function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
+    nT = widen(T)
+    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
+    σ = A.σ*B.σ
+    BlockFixedArray{nT}(arr, σ)
+end
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     @assert A.σ == B.σ # only allow same scale factor for now
-    BlockFixedArray{nT}(A.arr-B.arr, A.σ)
+    BlockFixedArray{T}(A.arr-B.arr, A.σ)
 end
 
 function +(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
