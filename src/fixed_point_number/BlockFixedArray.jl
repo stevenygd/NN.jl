@@ -30,6 +30,7 @@ function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
 end
 
 # block array muls float
+<<<<<<< HEAD
 function *(A::BlockFixedArray{T}, f::Real) where {T<:Signed}
     arr = map(x->quantize(T, 1, x), A.arr * f)
     BlockFixedArray{T}(arr, A.σ)
@@ -38,11 +39,18 @@ end
 function *( f::Real, A::BlockFixedArray{T}) where {T<:Signed}
     arr = map(x->quantize(T, 1, x), A.arr * f)
     BlockFixedArray{T}(arr, A.σ)
+=======
+function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
+    nT = widen(T)
+    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
+    σ = A.σ*B.σ
+    BlockFixedArray{nT}(arr, σ)
+>>>>>>> d111444c1dc6c372781bc8f04d3f7275d2db8824
 end
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     @assert A.σ == B.σ # only allow same scale factor for now
-    BlockFixedArray{nT}(A.arr-B.arr, A.σ)
+    BlockFixedArray{T}(A.arr-B.arr, A.σ)
 end
 
 function +(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}

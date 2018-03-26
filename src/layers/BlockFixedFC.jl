@@ -103,7 +103,7 @@ function backward(l::BlockFixedFC{T}, DLDY::Array; kwargs...) where {T<:Signed}
         broadcast!(>, l.base.dldx[parent_id], l.x, 0.)
         temp = BlockFixedArray{T}(l.W.arr', l.dldy.σ)
         temp = l.dldy * temp
-        l.base.dldx[l.base.parents[1].base.id] = BlockFixedArray{T}(temp.arr[:, 1:end-1],l.dldy.σ)
+        l.base.dldx[l.base.parents[1].base.id] = float(BlockFixedArray{T}(temp.arr[:, 1:end-1],l.dldy.σ))
     end
     l.grad = l.x*l.dldy
 end
