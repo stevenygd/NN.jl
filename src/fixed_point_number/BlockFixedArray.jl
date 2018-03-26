@@ -16,7 +16,7 @@ type BlockFixedArray{T<:Signed}
         new(Array{T}(dims), σ)
     end
 
-    function BlockFixedArray{T}(arr::Array{Float64}, σ::Real) where {T<:Signed}
+    function BlockFixedArray{T}(arr::Array{N}, σ::Real) where {T<:Signed, N<:AbstractFloat}
         quantize(T,σ,arr)
     end
 end
@@ -30,22 +30,14 @@ function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
 end
 
 # block array muls float
-<<<<<<< HEAD
 function *(A::BlockFixedArray{T}, f::Real) where {T<:Signed}
     arr = map(x->quantize(T, 1, x), A.arr * f)
     BlockFixedArray{T}(arr, A.σ)
 end
 
-function *( f::Real, A::BlockFixedArray{T}) where {T<:Signed}
+function *(f::Real, A::BlockFixedArray{T}) where {T<:Signed}
     arr = map(x->quantize(T, 1, x), A.arr * f)
     BlockFixedArray{T}(arr, A.σ)
-=======
-function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
-    nT = widen(T)
-    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
-    σ = A.σ*B.σ
-    BlockFixedArray{nT}(arr, σ)
->>>>>>> d111444c1dc6c372781bc8f04d3f7275d2db8824
 end
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
@@ -62,7 +54,7 @@ function float(A::BlockFixedArray)
     float(A.arr)*A.σ
 end
 
-function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
+function quantize(T::Type{<:Signed}, σ::Real, x::Real)
     x /= σ
     if x >= (typemax(T)+1)
         return typemax(T)
@@ -80,9 +72,16 @@ function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
     T(x)
 end
 
-function quantize(T::Type{<:Signed}, σ::Real, A::Array{Float64,2})
+function quantize(T::Type{<:Signed}, σ::Real, A::Array{N,2}) where {N<:Real}
     arr = Array{T}(map(x->quantize(T, σ, x), A))
     BlockFixedArray{T}(arr, σ)
+end
+
+function rescale!(A::BlockFixedArray{T}, σ::Real) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr*(A.σ/σ))
+    A.arr = arr
+    A.σ = σ
+    A
 end
 
 function rand(T::Type{<:Signed}, σ::Real, dims::Dims)
