@@ -1,3 +1,5 @@
+import Base: connect
+
 abstract type ANN end
 abstract type Layer end
 abstract type LearnableLayer <: Layer end
