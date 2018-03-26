@@ -6,7 +6,7 @@ import Base: ==, <, <=, -, +, *, /, ~, isapprox,
              zero, oneunit, one, typemin, typemax, realmin, realmax, eps, sizeof, reinterpret,
              float, trunc, round, floor, ceil, bswap,
              div, fld, rem, mod, mod1, fld1, min, max, minmax,
-             start, next, done, rand
+             start, next, done, rand, float
 
 struct Fixed{T <: Signed,f}
     i::T
@@ -23,11 +23,24 @@ struct BlockFixed{T<:Signed, σ}
     BlockFixed{T,σ}(i::Integer, _) where {T, σ} = new{T, σ}(saturate(T,i))
 end
 
-type BlockFixedArray{T<:Signed, σ}
-    A::Array{T}
-    function BlockFixedArray{T, σ}(A::Array{N}) where {T<:Signed, σ, N<:Integer}
-        new(A)
+type BlockFixedArray{T<:Signed}
+    arr::Array{T}
+    σ::Float64
+    function BlockFixedArray{T}(arr::Array{N}, σ::Float64) where {T<:Signed, N<:Integer}
+        new(arr, σ)
     end
+end
+
+function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
+    @assert T == T
+    nT = widen(T)
+    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
+    σ = A.σ*B.σ
+    BlockFixedArray{nT}(arr, σ)
+end
+
+function float(A::BlockFixedArray)
+    float(A.arr)*A.σ
 end
 
 reinterpret(::Type{Fixed{T,f}}, x::T) where {T <: Signed,f} = Fixed{T,f}(x, 0)
