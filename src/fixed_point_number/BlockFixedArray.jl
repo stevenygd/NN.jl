@@ -1,4 +1,4 @@
-import Base: +, -, *, float, rand, randn
+import Base: +, -, *, float
 
 type BlockFixedArray{T<:Signed}
     arr::Array{T}
@@ -6,6 +6,10 @@ type BlockFixedArray{T<:Signed}
 
     function BlockFixedArray{T}(arr::Array{T}, σ::Real) where {T<:Signed}
         new(arr, σ)
+    end
+
+    function BlockFixedArray{T}(arr::Array{nT}, σ::Real) where {T<:Signed, nT<:Signed}
+        quantize(T,σ,arr)
     end
 
     function BlockFixedArray{T}(σ::Real) where {T<:Signed}
@@ -51,7 +55,7 @@ function float(A::BlockFixedArray)
     float(A.arr)*A.σ
 end
 
-function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
+function quantize(T::Type{<:Signed}, σ::Real, x::Real)
     x /= σ
     if x >= (typemax(T)+1)
         return typemax(T)
@@ -69,24 +73,24 @@ function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
     x
 end
 
-function quantize(T::Type{<:Signed}, σ::Real, A::Array{Float64,2})
+function quantize(T::Type{<:Signed}, σ::Real, A::Array)
     arr = Array{T}(map(x->quantize(T, σ, x), A))
     BlockFixedArray{T}(arr, σ)
 end
 
-function rand(T::Type{<:Signed}, σ::Real, dims::Dims)
+function rand_blocked(T::Type{<:Signed}, dims::Dims; σ::Real=2^(-12.))
     quantize(T, σ, rand(dims))
 end
 
-function rand(T::Type{<:Signed}, σ::Real, dims::Integer...)
+function rand_blocked(T::Type{<:Signed}, dims::Integer...; σ::Real=2^(-12.))
     quantize(T, σ, rand(convert(Dims, dims)))
 end
 
-function randn(T::Type{<:Signed}, σ::Real, dims::Dims)
+function randn_blocked(T::Type{<:Signed}, σ::Real, dims::Dims)
     quantize(T, σ, randn(dims))
 end
 
-function randn(T::Type{<:Signed}, σ::Real, dims::Integer...)
+function randn_blocked(T::Type{<:Signed}, σ::Real, dims::Integer...)
     quantize(T, σ, randn(convert(Dims, dims)))
 end
 
