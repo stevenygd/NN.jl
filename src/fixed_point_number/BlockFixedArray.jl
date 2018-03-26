@@ -1,4 +1,4 @@
-import Base: *, float
+import Base: +, -, *, float
 
 
 type BlockFixedArray{T<:Signed}
@@ -10,11 +10,20 @@ type BlockFixedArray{T<:Signed}
 end
 
 function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
-    @assert T == T
     nT = widen(T)
     arr = Array{nT}(A.arr) * Array{nT}(B.arr)
     σ = A.σ*B.σ
     BlockFixedArray{nT}(arr, σ)
+end
+
+function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
+    @assert A.σ == B.σ # only allow same scale factor for now
+    BlockFixedArray{nT}(A.arr-B.arr, A.σ)
+end
+
+function +(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
+    @assert A.σ == B.σ # only allow same scale factor for now
+    BlockFixedArray{nT}(A.arr+B.arr, A.σ)
 end
 
 function float(A::BlockFixedArray)

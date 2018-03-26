@@ -9,7 +9,7 @@ type FullyConnected <: LearnableLayer
     init_type :: String
     fan_in        :: Int
     fan_out :: Int
-    W         :: BlockFixedArray{Int16}
+    W         :: Array{Float64}
     velc      :: Array{Float64}
     grad      :: Array{Float64}
 
@@ -34,25 +34,7 @@ type FullyConnected <: LearnableLayer
         layer
     end
 
-    # Create a copy of another FC layer; used for multi threading
-    # function FullyConnected(main::FullyConnected)
-    #     layer = new(LayerBase(), Float64[], Float64[], Float64[], "",
-    #         0, 0, randn(1,1), zeros(1, 1), zeros(1, 1))
-    #     layer.base.y = copy(main.base.y)
-    #     layer.base.dldx = copy(main.base.dldx)
-    #     layer.x = copy(main.x)
-    #     layer.dldy = copy(main.dldy)
-    #     layer.init_type = main.init_type
-    #     layer.i = copy(main.i)
-    #     layer.fan_out = copy(main.fan_out)
-    #     layer.W = main.W
-    #     layer.velc = copy(main.velc)
-    #     layer.grad = copy(main.grad)
-    #     layer
-    # end
 end
-
-verbose = 0
 
 function init(l::FullyConnected, out_size::Tuple; kwargs...)
     """
@@ -144,10 +126,7 @@ end
 
 function setParam!(l::FullyConnected, theta)
     @assert size(l.W) == size(theta[1])
-    # broadcast!(-, l.velc, theta, l.W)
-    # l.velc = theta[1] - l.W
     l.W = theta[1]
-    # copy!(l.W, theta[1])
 end
 
 function getVelocity(l::FullyConnected)
