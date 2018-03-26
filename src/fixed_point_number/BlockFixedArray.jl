@@ -1,4 +1,4 @@
-import Base: +, -, *, float, rand, randn
+import Base: +, -, *, float, rand, randn, size
 
 type BlockFixedArray{T<:Signed}
     arr::Array{T}
@@ -30,12 +30,15 @@ function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
 end
 
 # block array muls float
-# function *(A::AbstractFloat, B::BlockFixedArray{T}) where {T<:Signed}
-#     nT = widen(T)
-#     arr = Array{nT}(A.arr) * Array{nT}(B.arr)
-#     σ = A.σ*B.σ
-#     BlockFixedArray{nT}(arr, σ)
-# end
+function *(A::BlockFixedArray{T}, f::Real) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr * f)
+    BlockFixedArray{T}(arr, A.σ)
+end
+
+function *( f::Real, A::BlockFixedArray{T}) where {T<:Signed}
+    arr = map(x->quantize(T, 1, x), A.arr * f)
+    BlockFixedArray{T}(arr, A.σ)
+end
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     @assert A.σ == B.σ # only allow same scale factor for now
@@ -62,11 +65,11 @@ function quantize(T::Type{<:Signed}, σ::Real, x::AbstractFloat)
         r = x - x_floor
         p = rand()
         if p <= r
-            return x_floor+1
-        else return x_floor
+            return T(x_floor+1)
+        else return T(x_floor)
         end
     end
-    x
+    T(x)
 end
 
 function quantize(T::Type{<:Signed}, σ::Real, A::Array{Float64,2})
@@ -90,11 +93,11 @@ function randn(T::Type{<:Signed}, σ::Real, dims::Integer...)
     quantize(T, σ, randn(convert(Dims, dims)))
 end
 
-function size(A::BlockFixedArray{T}) where {T<:Signed}
+function size(A::BlockFixedArray)
     size(A.arr)
 end
 
-function size(A::BlockFixedArray{T},i::Int) where {T<:Signed}
+function size(A::BlockFixedArray,i::Int)
     size(A.arr, i)
 end
 
