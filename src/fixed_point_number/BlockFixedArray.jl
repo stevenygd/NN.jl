@@ -1,4 +1,4 @@
-import Base: +, -, *, float, rand, randn, size
+import Base: +, -, *, float, rand, randn, size, transpose
 
 type BlockFixedArray{T<:Signed}
     arr::Array{T}
@@ -25,12 +25,17 @@ type BlockFixedArray{T<:Signed}
     end
 end
 
-# block array muls block array
+# function setindex!(A::BlockFixedArray{T}, X, inds) where {T<:Signed}
+#     setindex!(A.arr, X, inds)
+# end
+
+# block array muls return a float array
+transpose(A::BlockFixedArray) = BlockFixedArray(transpose(A.arr), A.σ)
+
 function *(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     nT = widen(T)
-    arr = Array{nT}(A.arr) * Array{nT}(B.arr)
-    σ = A.σ*B.σ
-    BlockFixedArray{nT}(arr, σ)
+    arr = Array{Int32}(A.arr) * Array{Int32}(B.arr)
+    arr * A.σ * B.σ
 end
 
 # block array muls float
@@ -39,10 +44,10 @@ function *(A::BlockFixedArray{T}, f::Real) where {T<:Signed}
     BlockFixedArray{T}(arr, A.σ)
 end
 
-function *(f::Real, A::BlockFixedArray{T}) where {T<:Signed}
-    arr = map(x->quantize(T, 1, x), A.arr * f)
-    BlockFixedArray{T}(arr, A.σ)
-end
+*(f::Real, A::BlockFixedArray)= *(A, f)
+
+*(M::Array{Bool}, A::BlockFixedArray{T}) = BlockFixedArray{T}(M*A.arr, A.σ)
+*(A::BlockFixedArray{T}, M::Array{Bool}) = BlockFixedArray{T}(A.arr*M, A.σ)
 
 function -(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     @assert A.σ == B.σ # only allow same scale factor for now
@@ -51,7 +56,7 @@ end
 
 function +(A::BlockFixedArray{T}, B::BlockFixedArray{T}) where {T<:Signed}
     @assert A.σ == B.σ # only allow same scale factor for now
-    BlockFixedArray{nT}(A.arr+B.arr, A.σ)
+    BlockFixedArray{T}(A.arr+B.arr, A.σ)
 end
 
 function float(A::BlockFixedArray)
@@ -82,17 +87,17 @@ function quantize(T::Type{<:Signed}, σ::Real, A::Array)
 end
 
 function rescale!(A::BlockFixedArray{T}, σ::Real) where {T<:Signed}
-    arr = map(x->quantize(T, 1, x), A.arr*(A.σ/σ))
+    arr = quantize(T, σ, float(A))
     A.arr = arr
     A.σ = σ
     A
 end
 
-function rand_blocked(T::Type{<:Signed}, dims::Dims; σ::Real=2^(-12.))
+function rand_blocked(T::Type{<:Signed}, σ, dims::Dims)
     quantize(T, σ, rand(dims))
 end
 
-function rand_blocked(T::Type{<:Signed}, dims::Integer...; σ::Real=2^(-12.))
+function rand_blocked(T::Type{<:Signed}, σ, dims::Integer...)
     quantize(T, σ, rand(convert(Dims, dims)))
 end
 

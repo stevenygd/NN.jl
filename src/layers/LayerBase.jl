@@ -14,8 +14,8 @@ type LayerBase
     children :: Array{Layer}
     id  :: Base.Random.UUID
 
-    y        :: Array{Float64}
-    dldx     :: Dict{Base.Random.UUID, Array{Float64}}
+    y        :: Union{Array{Float64}, BlockFixedArray}
+    dldx     :: Dict{Base.Random.UUID, Union{Array{Float64}, BlockFixedArray}}
 
     function LayerBase()
         return new(Layer[], Layer[], Base.Random.uuid4(),
